@@ -1,3 +1,26 @@
+// StudentHomePage
+// ----------------
+// Role:
+// - Acts as the main dashboard for a logged-in student inside the StudentShell.
+// - Greets the student and shows a quick overview of what matters today.
+//
+// Responsibilities:
+// - Display basic identity info (name, student ID, avatar) from [userProvider].
+// - Highlight key actions via "hero" cards (e.g. homework to check, live class to join).
+// - Expose quick links to core features (Attendance, Exams, Leave, Fees, Homework, etc.).
+//- Show a preview of upcoming school events.
+//
+// Current state:
+// - Uses hard-coded demo data for hero cards, quick links, and upcoming events.
+// - Uses fallback values for name / studentId when user data is missing.
+// - Layout is scrollable and uses AppTheme for consistent colors.
+//
+// Future improvements:
+//- Replace hard-coded lists with dynamic data from Firestore / backend.
+//- Make quick links tappable and navigate to real feature pages.
+// - Personalize hero cards based on the student's current timetable and assignments.
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,7 +49,7 @@ class StudentHomePage extends ConsumerWidget {
         title: 'Check updated homework',
         subtitle: 'New work for you.',
         imageUrl:
-            'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=500&q=80',
+           'assets/images/home_hero_homework.png',
         ctaLabel: 'Check Now',
         backgroundColor: Color(0xFFFDE1E9),
       ),
@@ -34,7 +57,7 @@ class StudentHomePage extends ConsumerWidget {
         title: 'Join live class at 2:30 PM',
         subtitle: 'Don\'t miss today\'s session.',
         imageUrl:
-            'https://images.unsplash.com/photo-1522202195465-dc5d0f4affc0?auto=format&fit=crop&w=500&q=80',
+            'assets/images/home_hero_live.png',
         ctaLabel: 'Join Now',
         backgroundColor: Color(0xFFE1F5FE),
       ),
@@ -67,7 +90,7 @@ class StudentHomePage extends ConsumerWidget {
       ),
       QuickLinkItem(
         icon: Icons.edit_note_outlined,
-        label: 'Home Work',
+        label: 'Homework',
         backgroundColor: Color(0xFFF8F2DC),
         iconColor: Color(0xFFB7791F),
       ),
@@ -96,20 +119,23 @@ class StudentHomePage extends ConsumerWidget {
         title: 'Inter-school football match',
         dateLabel: 'Nov 22, 2024',
         imageUrl:
-            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=500&q=80',
+            'assets/images/event_football.png',
+
+        fallbackColor: Color(0xFFE1F5FE),
       ),
       UpcomingEvent(
         title: 'Science project fair',
         dateLabel: 'Dec 1, 2024',
         imageUrl:
-            'https://images.unsplash.com/photo-1582719477707-64c04a8b01ea?auto=format&fit=crop&w=500&q=80',
-        fallbackColor: Color(0xFFFDE1E9),
+            'assets/images/event_science_fair.png',
+
+        fallbackColor: Color(0xFFE1F5FE),
       ),
       UpcomingEvent(
         title: 'Parent-teacher meeting',
         dateLabel: 'Dec 5, 2024',
         imageUrl:
-            'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=500&q=80',
+             'assets/images/event_parent_meeting.png',
         fallbackColor: Color(0xFFE1F5FE),
       ),
     ];
@@ -130,17 +156,18 @@ class StudentHomePage extends ConsumerWidget {
               const SizedBox(height: 18),
               InfoCardsRow(cards: heroCards),
               const SizedBox(height: 22),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: const Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
+             Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 4),
+  child: Text(
+    'Dashboard',
+    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: AppTheme.textPrimary,
+        ),
+  ),
+),
+                  
+                
+              
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),

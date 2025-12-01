@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
 
 class SelectRolePage extends ConsumerStatefulWidget {
@@ -21,6 +22,13 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
   void initState() {
     super.initState();
     _loadCurrentUser();
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _loadCurrentUser() async {
@@ -45,23 +53,19 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
 
   Future<void> _saveRoleAndContinue() async {
     if (_selectedRole == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a role')));
+      _showSnack('Please select a role');
       return;
     }
 
-    final messenger = ScaffoldMessenger.of(context);
     final currentUser = _currentUser ?? ref.read(userProvider);
 
     if (currentUser == null) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Unable to load your profile. Please log in again.'),
-        ),
-      );
+      _showSnack('Unable to load your profile. Please log in again.');
       return;
     }
+
+    // Hide keyboard before we start async work
+    FocusScope.of(context).unfocus();
 
     setState(() => _isSaving = true);
 
@@ -84,9 +88,11 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
       Navigator.pushReplacementNamed(context, nextRoute);
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Error saving role: $e')));
+      _showSnack('Error saving role: $e');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -109,10 +115,10 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
           height: 150,
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? Colors.blue : Colors.grey.shade300,
+              color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
               width: isSelected ? 2 : 1,
             ),
             boxShadow: [
@@ -129,7 +135,9 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
               Icon(
                 icon,
                 size: 48,
-                color: isSelected ? Colors.blue : Colors.grey.shade500,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : Colors.grey.shade500,
               ),
               const SizedBox(height: 12),
               Text(
@@ -137,7 +145,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.blue : Colors.black87,
+                  color: isSelected ? AppTheme.primaryColor : Colors.black87,
                 ),
               ),
             ],
@@ -149,15 +157,23 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final name = _currentUser?.displayName ?? 'there';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppTheme.surfaceVariant,
       appBar: AppBar(
-        title: const Text('Select Role'),
+        title: Text(
+          'Select Role',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.white,
+        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
       ),
       body: _isLoadingUser
           ? const Center(child: CircularProgressIndicator())
@@ -166,18 +182,22 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                 const SizedBox(height: 24),
                 Text(
                   'Welcome, $name 👋',
-                  style: const TextStyle(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
                     'Select how you will use the app.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -206,6 +226,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveRoleAndContinue,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -220,7 +241,13 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Continue'),
+                          : const Text(
+                              'Continue',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
                     ),
                   ),
                 ),

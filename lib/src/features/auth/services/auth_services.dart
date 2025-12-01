@@ -244,10 +244,42 @@ class AuthService {
   }
 
   Future<void> resetPassword(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      throw Exception('Password reset failed: $e');
-    }
+  try {
+   dev.log('Sending password reset email to $email', name: 'AuthService');
+   await _auth.sendPasswordResetEmail(email: email);
+   dev.log('Password reset email sent to $email', name: 'AuthService');
+  } on FirebaseAuthException catch (e,st) {
+  dev.log(
+    'FirebaseAuthException on resetPassword: ${e.code} ${e.message}',
+    name : 'AuthService',
+    stackTrace: st,
+    error: e,
+  );
+  //Mpap Firebase error codes + friendly messages
+
+  switch(e.code){
+  case 'invalid email':
+  throw Exception('That email addres looks invaild.');
+  case 'user not found':
+  throw Exception('No account found wiht that email.');
+  default:
+  throw Exception('Colud not send reset email.Please try again.');
   }
-}
+  }
+  catch (e,st){
+    dev.log('Unknown error on. resetPasword: $e',
+    name: 'AuthService',
+    stackTrace: st,
+    error: e,
+    );
+    throw Exception('Could no send rese email. Please try again');
+
+  }
+
+  }
+
+  }
+
+
+
+  

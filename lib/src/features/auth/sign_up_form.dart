@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 
@@ -17,7 +18,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLoading = false;
+  bool _isSubmitting = false; // prevents double-taps / multiple requests
   bool _termsAccepted = false;
   bool _obscurePassword = true;
 
@@ -30,16 +31,25 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     super.dispose();
   }
 
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (!_termsAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please accept the Terms & Conditions.')),
-      );
+      _showSnack('Please accept the Terms & Conditions.');
       return;
     }
 
-    setState(() => _isLoading = true);
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+
+    setState(() => _isSubmitting = true);
 
     try {
       final authService = ref.read(authServiceProvider);
@@ -50,22 +60,46 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
-        role: 'student',
+        role:
+            'student', // first default role, then user can change via /selectRole
       );
       userNotifier.state = user;
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Sign up successful!')));
+      _showSnack('Sign up successful!');
       Navigator.pushReplacementNamed(context, '/selectRole');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Sign up failed: $e')));
+      _showSnack('Sign up failed: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    // Same UX pattern as email sign-up
+    setState(() => _isSubmitting = true);
+
+    final authService = ref.read(authServiceProvider);
+    final userNotifier = ref.read(userProvider.notifier);
+    final navigator = Navigator.of(context);
+
+    try {
+      final user = await authService.signInWithGoogle();
+      userNotifier.state = user;
+
+      if (!mounted) return;
+      _showSnack('Google sign-in successful!');
+      navigator.pushReplacementNamed('/selectRole');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Google sign-in failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -93,12 +127,17 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       backgroundColor: AppTheme.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Sign Up',
-          style: TextStyle(color: AppTheme.textPrimary),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: AppTheme.white,
         elevation: 0,
@@ -111,32 +150,42 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Full Name', style: Theme.of(context).textTheme.labelLarge),
+              // Full name
+              Text('Full Name', style: theme.textTheme.labelLarge),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nameController,
                 decoration: _inputDecoration(hintText: 'Enter your full name'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Name is required' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Name is required';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
-              Text('Email', style: Theme.of(context).textTheme.labelLarge),
+              // Email
+              Text('Email', style: theme.textTheme.labelLarge),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _emailController,
                 decoration: _inputDecoration(hintText: 'Enter your email'),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => value != null && value.contains('@')
-                    ? null
-                    : 'Enter a valid email',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Email is required';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Enter a valid email';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
-              Text(
-                'Phone Number',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              // Phone number
+              Text('Phone Number', style: theme.textTheme.labelLarge),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _phoneController,
@@ -144,13 +193,20 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   hintText: 'Enter your phone number',
                 ),
                 keyboardType: TextInputType.phone,
-                validator: (value) => value == null || value.length < 10
-                    ? 'Enter a valid phone number'
-                    : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Phone number is required';
+                  }
+                  if (value.length < 10) {
+                    return 'Enter a valid phone number';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
-              Text('Password', style: Theme.of(context).textTheme.labelLarge),
+              // Password
+              Text('Password', style: theme.textTheme.labelLarge),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passwordController,
@@ -162,29 +218,42 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                           ? Icons.visibility_off
                           : Icons.visibility,
                     ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                 ),
                 obscureText: _obscurePassword,
-                validator: (value) => value == null || value.length < 6
-                    ? 'Min 6 characters'
-                    : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Password is required';
+                  }
+                  if (value.length < 6) {
+                    return 'Min 6 characters';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
+              // Terms & conditions
               Row(
                 children: [
                   Checkbox(
                     value: _termsAccepted,
-                    onChanged: (val) =>
-                        setState(() => _termsAccepted = val ?? false),
+                    onChanged: (val) {
+                      setState(() {
+                        _termsAccepted = val ?? false;
+                      });
+                    },
                     activeColor: AppTheme.primaryColor,
                   ),
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // Navigate to Terms and Conditions page if available
+                        // TODO: Navigate to Terms and Conditions page
                       },
                       child: const Text(
                         'I agree to the Terms & Conditions',
@@ -201,6 +270,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
               const SizedBox(height: 20),
 
+              // Create account button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -211,9 +281,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: AppTheme.white)
+                  onPressed: _isSubmitting ? null : _submitForm,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.white,
+                          ),
+                        )
                       : const Text(
                           'Create Account',
                           style: TextStyle(fontSize: 16, color: AppTheme.white),
@@ -223,49 +300,25 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
               const SizedBox(height: 16),
 
-              // Social login placeholder
+              // Divider
               Row(
                 children: const [
                   Expanded(child: Divider()),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text("or"),
+                    child: Text('or'),
                   ),
                   Expanded(child: Divider()),
                 ],
               ),
+
               const SizedBox(height: 16),
+
+              // Google sign-up
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final navigator = Navigator.of(context);
-                    setState(() => _isLoading = true);
-
-                    try {
-                      final authService = ref.read(authServiceProvider);
-                      final userNotifier = ref.read(userProvider.notifier);
-
-                      final user = await authService.signInWithGoogle();
-                      userNotifier.state = user;
-
-                      if (!mounted) return;
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Google sign-in successful!'),
-                        ),
-                      );
-                      navigator.pushReplacementNamed('/selectRole');
-                    } catch (e) {
-                      if (!mounted) return;
-                      messenger.showSnackBar(
-                        SnackBar(content: Text('Google sign-in failed: $e')),
-                      );
-                    } finally {
-                      if (mounted) setState(() => _isLoading = false);
-                    }
-                  },
+                  onPressed: _isSubmitting ? null : _handleGoogleSignUp,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: const BorderSide(color: Colors.grey),
@@ -277,7 +330,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     'assets/images/google.png',
                     height: 24,
                     semanticLabel: 'Continue with Google',
-                  ), // Make sure this asset exists
+                  ),
                 ),
               ),
             ],

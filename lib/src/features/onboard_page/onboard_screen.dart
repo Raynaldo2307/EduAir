@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
+class OnboardingSlide {
+  final String title;
+  final String subtitle;
+  final String imagePath;
+
+  const OnboardingSlide({
+    required this.title,
+    required this.subtitle,
+    required this.imagePath,
+  });
+}
+
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -13,22 +25,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  final List<Map<String, String>> _slides = [
-    {
-      'title': 'Welcome to EduAir',
-      'subtitle': 'Your gateway to smarter, simpler education management.',
-      'image': 'assets/images/onboarding_1.png',
-    },
-    {
-      'title': 'Track Progress Easily',
-      'subtitle': 'Manage and visualize learning progress clearly.',
-      'image': 'assets/images/onboarding_2.png',
-    },
-    {
-      'title': 'Join a Vibrant Community',
-      'subtitle': 'Engage with peers and educators smartly.',
-      'image': 'assets/images/onboarding_3.png',
-    },
+  final List<OnboardingSlide> _slides = const [
+    OnboardingSlide(
+      title: 'Welcome to EduAir',
+      subtitle: 'Your gateway to smarter, simpler education management.',
+      imagePath: 'assets/images/onboarding_1.png',
+    ),
+    OnboardingSlide(
+      title: 'Track Progress Easily',
+      subtitle: 'Manage and visualize learning progress clearly.',
+      imagePath: 'assets/images/onboarding_2.png',
+    ),
+    OnboardingSlide(
+      title: 'Join a Vibrant Community',
+      subtitle: 'Engage with peers and educators smartly.',
+      imagePath: 'assets/images/onboarding_3.png',
+    ),
   ];
 
   void _nextPage() {
@@ -94,34 +106,51 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
                             child: Image.asset(
-                              slide['image']!,
+                              slide.imagePath,
                               fit: BoxFit.cover,
                             ),
                           ),
                         ).animate().fadeIn(duration: 600.ms),
                         Text(
-                          slide['title']!,
+                          slide.title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(color: Colors.white),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          slide['subtitle']!,
+                          slide.subtitle,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            color: Colors.white70,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white70),
                         ),
                       ],
                     ),
                   );
                 },
               ),
+            ),
+
+            // 🔽 ADD THESE TWO WIDGETS HERE 🔽
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_slides.length, (index) {
+                final isActive = index == _currentIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 12 : 8,
+                  height: isActive ? 12 : 8,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                );
+              }),
             ),
 
             // --- Bottom Navigation ---
@@ -145,15 +174,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           curve: Curves.easeInOut,
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         'Back',
-                        style: TextStyle(color: Colors.white),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(color: Colors.white),
                       ),
                     ),
                   ElevatedButton(
                     onPressed: _nextPage,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).colorScheme.onPrimary,
                       foregroundColor: AppTheme.primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),

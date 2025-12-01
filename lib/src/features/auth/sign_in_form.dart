@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:edu_air/src/core/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:edu_air/src/features/auth/sign_up_form.dart';
+
+import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/features/auth/sign_up_form.dart';
+import 'package:edu_air/src/features/auth/reset_password_page.dart'; // 
 
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
@@ -15,7 +17,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -46,58 +50,74 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     );
   }
 
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final authService = ref.read(authServiceProvider);
     final userNotifier = ref.read(userProvider.notifier);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
+    setState(() => _isSubmitting = true);
+
     try {
       final user = await authService.signIn(email: email, password: password);
+
       userNotifier.state = user;
 
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
-      // 🔁 Let AuthGate/router on '/' decide where to go based on role
+      _showSnack('Login successful!');
+      // Let root decide where to go based on auth/profile
       navigator.pushReplacementNamed('/');
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Login failed: $e')));
+      _showSnack('Login failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final authService = ref.read(authServiceProvider);
     final userNotifier = ref.read(userProvider.notifier);
+
+    setState(() => _isSubmitting = true);
 
     try {
       final user = await authService.signInWithGoogle();
       userNotifier.state = user;
 
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Signed in with Google')),
-      );
-      // 🔁 Same here: go to root, AuthGate/router branches by role
+      _showSnack('Signed in with Google');
       navigator.pushReplacementNamed('/');
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: $e')),
-      );
+      _showSnack('Google sign-in failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       backgroundColor: AppTheme.white,
       body: SafeArea(
@@ -118,36 +138,45 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
+                Text(
                   'Log in',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                  style: theme.textTheme.titleLarge?.copyWith(
                     color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Hello, Welcome back to your account.',
-                  style: TextStyle(fontSize: 16, color: AppTheme.textPrimary),
+                Text(
+                  'Hello, welcome back to your account.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
+                      // Email
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: _inputDecoration(
                           hintText: 'Enter your email',
                         ),
-                        validator: (value) =>
-                            value == null || !value.contains('@')
-                            ? 'Enter a valid email'
-                            : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Email is required';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Enter a valid email';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
+
+                      // Password
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
@@ -160,26 +189,33 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                                   : Icons.visibility,
                               color: AppTheme.textPrimary,
                             ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
                         ),
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Password is required'
-                            : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password is required';
+                          }
+                          return null;
+                        },
                       ),
+
                       const SizedBox(height: 12),
+
+                      // Forgot password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Forgot password flow coming soon.',
-                                ),
-                              ),
+                            Navigator.of(context).push(
+                            MaterialPageRoute(builder:(_) 
+                            => const ResetPasswordPage(),
+                            ),
+
                             );
                           },
                           child: const Text(
@@ -191,40 +227,61 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 24),
+
+                      // Email login button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: _handleLogin,
+                          onPressed: _isSubmitting ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Log in',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Log in',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
+
                       const SizedBox(height: 24),
+
+                      // Divider
                       Row(
                         children: const [
                           Expanded(child: Divider()),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Text("or"),
+                            child: Text('or'),
                           ),
                           Expanded(child: Divider()),
                         ],
                       ),
+
                       const SizedBox(height: 16),
+
+                      // Google sign-in
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: _handleGoogleSignIn,
+                          onPressed: _isSubmitting ? null : _handleGoogleSignIn,
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: const BorderSide(color: Colors.grey),
@@ -239,7 +296,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 32),
+
+                      // Sign up row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

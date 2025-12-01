@@ -36,47 +36,16 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   /// - Based on that, we decide which route to send them to.
   Future<void> _bootstrap() async {
     // Read our services from Riverpod.
-    final authService = ref.read(authServiceProvider);
-    final userService = ref.read(userServiceProvider);
-    final userNotifier = ref.read(userProvider.notifier);
-
-    // Small delay so the splash animation actually shows.
     await Future.delayed(const Duration(seconds: 3));
 
-    // Step 1: Check if there is a logged-in Firebase user.
-    final firebaseUser = await authService.getCurrentFirebaseUser();
+    //Ask the startup provider which route we should go to 
+    final targetRoute = await ref.read(startupRouteProvider.future);
 
-    // Default route if not logged in.
-    var targetRoute = '/onboarding';
-
-    if (firebaseUser != null) {
-      final profile = await userService.getUser(firebaseUser.uid);
-
-      if (profile != null) {
-        userNotifier.state = profile;
-
-        // 👇 Role-based routing
-        final role = profile.role; // non-null String
-
-        if (role.isEmpty) {
-          targetRoute = '/selectRole';
-        } else if (role == 'student') {
-          targetRoute = '/studentHome';
-        } else if (role == 'teacher') {
-          targetRoute = '/teacherHome';
-        } else {
-          targetRoute = '/home'; // fallback
-        }
-      }
-    }
-
-    // If the widget was disposed while we were waiting, stop.
     if (!mounted) return;
 
-    // Replace splash with the decided screen.
     Navigator.pushReplacementNamed(context, targetRoute);
   }
-
+   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,9 +87,13 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 ),
 
             // Loading spinner at the bottom to show we are doing work.
-            const Positioned(
+             Positioned(
               bottom: 20,
-              child: CircularProgressIndicator(color: Colors.white),
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ],
         ),

@@ -21,23 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'EduAIR',
       debugShowCheckedModeBanner: false,
-
-      // ✅ App Theme
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppTheme.white,
-        primaryColor: AppTheme.primaryColor,
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: AppTheme.textPrimary),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppTheme.primaryColor,
-          foregroundColor: AppTheme.white,
-        ),
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          secondary: AppTheme.accent,
-        ),
-      ),
-
+      theme: AppTheme.lightTheme,
       // ✅ Routing Starts Here
       initialRoute: '/',
       onGenerateRoute: AppRouter.generateRoute,
