@@ -3,6 +3,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/features/student/home/student_home_page.dart';
+
+import 'package:edu_air/src/features/Teacher/home/teacher_home_screen.dart';
+
+// or student_home_screen.dart etc – use your real file
 
 /// SplashPage is the very first screen of the app.
 ///
@@ -14,6 +19,23 @@ import 'package:edu_air/src/core/app_providers.dart';
 ///    - If user + profile → go to main area (currently `/home`).
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
+
+  Route _slideFromRightRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOutCubic;
+
+        final tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
 
   @override
   ConsumerState<SplashPage> createState() => _SplashPageState();
@@ -35,17 +57,35 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   /// - If there is, we load their profile from Firestore.
   /// - Based on that, we decide which route to send them to.
   Future<void> _bootstrap() async {
-    // Read our services from Riverpod.
-    await Future.delayed(const Duration(seconds: 3));
+    // 1) Wait so we can show the splash animation
+    await Future.delayed(const Duration(seconds: 2));
 
-    //Ask the startup provider which route we should go to 
+    // 2) Ask the startup provider which route we should go to
     final targetRoute = await ref.read(startupRouteProvider.future);
 
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, targetRoute);
+    // 3) If we should go to /home, use the custom slide animation
+    if (targetRoute == '/studenthome') {
+      Navigator.of(context).pushReplacement(
+        widget._slideFromRightRoute(
+          const StudentHomePage(), // <- your actual home widget here
+        ),
+      );
+    } else if (targetRoute == '/teacherHome'){
+     Navigator.of(context).pushReplacement( 
+      widget._slideFromRightRoute( 
+        const TeacherHomeScreen(),
+      ),
+     );
+
+     }
+     else {
+      // 4) For ALL other routes, keep using the global named routes
+      Navigator.pushReplacementNamed(context, targetRoute);
+    }
   }
-   
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,16 +118,26 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                   ),
                 )
                 .animate()
-                .fadeIn(duration: 1200.ms)
+                // 1) Fade in
+                .fadeIn(duration: 600.ms, curve: Curves.easeOutCubic)
+                // 2) Zoom in a bit past 1.0 (gives that "pop" feeling)
                 .scale(
-                  begin: const Offset(0.8, 0.8),
-                  end: const Offset(1, 1),
-                  duration: 1200.ms,
-                  curve: Curves.easeOut,
+                  begin: const Offset(0.7, 0.7),
+                  end: const Offset(1.05, 1.05),
+                  duration: 700.ms,
+                  curve: Curves.easeOutBack,
+                )
+                // 3) Then gently settle back to 1.0
+                .then() // << continue the same timeline
+                .scale(
+                  begin: const Offset(1.05, 1.05),
+                  end: const Offset(1.05, 1.05),
+                  duration: 300.ms,
+                  curve: Curves.easeOutCubic,
                 ),
 
             // Loading spinner at the bottom to show we are doing work.
-             Positioned(
+            Positioned(
               bottom: 20,
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(

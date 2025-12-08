@@ -108,18 +108,30 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       filled: true,
       fillColor: AppTheme.accent.withValues(alpha: 0.2),
       hintText: hintText,
+
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
       ),
+
+      // When the field is enabled but Not focused
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
       ),
+
+      //When the field is focused (typing)
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
       ),
+
+      // red border when there's a validation
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 1.8),
+      ),
+
       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       suffixIcon: suffixIcon,
     );
@@ -134,7 +146,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       appBar: AppBar(
         title: Text(
           'Sign Up',
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleLarge?.copyWith(
             color: AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),

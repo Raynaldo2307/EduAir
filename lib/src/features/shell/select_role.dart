@@ -104,51 +104,60 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
     final isSelected = _selectedRole == value;
 
     return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          setState(() {
-            _selectedRole = value;
-          });
-        },
-        child: Container(
-          height: 150,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 48,
+      child: AnimatedScale(
+        scale: isSelected ? 1.003 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() {
+              _selectedRole = value;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            height: 150,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
                 color: isSelected
                     ? AppTheme.primaryColor
-                    : Colors.grey.shade500,
+                    : Colors.grey.shade300,
+                width: isSelected ? 2 : 1,
               ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? AppTheme.primaryColor : Colors.black87,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: isSelected ? 18 : 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 48,
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : Colors.grey.shade500,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? AppTheme.primaryColor : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -165,7 +174,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
       appBar: AppBar(
         title: Text(
           'Select Role',
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleLarge?.copyWith(
             color: AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
           ),
@@ -218,9 +227,24 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                     ],
                   ),
                 ),
-                const Spacer(),
+
+                const SizedBox(height: 16),
+
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    "We'll remember this choice for your account. You can change it later in Settings.",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
+
+                Padding(
+                  padding: const EdgeInsets.all(25),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

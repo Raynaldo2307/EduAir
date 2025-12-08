@@ -14,8 +14,14 @@ class UpcomingEventsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final cardHeight = (screenHeight * 0.26).clamp(190.0, 230.0).toDouble();
+     final screenHeight = MediaQuery.of(context).size.height;
+
+    // OUTER height for the whole row (band of grey)
+    final rowHeight = (screenHeight * 0.26).clamp(200.0, 230.0).toDouble();
+
+    // INNER card height – a bit smaller so we see grey above + below
+    final cardHeight = rowHeight - 18; // ~9px top + 9px bottom
+
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,14 +51,15 @@ class UpcomingEventsSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: cardHeight,
+          height: rowHeight,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: events.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final event = events[index];
-              return _EventCard(event: event, height: cardHeight);
+              return Center(child:_EventCard(event: event, height: cardHeight),
+              );
             },
           ),
         ),
@@ -62,10 +69,7 @@ class UpcomingEventsSection extends StatelessWidget {
 }
 
 class _EventCard extends StatelessWidget {
-  const _EventCard({
-    required this.event,
-    required this.height,
-  });
+  const _EventCard({required this.event, required this.height});
 
   final UpcomingEvent event;
   final double height;
@@ -79,9 +83,7 @@ class _EventCard extends StatelessWidget {
       child: Container(
         width: 190,
         height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -140,7 +142,6 @@ class _EventCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 // 👇 Helper: decides between network and asset image, safely
@@ -161,16 +162,14 @@ Widget _buildEventImage(UpcomingEvent event) {
     return Image.network(
       path,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          _EventFallback(color: event.fallbackColor),
+      errorBuilder: (_, __, ___) => _EventFallback(color: event.fallbackColor),
     );
   } else {
     // 📁 Load from assets
     return Image.asset(
       path,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          _EventFallback(color: event.fallbackColor),
+      errorBuilder: (_, __, ___) => _EventFallback(color: event.fallbackColor),
     );
   }
 }

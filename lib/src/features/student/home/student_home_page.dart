@@ -8,7 +8,7 @@
 // - Display basic identity info (name, student ID, avatar) from [userProvider].
 // - Highlight key actions via "hero" cards (e.g. homework to check, live class to join).
 // - Expose quick links to core features (Attendance, Exams, Leave, Fees, Homework, etc.).
-//- Show a preview of upcoming school events.
+// - Show a preview of upcoming school events.
 //
 // Current state:
 // - Uses hard-coded demo data for hero cards, quick links, and upcoming events.
@@ -16,10 +16,9 @@
 // - Layout is scrollable and uses AppTheme for consistent colors.
 //
 // Future improvements:
-//- Replace hard-coded lists with dynamic data from Firestore / backend.
-//- Make quick links tappable and navigate to real feature pages.
+// - Replace hard-coded lists with dynamic data from Firestore / backend.
+// - Make quick links tappable and navigate to real feature pages.
 // - Personalize hero cards based on the student's current timetable and assignments.
-
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +28,7 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/student/home/widgets/greeting_header.dart';
 import 'package:edu_air/src/features/student/home/widgets/info_cards_row.dart';
 import 'package:edu_air/src/features/student/home/widgets/quick_links_grid.dart';
-import 'package:edu_air/src/features/student/home/widgets/upcoming_events_section.dart';
+import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart';
 
 class StudentHomePage extends ConsumerWidget {
   const StudentHomePage({super.key});
@@ -48,16 +47,14 @@ class StudentHomePage extends ConsumerWidget {
       const InfoCardData(
         title: 'Check updated homework',
         subtitle: 'New work for you.',
-        imageUrl:
-           'assets/images/home_hero_homework.png',
+        imageUrl: 'assets/images/home_hero_homework.png',
         ctaLabel: 'Check Now',
         backgroundColor: Color(0xFFFDE1E9),
       ),
       const InfoCardData(
         title: 'Join live class at 2:30 PM',
         subtitle: 'Don\'t miss today\'s session.',
-        imageUrl:
-            'assets/images/home_hero_live.png',
+        imageUrl: 'assets/images/home_hero_live.png',
         ctaLabel: 'Join Now',
         backgroundColor: Color(0xFFE1F5FE),
       ),
@@ -118,71 +115,81 @@ class StudentHomePage extends ConsumerWidget {
       UpcomingEvent(
         title: 'Inter-school football match',
         dateLabel: 'Nov 22, 2024',
-        imageUrl:
-            'assets/images/event_football.png',
-
+        imageUrl: 'assets/images/event_football.png',
         fallbackColor: Color(0xFFE1F5FE),
       ),
       UpcomingEvent(
         title: 'Science project fair',
         dateLabel: 'Dec 1, 2024',
-        imageUrl:
-            'assets/images/event_science_fair.png',
-
+        imageUrl: 'assets/images/event_science_fair.png',
         fallbackColor: Color(0xFFE1F5FE),
       ),
       UpcomingEvent(
-        title: 'Parent-teacher meeting',
+        title: 'Parent teacher meeting',
         dateLabel: 'Dec 5, 2024',
-        imageUrl:
-             'assets/images/event_parent_meeting.png',
+        imageUrl: 'assets/images/event_parent_meeting.png',
         fallbackColor: Color(0xFFE1F5FE),
       ),
     ];
 
     return SafeArea(
-      child: ColoredBox(
-        color: AppTheme.accent.withValues(alpha: 0.08),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GreetingHeader(
-                name: name,
-                studentId: studentId,
-                avatarUrl: user?.photoUrl,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (name, ID, avatar)
+            GreetingHeader(
+              name: name,
+              studentId: studentId,
+              avatarUrl: user?.photoUrl,
+            ),
+
+            const SizedBox(height: 18),
+
+            // ✅ Green strip behind hero cards only
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.heroStripBackground,
+                borderRadius: BorderRadius.circular(24),
               ),
-              const SizedBox(height: 18),
-              InfoCardsRow(cards: heroCards),
-              const SizedBox(height: 22),
-             Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 4),
-  child: Text(
-    'Dashboard',
-    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppTheme.textPrimary,
-        ),
-  ),
-),
-                  
-                
-              
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: quickLinks
-                      .map((link) => QuickLinkItemWidget(item: link))
-                      .toList(),
-                ),
+
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: InfoCardsRow(cards: heroCards),
+            ),
+
+            const SizedBox(height: 24),
+
+            // "Dashboard" title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Dashboard',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
               ),
-              const SizedBox(height: 16),
-              UpcomingEventsSection(events: upcomingEvents, onViewAll: () {}),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 15),
+
+            // Quick links grid
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: quickLinks
+                    .map((link) => QuickLinkItemWidget(item: link))
+                    .toList(),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Upcoming events
+            UpcomingEventsSection(events: upcomingEvents, onViewAll: () {}),
+          ],
         ),
       ),
     );

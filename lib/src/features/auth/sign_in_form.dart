@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/features/auth/sign_up_form.dart';
-import 'package:edu_air/src/features/auth/reset_password_page.dart'; // 
+import 'package:edu_air/src/features/auth/reset_password_page.dart'; //
 
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
@@ -33,18 +33,30 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       filled: true,
       fillColor: AppTheme.accent.withValues(alpha: 0.2),
       hintText: hintText,
+
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
       ),
+
+      // When the field is enabled but Not focused
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
       ),
+
+      //When the field is focused (typing)
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
       ),
+
+      // red border when there's a validation
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 1.8),
+      ),
+
       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       suffixIcon: suffixIcon,
     );
@@ -212,10 +224,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         child: TextButton(
                           onPressed: () {
                             Navigator.of(context).push(
-                            MaterialPageRoute(builder:(_) 
-                            => const ResetPasswordPage(),
-                            ),
-
+                              MaterialPageRoute(
+                                builder: (_) => const ResetPasswordPage(),
+                              ),
                             );
                           },
                           child: const Text(
@@ -228,7 +239,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Email login button
                       SizedBox(

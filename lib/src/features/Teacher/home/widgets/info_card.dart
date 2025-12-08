@@ -5,9 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 
-/// A horizontal row of "hero" info cards on the student home.
-///
-/// Each card is described by [InfoCardData].
+/// A horizontal "hero" carousel on the student home.
+/// Uses a PageView with auto-slide + entrance animation.
 class InfoCardsRow extends StatefulWidget {
   const InfoCardsRow({super.key, required this.cards});
 
@@ -19,95 +18,96 @@ class InfoCardsRow extends StatefulWidget {
 
 class _InfoCardsRowState extends State<InfoCardsRow> {
   late final PageController _pageController;
-  Timer? _autoSildeTimer;
+  Timer? _autoSlideTimer;
   int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
 
-    // show a the next card
+    // Each page takes ~88% of the width so you see a bit of the next card.
     _pageController = PageController(viewportFraction: 0.88);
 
-    //Auto-slide every 4 seceonds
+    // Auto-slide every 4 seconds if there is more than 1 card.
     if (widget.cards.length > 1) {
-      _autoSildeTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      _autoSlideTimer = Timer.periodic(const Duration(seconds: 4), (_) {
         if (!mounted || widget.cards.isEmpty) return;
-        setState(() {
-          _currentPage = (_currentPage + 1) % widget.cards.length;
-        });
+
+        final nextPage = (_currentPage + 1) % widget.cards.length;
+
         _pageController.animateToPage(
-          _currentPage,
+          nextPage,
           duration: const Duration(milliseconds: 550),
           curve: Curves.easeOutCubic,
         );
+
+        setState(() => _currentPage = nextPage);
       });
     }
   }
 
   @override
   void dispose() {
-    _autoSildeTimer?.cancel();
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final cardHeight = (screenHeight * 0.20).clamp(150.0, 185.0).toDouble();
-
     if (widget.cards.isEmpty) {
       return const SizedBox.shrink();
     }
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final cardHeight = (screenHeight * 0.20).clamp(150.0, 185.0).toDouble();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-
       child: Container(
-        color: AppTheme.heroStripBackground,
-        padding: const EdgeInsets.symmetric(horizontal: 12), //debug
         height: cardHeight,
+        decoration: BoxDecoration(
+          color: AppTheme.heroStripBackground,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: PageView.builder(
           controller: _pageController,
           itemCount: widget.cards.length,
           onPageChanged: (index) {
             setState(() => _currentPage = index);
           },
-
           itemBuilder: (context, index) {
             final card = widget.cards[index];
-            // base card UI
+
+            // Base card UI.
             final baseCard = _InfoCard(card: card);
 
-            // Animate each card:
+            // Animations:
             // - small fade in
-            // - tiny scale-up "pop"
-            // - staggered with index-based delay
+            // - slide up a bit
+            // - slight scale pop
             final animatedCard = baseCard
-                .animate(
-                  delay: (index * 120).ms, // stagger each card
-                )
+                .animate(delay: (index * 120).ms) // stagger a little
                 .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                //slide bit from the bottom
                 .slide(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                  duration: 600.ms,
+                  curve: Curves.easeOutCubic,
+                )
+                .scale(
                   begin: const Offset(0, 0.2),
                   end: Offset.zero,
                   duration: 600.ms,
                   curve: Curves.easeOutBack,
-                )
-                .scale(
-                  begin: const Offset(095, 0.5),
-                  end: const Offset(1, 1),
-                  duration: 600.ms,
-                  curve: Curves.easeOutBack,
                 );
 
-            // Center keeps the cards nicely aligned vertically
+            // Padding gives space between pink and blue cards.
             return Padding(
               padding: EdgeInsets.only(
-                left: index == 0 ? 4 : 8, // a bit on the very first card
-                right: 8, // space before the next card
+                left: index == 0 ? 4 : 8, // a bit more on first card
+                right: 8,
               ),
               child: Center(child: animatedCard),
             );
@@ -129,8 +129,8 @@ class _InfoCard extends StatelessWidget {
       elevation: 4,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        width: double.infinity, // fill the page viewportion
-        height: 155, // fixed height to avoid overflow
+        width: double.infinity, // fills the PageView viewport
+        height: 155,
         decoration: BoxDecoration(
           color: card.backgroundColor,
           borderRadius: BorderRadius.circular(20),
@@ -146,7 +146,7 @@ class _InfoCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Text + CTA side ────────────────────────────────────────────────
+            // ── Text + CTA side ─────────────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,8 +192,7 @@ class _InfoCard extends StatelessWidget {
                           ),
                           child: Text(
                             card.ctaLabel!,
-                            // You had this as black; keeping that,
-                            // but you *could* change to white for more contrast.
+                            // You had this as black; keeping it for now.
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(color: Colors.black),
                           ),
@@ -206,7 +205,7 @@ class _InfoCard extends StatelessWidget {
 
             const SizedBox(width: 2.1),
 
-            // ── Image side ─────────────────────────────────────────────────────
+            // ── Image side ──────────────────────────────────────────────────
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: SizedBox(
@@ -224,7 +223,7 @@ class _InfoCard extends StatelessWidget {
     );
   }
 
-  /// Decide whether to load from network or from assets, just like UpcomingEvent.
+  /// Decide whether to load from network or assets, just like UpcomingEvent.
   Widget _buildCardImage(InfoCardData card) {
     final url = card.imageUrl!.trim();
     final isNetworkImage =
@@ -238,7 +237,6 @@ class _InfoCard extends StatelessWidget {
             _FallbackImage(color: card.backgroundColor),
       );
     } else {
-      // Treat as asset path
       return Image.asset(
         url,
         fit: BoxFit.cover,

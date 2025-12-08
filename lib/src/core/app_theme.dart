@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 
-
-
 class AppTheme {
   // 1) Tokens
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      Color(0xFFB2EBF2),
-      Color(0xFF0288D1),
-    ],
+    colors: [Color(0xFFB2EBF2), Color(0xFF0288D1)],
   );
 
   static const Color primaryColor = Color(0xFF0288D1);
@@ -20,6 +15,7 @@ class AppTheme {
   static const Color accent = Color(0xFFE1F5FE);
   static const Color textPrimary = Color(0xFF0D47A1);
   static const Color textOnWhite = Colors.black87;
+  static const Color heroStripBackground = Color.fromARGB(255, 223, 244, 237);
 
   static const Color surface = Color(0xFFFDFDFD);
   static const Color surfaceVariant = Color(0xFFE0F7FA);
@@ -55,10 +51,7 @@ class AppTheme {
           fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          color: textPrimary,
-        ),
+        bodyMedium: TextStyle(fontSize: 14, color: textPrimary),
       ),
       appBarTheme: const AppBarTheme(
         elevation: 0,
