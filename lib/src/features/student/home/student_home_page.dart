@@ -132,64 +132,59 @@ class StudentHomePage extends ConsumerWidget {
       ),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header (name, ID, avatar)
-            GreetingHeader(
-              name: name,
-              studentId: studentId,
-              avatarUrl: user?.photoUrl,
-            ),
-
-            const SizedBox(height: 18),
-
-            // ✅ Green strip behind hero cards only
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.heroStripBackground,
-                borderRadius: BorderRadius.circular(24),
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (name, ID, avatar)
+              GreetingHeader(
+                name: name,
+                studentId: studentId,
+                avatarUrl: user?.photoUrl,
               ),
 
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: InfoCardsRow(cards: heroCards),
-            ),
+              const SizedBox(height: 18),
 
-            const SizedBox(height: 24),
+              // ✅ Green strip behind hero cards only
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.heroStripBackground,
+                  borderRadius: BorderRadius.circular(24),
+                ),
 
-            // "Dashboard" title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                'Dashboard',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: InfoCardsRow(cards: heroCards),
               ),
-            ),
 
-            const SizedBox(height: 15),
+              const SizedBox(height: 24),
 
-            // Quick links grid
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: quickLinks
-                    .map((link) => QuickLinkItemWidget(item: link))
-                    .toList(),
+              // "Dashboard" title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Dashboard',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+                ),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 15),
 
-            // Upcoming events
-            UpcomingEventsSection(events: upcomingEvents, onViewAll: () {}),
-          ],
+              // Quick links grid
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: QuickLinksGrid(links: quickLinks),
+              ),
+              const SizedBox(height: 20),
+
+              // Upcoming events
+              UpcomingEventsSection(events: upcomingEvents, onViewAll: () {}),
+            ],
+          ),
         ),
       ),
     );

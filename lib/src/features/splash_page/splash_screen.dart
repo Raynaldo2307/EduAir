@@ -3,9 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/features/student/home/student_home_page.dart';
+//import 'package:edu_air/src/features/student/home/student_home_page.dart';
 
-import 'package:edu_air/src/features/Teacher/home/teacher_home_screen.dart';
+//import 'package:edu_air/src/features/teacher/home/teacher_home_screen.dart';
 
 // or student_home_screen.dart etc – use your real file
 
@@ -20,7 +20,7 @@ import 'package:edu_air/src/features/Teacher/home/teacher_home_screen.dart';
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
-  Route _slideFromRightRoute(Widget page) {
+  /* Route _slideFromRightRoute(Widget page) {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -36,6 +36,7 @@ class SplashPage extends ConsumerStatefulWidget {
       },
     );
   }
+  */
 
   @override
   ConsumerState<SplashPage> createState() => _SplashPageState();
@@ -57,33 +58,15 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   /// - If there is, we load their profile from Firestore.
   /// - Based on that, we decide which route to send them to.
   Future<void> _bootstrap() async {
-    // 1) Wait so we can show the splash animation
+    // 1) Show splash for a moment
     await Future.delayed(const Duration(seconds: 2));
 
-    // 2) Ask the startup provider which route we should go to
+    // 2) Ask startupRouteProvider: "Where should we go?"
     final targetRoute = await ref.read(startupRouteProvider.future);
-
     if (!mounted) return;
 
-    // 3) If we should go to /home, use the custom slide animation
-    if (targetRoute == '/studenthome') {
-      Navigator.of(context).pushReplacement(
-        widget._slideFromRightRoute(
-          const StudentHomePage(), // <- your actual home widget here
-        ),
-      );
-    } else if (targetRoute == '/teacherHome'){
-     Navigator.of(context).pushReplacement( 
-      widget._slideFromRightRoute( 
-        const TeacherHomeScreen(),
-      ),
-     );
-
-     }
-     else {
-      // 4) For ALL other routes, keep using the global named routes
-      Navigator.pushReplacementNamed(context, targetRoute);
-    }
+    // 3) Let AppRouter decide which widget (StudentShell / TeacherShell / etc.)
+    Navigator.pushReplacementNamed(context, targetRoute);
   }
 
   @override

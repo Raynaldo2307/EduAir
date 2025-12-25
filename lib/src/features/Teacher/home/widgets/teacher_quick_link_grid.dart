@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 
+/// Reusable grid for quick actions on the dashboard
+/// (used on both student + teacher side).
 class QuickLinksGrid extends StatelessWidget {
   const QuickLinksGrid({super.key, required this.links});
 
@@ -14,10 +16,11 @@ class QuickLinksGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: links.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 0,
-        childAspectRatio: 0.9,
+        crossAxisCount: 4, // 4 items per row
+        crossAxisSpacing: 10, // space between items horizontally
+        mainAxisSpacing: 10, // space between rows
+        // Slightly more height per cell so icon + label fit comfortably
+        childAspectRatio: 0.78,
       ),
       itemBuilder: (context, index) {
         final link = links[index];
@@ -37,26 +40,34 @@ class QuickLinkItemWidget extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Icon tile
         Material(
           elevation: 3,
           borderRadius: BorderRadius.circular(16),
           color: item.backgroundColor,
           shadowColor: Colors.black.withValues(alpha: 0.1),
           child: Container(
-            height: 70,
-            width: 70,
+            height: 64, // was 70 – slightly smaller to avoid overflow
+            width: 64, // was 70
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
             child: Center(
-              child: Icon(item.icon, color: item.iconColor, size: 28),
+              child: Icon(
+                item.icon,
+                color: item.iconColor,
+                size: 26, // was 28
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6), // was 8
+        // Label
         Text(
           item.label,
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 12, // was 13 – a bit more compact
             fontWeight: FontWeight.w600,
             color: AppTheme.textPrimary,
           ),

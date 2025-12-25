@@ -106,7 +106,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
     return Expanded(
       child: AnimatedScale(
         scale: isSelected ? 1.003 : 1.0,
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -116,7 +116,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
             });
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
             height: 150,
             margin: const EdgeInsets.symmetric(horizontal: 8),

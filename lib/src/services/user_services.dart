@@ -68,4 +68,15 @@ class UserService {
       throw Exception('Failed to delete user: $e');
     }
   }
+
+  // 🔴 NEW: listen to Firestore in real-time for this user
+  Stream<AppUser?> watchUser(String uid) {
+    return _userCollection.doc(uid).snapshots().map((snapshot) {
+      if (!snapshot.exists) return null;
+      return AppUser.fromSnapshot(
+        snapshot as DocumentSnapshot<Map<String, dynamic>>,
+      );
+    });
+  }
+
 }

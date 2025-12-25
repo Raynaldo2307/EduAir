@@ -89,7 +89,7 @@ class AuthService {
       final appUser = await _userService.getUser(firebaseUser.uid);
 
       if (appUser == null) {
-        throw Exception('User profile not found in Firestore');
+        throw Exception('User profile not found ');
       }
 
       dev.log('Sign in OK for ${appUser.uid}', name: 'AuthService');

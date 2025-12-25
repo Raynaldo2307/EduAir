@@ -20,6 +20,10 @@ class AppUser {
   final String? gradeLevel;
   final String? teacherDepartment;
   final List<String>? childrenIds; // for parents
+  final String? parentGuardianName;
+  final String? parentGuardianPhone;
+  final String? address;
+  final DateTime? dateOfBirth;
 
   AppUser({
     required this.uid,
@@ -37,6 +41,10 @@ class AppUser {
     this.childrenIds,
     this.createdAt,
     this.updatedAt,
+    this.parentGuardianName,
+    this.dateOfBirth,
+    this.address,
+    this.parentGuardianPhone,
   });
 
   /// ✅ Computed UI name
@@ -119,7 +127,6 @@ class AppUser {
     };
   }
 
-  /// ✅ allow partial update
   AppUser copyWith({
     String? firstName,
     String? lastName,
@@ -135,6 +142,12 @@ class AppUser {
     List<String>? childrenIds,
     DateTime? createdAt,
     DateTime? updatedAt,
+
+    // 🔥 new profile fields
+    String? parentGuardianName,
+    String? parentGuardianPhone,
+    String? address,
+    DateTime? dateOfBirth,
   }) {
     return AppUser(
       uid: uid,
@@ -152,6 +165,12 @@ class AppUser {
       childrenIds: childrenIds ?? this.childrenIds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+
+      // 🔥 new fields wired in
+      parentGuardianName: parentGuardianName ?? this.parentGuardianName,
+      parentGuardianPhone: parentGuardianPhone ?? this.parentGuardianPhone,
+      address: address ?? this.address,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
     );
   }
 

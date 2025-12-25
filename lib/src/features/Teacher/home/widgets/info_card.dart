@@ -130,7 +130,7 @@ class _InfoCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         width: double.infinity, // fills the PageView viewport
-        height: 155,
+        //height: 155,
         decoration: BoxDecoration(
           color: card.backgroundColor,
           borderRadius: BorderRadius.circular(20),
@@ -142,7 +142,7 @@ class _InfoCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -150,6 +150,7 @@ class _InfoCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     card.title,
@@ -160,7 +161,7 @@ class _InfoCard extends StatelessWidget {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     card.subtitle,
                     maxLines: 2,
@@ -169,7 +170,7 @@ class _InfoCard extends StatelessWidget {
                       color: AppTheme.textPrimary.withValues(alpha: 0.7),
                     ),
                   ),
-                  const Spacer(),
+                  //const Spacer(),
                   if (card.ctaLabel != null)
                     Align(
                       alignment: Alignment.centerLeft,
@@ -182,7 +183,7 @@ class _InfoCard extends StatelessWidget {
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 15,
-                              vertical: 8,
+                              vertical: 6,
                             ),
                             minimumSize: const Size(0, 32),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,

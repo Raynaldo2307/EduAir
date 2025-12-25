@@ -3,71 +3,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/features/student/proflie/student_profile_edit.dart';
+import 'package:edu_air/src/features/teacher/profile/teacher_profile_edit.dart';
 import 'package:edu_air/src/features/shared/widgets/profile_field.dart';
 import 'package:edu_air/src/features/shared/widgets/profile_header.dart';
 
-class StudentProfilePage extends ConsumerWidget {
-  const StudentProfilePage({super.key});
+class TeacherProfilePage extends ConsumerWidget {
+  const TeacherProfilePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
-
-    // at the top of build,
     final theme = Theme.of(context);
+    final dangerColor = theme.colorScheme.error;
 
-    final dangerColor = Theme.of(context).colorScheme.error;
-    // or AppTheme.danger if you really want the token directly
-
-    // If user is not loaded yet, show a simple loader.
+    // If user is not loaded yet, show loader
     if (user == null) {
       return const SafeArea(child: Center(child: CircularProgressIndicator()));
     }
 
-    // ----- Basic identity data ---------------------------------------------
+    // ---------- Identity data for teacher --------------------
     final name = (user.displayName.trim().isNotEmpty)
         ? user.displayName
-        : 'Student';
+        : 'Teacher';
 
-    final studentId = user.studentId ?? '—';
-    final grade = user.gradeLevel ?? '—';
+    // We don’t have a separate staffId yet, so reuse studentId field for now.
+    final teacherId = user.studentId ?? '—';
 
-    // We don't have section stored yet, so keep this as a simple default.
-    const section = 'B';
+    // Prefer dedicated teacherDepartment, fall back to gradeLevel for old docs.
+    final department = user.teacherDepartment ?? user.gradeLevel ?? '—';
 
-    // You can later add:
-    // final email = user.email ?? '—';
-    // final phone = user.phoneNumber ?? '—';
-    // final address = user.address ?? '—';
-    // final dateOfBirth = user.dateOfBirth ?? '—';
-    // final gender = user.gender ?? '—';
-
-    // ----- Extra profile info from AppUser -------------------------------
-    // Date of birth -> simple dd-mm-yyyy formatting
-    final dobText = user.dateOfBirth != null
-        ? () {
-            final dob = user.dateOfBirth!;
-            final day = dob.day.toString().padLeft(2, '0');
-            final month = dob.month.toString().padLeft(2, '0');
-            final year = dob.year;
-            return '$day-$month-$year';
-          }()
-        : '—';
-
-    final genderText = user.gender ?? '—';
-    final parentName = user.parentGuardianName ?? '—';
-    final parentPhone = user.parentGuardianPhone ?? '—';
-
-    // In AppUser, `phone` represents the student's contact number
-    final studentPhone = user.phone.isNotEmpty ? user.phone : '—';
-
-    final addressText = user.address ?? '—';
+    final phone = user.phone.isNotEmpty ? user.phone : '—';
+    final bio = user.bio ?? '—';
 
     return ColoredBox(
-      // soft background under     everything
       color: AppTheme.surfaceVariant,
-
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -91,17 +60,16 @@ class StudentProfilePage extends ConsumerWidget {
                   // ── Avatar + name + subtitle ──────────────────────────────
                   ProfileHeader(
                     name: name,
-                    // More Jamaica-style: Grade + Class + ID
-                    subtitle: 'Grade $grade • Class $section • ID: $studentId',
+                    // Teacher-style subtitle
+                    subtitle: 'Teacher • Dept: $department • ID: $teacherId',
                     photoUrl: user.photoUrl,
                     onEditProfile: () async {
                       await Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const StudentProfileEditPage(),
+                          builder: (_) => const TeacherProfileEditPage(),
                         ),
                       );
                     },
-
                     onEditPhoto: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -112,35 +80,30 @@ class StudentProfilePage extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 24),
+
+                  // ── Details card ───────────────────────────────────────────
                   ProfileDetailsCard(
                     fields: [
-                      // Identity / school info
-                      ProfileField(label: 'Student ID', value: studentId),
-                      ProfileField(label: 'Class', value: '$grade / $section'),
-
-                      // Personal info
-                      ProfileField(label: 'Date of Birth', value: dobText),
-                      ProfileField(label: 'Gender', value: genderText),
-
-                      // Parent / Guardian info
                       ProfileField(
-                        label: 'Parent / Guardian',
-                        value: parentName,
+                        label: 'Role',
+                        value: user.role.isNotEmpty ? user.role : 'Teacher',
                       ),
+                      ProfileField(label: 'Teacher ID', value: teacherId),
                       ProfileField(
-                        label: 'Parent / Guardian Contact',
-                        value: parentPhone,
+                        label: 'Department / Subject',
+                        value: department,
                       ),
-
-                      // Contact info for the student (optional)
-                      ProfileField(label: 'Student Phone', value: studentPhone),
-                      ProfileField(label: 'Address', value: addressText),
+                      ProfileField(label: 'Phone', value: phone),
+                      ProfileField(label: 'Bio', value: bio),
+                      // Later you can add:
+                      // ProfileField(label: 'Email', value: user.email),
+                      // ProfileField(label: 'Address', value: user.address ?? '—'),
                     ],
                   ),
 
                   const SizedBox(height: 32),
 
-                  // ── Logout (destructive style button) ─────────────────────
+                  // ── Logout button ─────────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -156,11 +119,7 @@ class StudentProfilePage extends ConsumerWidget {
                         side: BorderSide(color: dangerColor),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            // if you added this to AppTheme:
-                            // AppTheme.radiusSmall,
-                            12, // or keep 12 for now
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       onPressed: () async {
@@ -187,11 +146,12 @@ class StudentProfilePage extends ConsumerWidget {
                         );
 
                         if (confirmed == true) {
+                          // Real sign-out using AuthService
                           await ref.read(authServiceProvider).signOut();
 
                           if (context.mounted) {
                             Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/onboarding',
+                              '/onboarding', // or your sign-in route
                               (route) => false,
                             );
                           }

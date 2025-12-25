@@ -1,14 +1,15 @@
-/// EduAir AppModule Dashboard - Copy-Paste Ready
+// lib/src/features/shared/domain/app_module.dart
+
 library;
 
 class AppFormula {
-  final String problem;
-  final String user;
+  final String title;
+  final String user; // Now lists specific UserRoles
   final String solution;
   final String metrics;
 
   const AppFormula({
-    required this.problem,
+    required this.title,
     required this.user,
     required this.solution,
     required this.metrics,
@@ -16,7 +17,7 @@ class AppFormula {
 
   String summary() {
     return '''
-Problem: $problem
+Title: $title
 User: $user
 Solution: $solution
 Metrics: $metrics
@@ -27,77 +28,63 @@ Metrics: $metrics
 // -------------------- Core Modules --------------------
 
 // 1️⃣ Attendance Module
+// 1️⃣ Attendance Module
 final attendanceModule = AppFormula(
-  problem: "Teachers cannot reliably track student attendance due to paper-based systems, damaged infrastructure, and inconsistent communication in rural schools.",
-  user: "Students, Teachers, Administrators",
-  solution: "Digital attendance system with check-in, offline support, automatic reporting, and alerts for low attendance.",
-  metrics: "Daily attendance recorded, % students present, reports generated, students flagged for low attendance"
+  title: "Attendance",
+  user: "Teacher, Admin, Student, Parent",
+  solution:
+      "Location-aware virtual register that combines time-window and geofenced attendance. Students clock in (08:00–16:00) and clock out with time-based logic (Early 08:00–08:30, Late after 08:30 with required reason), automatic Absent marking for missed days, and auto clock-out after 16:00. Every clock event stores GPS and can be reviewed on a map. On top of this, per-student/day geofence profiles define where a student is allowed to check in/out (e.g., Wed/Thu at Stony Hill campus, other days at Up Park), with band types (fixed vs floating), outside-area policies (block vs allow+flag), and incident logs whenever a fixed-band student checks in/out outside their zone. Admins and teachers get date-range views, override tools, and insights dashboards based on this data. Icon: calendar_today_rounded, Color: Green, Route: /attendance.",
+  metrics:
+      "On-time clock-in rate (early vs late), % present/absent per week, count of outside-area attempts vs in-zone check-ins, number and status of geofence incidents (open/acknowledged), frequency of admin overrides, days auto-marked absent, parent alert delivery rate, and weekly insights such as at-risk (high absence), frequent late, and trend vs last week.",
 );
 
 // 2️⃣ Exam Prep Module
 final examPrepModule = AppFormula(
-  problem: "Students lack structured revision schedules and real-time progress tracking for CSEC/JSAT exams.",
-  user: "Students, Teachers",
-  solution: "Digital exam prep dashboard with daily study tasks, reminders, progress tracking, and performance analytics.",
-  metrics: "% of exam tasks completed, average time spent, improvement in mock tests, adherence to study schedule"
+  title: "Exam Prep",
+  user: "Student, Teacher",
+  solution:
+      "Digital exam prep dashboard (Icon: school_rounded, Color: Blue) with daily study tasks, reminders, progress tracking, and performance analytics for CSEC/PEP. Route: /examPrep.",
+  metrics:
+      "% of exam tasks completed, average time spent, improvement in mock tests, adherence to study schedule",
 );
 
-// 3️⃣ Messaging Module
+// 3️⃣ Communication Hub (Messaging)
 final messagingModule = AppFormula(
-  problem: "Communication between students, teachers, and administrators is fragmented and slow, often relying on WhatsApp or paper notices.",
-  user: "Students, Teachers, Administrators",
-  solution: "In-app messaging system with channels for announcements, homework, events, and direct messages.",
-  metrics: "Messages sent, messages read, response times, active users per channel"
+  title: "Messages",
+  user: "All Roles", // Visibility: Everyone
+  solution:
+      "In-app messaging system (Icon: chat_bubble_outline_rounded, Color: Orange) with channels for announcements, homework, events, and direct Parent-Teacher/Student-Teacher messages. Route: /messages.",
+  metrics:
+      "Messages sent, messages read, response times, active users per channel",
 );
 
-// 4️⃣ Parent Reporting Module
-final parentReportingModule = AppFormula(
-  problem: "Parents have limited visibility into student attendance, homework completion, and exam progress, reducing their ability to support students at home.",
-  user: "Parents, Teachers, Administrators",
-  solution: "Parent portal showing attendance reports, completed assignments, exam prep progress, and notifications for important updates.",
-  metrics: "Parent logins, report views, notifications acknowledged, engagement with student progress"
-);
-
-// -------------------- Additional Modules --------------------
-
-// 5️⃣ Parent-Student Engagement Module
-final parentEngagementModule = AppFormula(
-  problem: "Parents have limited visibility into daily student progress, homework, and attendance",
-  user: "Parents, Students, Teachers",
-  solution: "Push notifications, weekly dashboards, feedback system, and parent-student-teacher interactions",
-  metrics: "Parent login rate, notifications viewed, feedback interactions, student engagement improvement"
-);
-
-// 6️⃣ Resource & Assignment Module
+// 4️⃣ Resources & Assignments Module
 final resourceModule = AppFormula(
-  problem: "Students in rural areas lack centralized access to study materials, assignments, or exam prep resources",
-  user: "Students, Teachers",
-  solution: "Digital repository for study guides, PDFs, videos; assignments submitted and graded digitally; progress tracked automatically",
-  metrics: "% of assignments submitted, resource download/access counts, average grades"
+  title: "Resources & H.W.",
+  user: "Student, Teacher",
+  solution:
+      "Digital repository (Icon: book_rounded, Color: Purple) for study guides, PDFs, videos; assignments submitted and graded digitally. Route: /resources.",
+  metrics:
+      "% of assignments submitted, resource download/access counts, average grades",
 );
 
-// 7️⃣ Alerts & Emergency Module
+// 5️⃣ Parent Portal Module
+final parentPortalModule = AppFormula(
+  title: "Parent Portal",
+  user: "Parent, Admin",
+  solution:
+      "Dedicated portal (Icon: family_restroom_rounded, Color: Pink) showing real-time attendance, completed assignments, behavior reports, and notifications. Route: /parentPortal.",
+  metrics:
+      "Parent login rate, report views, notifications acknowledged, engagement with student progress",
+);
+
+// 6️⃣ Alerts & Emergency Module
 final alertsModule = AppFormula(
-  problem: "Schools need to communicate urgent updates, but students and parents often miss them",
-  user: "Students, Parents, Teachers, Administrators",
-  solution: "Push alerts for events, optional SMS fallback, admin-controlled scheduling",
-  metrics: "Alerts acknowledged/opened, response rate, reduced missed events"
-);
-
-// 8️⃣ Student Well-being / Behavior Module
-final wellbeingModule = AppFormula(
-  problem: "Teachers need to track behavior, engagement, and well-being metrics that impact learning outcomes",
-  user: "Students, Teachers, Parents",
-  solution: "Track participation, mood check-ins, behavior points; dashboards; early warning system for at-risk students",
-  metrics: "Participation rates, behavior incidents logged, early interventions triggered"
-);
-
-// 9️⃣ Parent-Teacher Communication Module
-final parentTeacherCommModule = AppFormula(
-  problem: "Direct communication between teachers and parents is inconsistent and ineffective",
-  user: "Parents, Teachers",
-  solution: "Dedicated messaging per student, auto-shared attendance/grades, scheduled virtual parent-teacher conferences",
-  metrics: "Messages exchanged per student per week, % of parents actively engaging, meeting attendance"
+  title: "Alerts",
+  user: "All Roles",
+  solution:
+      "Push notification system (Icon: notification_important_rounded, Color: Red) for urgent updates and school announcements, with admin-controlled scheduling. Route: /alerts.",
+  metrics: "Alerts acknowledged/opened, response rate, reduced missed events",
 );
 
 // -------------------- Module List --------------------
@@ -105,10 +92,7 @@ final eduAirModules = [
   attendanceModule,
   examPrepModule,
   messagingModule,
-  parentReportingModule,
-  parentEngagementModule,
   resourceModule,
+  parentPortalModule,
   alertsModule,
-  wellbeingModule,
-  parentTeacherCommModule,
 ];

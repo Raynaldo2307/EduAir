@@ -27,9 +27,9 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
 // Teacher-specific widgets
-import 'package:edu_air/src/features/Teacher/home/widgets/greeting.dart';
-import 'package:edu_air/src/features/Teacher/home/widgets/info_card.dart';
-import 'package:edu_air/src/features/Teacher/home/widgets/teacher_quick_link_grid.dart';
+import 'package:edu_air/src/features/teacher/home/widgets/greeting.dart';
+import 'package:edu_air/src/features/teacher/home/widgets/info_card.dart';
+import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_grid.dart';
 
 // Shared widgets / models
 import 'package:edu_air/src/features/shared/widgets/today_classes_section.dart';
@@ -178,7 +178,8 @@ class TeacherHomeScreen extends ConsumerWidget {
     ];
 
     // ----- 6. Build the page --------------------------------------------------
-    return SafeArea(
+    return Scaffold(
+    body:SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
@@ -195,8 +196,18 @@ class TeacherHomeScreen extends ConsumerWidget {
             const SizedBox(height: 18),
 
             // Hero cards (no green strip for teacher, matches your FlutterFlow UI)
-            InfoCardsRow(cards: heroCards),
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.heroStripBackground,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: InfoCardsRow(cards: heroCards),
+            ),
+           
 
+          //InfoCardsRow(cards: heroCards),
+            
             const SizedBox(height: 24),
 
             // Quick links title
@@ -204,10 +215,9 @@ class TeacherHomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 'Dashboard',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: AppTheme.textPrimary),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
               ),
             ),
 
@@ -215,14 +225,8 @@ class TeacherHomeScreen extends ConsumerWidget {
 
             // Quick links grid
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: quickLinks
-                    .map((link) => QuickLinkItemWidget(item: link))
-                    .toList(),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: QuickLinksGrid(links: quickLinks),
             ),
 
             const SizedBox(height: 24),
@@ -247,6 +251,8 @@ class TeacherHomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    ),
     );
+  
   }
 }

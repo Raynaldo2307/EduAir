@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/features/Teacher/home/teacher_home_screen.dart';
-
+import 'package:edu_air/src/features/teacher/home/teacher_home_screen.dart';
+import 'package:edu_air/src/features/teacher/profile/teacher_profile_page.dart';
 /// TeacherShell
 /// ------------
 /// Root container for the **teacher experience** after login + role selection.
@@ -46,7 +46,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
       icon: Icons.calendar_today_outlined,
     ),
     const _PlaceholderPage(title: 'Messages', icon: Icons.chat_bubble_outline),
-    const _PlaceholderPage(title: 'Profile', icon: Icons.person_outline),
+    const TeacherProfilePage(),
   ];
 
   @override

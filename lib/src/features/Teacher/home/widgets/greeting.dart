@@ -104,8 +104,11 @@ class _IconCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
         height: 36,
@@ -115,6 +118,7 @@ class _IconCircle extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: Center(child: child),
+      ),
       ),
     );
   }

@@ -15,8 +15,8 @@ class QuickLinksGrid extends StatelessWidget {
       itemCount: links.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 0,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
         childAspectRatio: 0.9,
       ),
       itemBuilder: (context, index) {
@@ -36,6 +36,7 @@ class QuickLinkItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Material(
           elevation: 3,

@@ -1,8 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:developer' as dev;
 
 import 'package:edu_air/src/models/app_user.dart';
+
+// Auth services
 import 'package:edu_air/src/features/auth/services/auth_services.dart';
+
+// User service
 import 'package:edu_air/src/services/user_services.dart';
+
+// 🔹 Attendance: repo + service
+import 'package:edu_air/src/features/attendance/data/attendance_repository.dart';
+import 'package:edu_air/src/features/attendance/domain/attendance_service.dart';
 
 /// Global provider holding the currently authenticated [AppUser].
 final userProvider = StateProvider<AppUser?>((ref) => null);
@@ -13,46 +22,70 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 /// Helper provider to access [UserService] wherever needed.
 final userServiceProvider = Provider<UserService>((ref) => UserService());
 
-/// Decides which route to show after the splash.
-///
-/// Responsibilities:
-/// - Check if there is a logged-in Firebase user.
-/// - If there is, load their profile from Firestore.
-/// - Update [userProvider] with the loaded profile.
-/// - Return the correct route name based on the user's role.
+/// Stream provider for real-time user profile updates.
+final userProfileStreamProvider = StreamProvider<AppUser?>((ref) {
+  final baseUser = ref.watch(userProvider);
+  final userService = ref.watch(userServiceProvider);
+
+  if (baseUser == null) {
+    return const Stream.empty();
+  }
+
+  return userService.watchUser(baseUser.uid);
+});
+
+/// Determines the initial route to navigate to after splash.
 final startupRouteProvider = FutureProvider<String>((ref) async {
   final authService = ref.read(authServiceProvider);
   final userService = ref.read(userServiceProvider);
   final userNotifier = ref.read(userProvider.notifier);
 
-  // Default route if not logged in.
-  var targetRoute = '/onboarding';
+  // Step 1: Default route.
+  String targetRoute = '/onboarding';
 
-  // Step 1: Check if there is a logged-in Firebase user.
+  // Step 2: Check if Firebase user exists.
   final firebaseUser = await authService.getCurrentFirebaseUser();
+  if (firebaseUser == null) {
+    dev.log('No Firebase user found.', name: 'StartupProvider');
+    return targetRoute;
+  }
 
-  if (firebaseUser != null) {
-    // Step 2: Load profile from Firestore.
-    final profile = await userService.getUser(firebaseUser.uid);
+  // Step 3: Fetch profile from Firestore.
+  final profile = await userService.getUser(firebaseUser.uid);
+  if (profile == null) {
+    dev.log(
+      'Firebase user found but no profile in Firestore.',
+      name: 'StartupProvider',
+    );
+    return targetRoute;
+  }
 
-    if (profile != null) {
-      // Step 3: Update global user state.
-      userNotifier.state = profile;
+  // Step 4: Save profile globally.
+  userNotifier.state = profile;
+  dev.log('Loaded profile for ${profile.uid}', name: 'StartupProvider');
 
-      // Step 4: Decide route based on role.
-      final role = profile.role ; // adjust if non-nullable
-
-      if (role.isEmpty) {
-        targetRoute = '/selectRole';
-      } else if (role == 'student') {
-        targetRoute = '/studentHome';
-      } else if (role == 'teacher') {
-        targetRoute = '/teacherHome';
-      } else {
-        targetRoute = '/home'; // fallback
-      }
-    }
+  // Step 5: Determine the route based on user role.
+  final role = profile.role;
+  if (role.isEmpty) {
+    targetRoute = '/selectRole';
+  } else if (role == 'student') {
+    targetRoute = '/studentHome'; // StudentShell
+  } else if (role == 'teacher') {
+    targetRoute = '/teacherHome'; // TeacherShell
+  } else {
+    targetRoute = '/onboarding';
   }
 
   return targetRoute;
+});
+
+/// 🔹 Attendance repository – wraps Firestore source behind a clean API.
+final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
+  return AttendanceRepository();
+});
+
+/// 🔹 Attendance service – business logic used by UI (student/admin screens).
+final attendanceServiceProvider = Provider<AttendanceService>((ref) {
+  final repo = ref.read(attendanceRepositoryProvider);
+  return AttendanceService(repo: repo);
 });
