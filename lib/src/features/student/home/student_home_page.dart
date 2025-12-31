@@ -31,106 +31,26 @@ import 'package:edu_air/src/features/student/home/widgets/quick_links_grid.dart'
 import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart';
 
 class StudentHomePage extends ConsumerWidget {
-  const StudentHomePage({super.key});
+  const StudentHomePage({super.key, required this.onTapAttendance});
+
+  /// Callback used when the "Attendance" quick link is tapped.
+  /// The [StudentShell] passes this in to switch to the Calendar tab.
+  final VoidCallback onTapAttendance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
+
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName
         : 'Dev Cooper';
+
     final studentId = (user?.studentId?.isNotEmpty ?? false)
         ? user!.studentId!
         : 'S8745';
 
-    final heroCards = [
-      const InfoCardData(
-        title: 'Check updated homework',
-        subtitle: 'New work for you.',
-        imageUrl: 'assets/images/home_hero_homework.png',
-        ctaLabel: 'Check Now',
-        backgroundColor: Color(0xFFFDE1E9),
-      ),
-      const InfoCardData(
-        title: 'Join live class at 2:30 PM',
-        subtitle: 'Don\'t miss today\'s session.',
-        imageUrl: 'assets/images/home_hero_live.png',
-        ctaLabel: 'Join Now',
-        backgroundColor: Color(0xFFE1F5FE),
-      ),
-    ];
-
-    final quickLinks = const [
-      QuickLinkItem(
-        icon: Icons.event_available_outlined,
-        label: 'Attendance',
-        backgroundColor: Color(0xFFE8F2FF),
-        iconColor: Color(0xFF4A7CFF),
-      ),
-      QuickLinkItem(
-        icon: Icons.description_outlined,
-        label: 'Exam',
-        backgroundColor: Color(0xFFF5EBFF),
-        iconColor: Color(0xFF9B51E0),
-      ),
-      QuickLinkItem(
-        icon: Icons.assignment_turned_in_outlined,
-        label: 'Leave',
-        backgroundColor: Color(0xFFE6F6F3),
-        iconColor: Color(0xFF2D9CDB),
-      ),
-      QuickLinkItem(
-        icon: Icons.account_balance_outlined,
-        label: 'Fees',
-        backgroundColor: Color(0xFFEFF4FF),
-        iconColor: Color(0xFF4A5568),
-      ),
-      QuickLinkItem(
-        icon: Icons.edit_note_outlined,
-        label: 'Homework',
-        backgroundColor: Color(0xFFF8F2DC),
-        iconColor: Color(0xFFB7791F),
-      ),
-      QuickLinkItem(
-        icon: Icons.groups_outlined,
-        label: 'Community',
-        backgroundColor: Color(0xFFFDE9EC),
-        iconColor: Color(0xFFE65D7B),
-      ),
-      QuickLinkItem(
-        icon: Icons.chat_bubble_outline,
-        label: 'Message',
-        backgroundColor: Color(0xFFF6EAFE),
-        iconColor: Color(0xFFAA7AE0),
-      ),
-      QuickLinkItem(
-        icon: Icons.campaign_outlined,
-        label: 'Notice',
-        backgroundColor: Color(0xFFE7F7EC),
-        iconColor: Color(0xFF2F9E44),
-      ),
-    ];
-
-    final upcomingEvents = const [
-      UpcomingEvent(
-        title: 'Inter-school football match',
-        dateLabel: 'Nov 22, 2024',
-        imageUrl: 'assets/images/event_football.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-      UpcomingEvent(
-        title: 'Science project fair',
-        dateLabel: 'Dec 1, 2024',
-        imageUrl: 'assets/images/event_science_fair.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-      UpcomingEvent(
-        title: 'Parent teacher meeting',
-        dateLabel: 'Dec 5, 2024',
-        imageUrl: 'assets/images/event_parent_meeting.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-    ];
+    final heroCards = _buildHeroCards();
+    final quickLinks = _buildQuickLinks(onTapAttendance: onTapAttendance);
 
     return Scaffold(
       body: SafeArea(
@@ -154,7 +74,6 @@ class StudentHomePage extends ConsumerWidget {
                   color: AppTheme.heroStripBackground,
                   borderRadius: BorderRadius.circular(24),
                 ),
-
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: InfoCardsRow(cards: heroCards),
               ),
@@ -174,15 +93,21 @@ class StudentHomePage extends ConsumerWidget {
 
               const SizedBox(height: 15),
 
-              // Quick links grid
+              // Quick links grid (4 x 2)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: QuickLinksGrid(links: quickLinks),
               ),
+
               const SizedBox(height: 20),
 
               // Upcoming events
-              UpcomingEventsSection(events: upcomingEvents, onViewAll: () {}),
+              UpcomingEventsSection(
+                events: _demoUpcomingEvents,
+                onViewAll: () {
+                  // TODO: hook up "View all" navigation when ready.
+                },
+              ),
             ],
           ),
         ),
@@ -190,3 +115,100 @@ class StudentHomePage extends ConsumerWidget {
     );
   }
 }
+
+/// --- Static / helper data builders ---------------------------------------
+
+List<InfoCardData> _buildHeroCards() {
+  return const [
+    InfoCardData(
+      title: 'Check updated homework',
+      subtitle: 'New work for you.',
+      imageUrl: 'assets/images/home_hero_homework.png',
+      ctaLabel: 'Check Now',
+      backgroundColor: Color(0xFFFDE1E9),
+    ),
+    InfoCardData(
+      title: 'Join live class at 2:30 PM',
+      subtitle: 'Don\'t miss today\'s session.',
+      imageUrl: 'assets/images/home_hero_live.png',
+      ctaLabel: 'Join Now',
+      backgroundColor: Color(0xFFE1F5FE),
+    ),
+  ];
+}
+
+List<QuickLinkItem> _buildQuickLinks({required VoidCallback onTapAttendance}) {
+  return [
+    QuickLinkItem(
+      icon: Icons.event_available_outlined,
+      label: 'Attendance',
+      backgroundColor: const Color(0xFFE8F2FF),
+      iconColor: const Color(0xFF4A7CFF),
+      onTap: onTapAttendance,
+    ),
+    const QuickLinkItem(
+      icon: Icons.description_outlined,
+      label: 'Exam',
+      backgroundColor: Color(0xFFF5EBFF),
+      iconColor: Color(0xFF9B51E0),
+    ),
+    const QuickLinkItem(
+      icon: Icons.assignment_turned_in_outlined,
+      label: 'Leave',
+      backgroundColor: Color(0xFFE6F6F3),
+      iconColor: Color(0xFF2D9CDB),
+    ),
+    const QuickLinkItem(
+      icon: Icons.account_balance_outlined,
+      label: 'Fees',
+      backgroundColor: Color(0xFFEFF4FF),
+      iconColor: Color(0xFF4A5568),
+    ),
+    const QuickLinkItem(
+      icon: Icons.edit_note_outlined,
+      label: 'Homework',
+      backgroundColor: Color(0xFFF8F2DC),
+      iconColor: Color(0xFFB7791F),
+    ),
+    const QuickLinkItem(
+      icon: Icons.groups_outlined,
+      label: 'Community',
+      backgroundColor: Color(0xFFFDE9EC),
+      iconColor: Color(0xFFE65D7B),
+    ),
+    const QuickLinkItem(
+      icon: Icons.chat_bubble_outline,
+      label: 'Message',
+      backgroundColor: Color(0xFFF6EAFE),
+      iconColor: Color(0xFFAA7AE0),
+    ),
+    const QuickLinkItem(
+      icon: Icons.campaign_outlined,
+      label: 'Notice',
+      backgroundColor: Color(0xFFE7F7EC),
+      iconColor: Color(0xFF2F9E44),
+    ),
+  ];
+}
+
+// Hard-coded demo events for now.
+const List<UpcomingEvent> _demoUpcomingEvents = [
+  UpcomingEvent(
+    title: 'Inter-school football match',
+    dateLabel: 'Nov 22, 2024',
+    imageUrl: 'assets/images/event_football.png',
+    fallbackColor: Color(0xFFE1F5FE),
+  ),
+  UpcomingEvent(
+    title: 'Science project fair',
+    dateLabel: 'Dec 1, 2024',
+    imageUrl: 'assets/images/event_science_fair.png',
+    fallbackColor: Color(0xFFE1F5FE),
+  ),
+  UpcomingEvent(
+    title: 'Parent teacher meeting',
+    dateLabel: 'Dec 5, 2024',
+    imageUrl: 'assets/images/event_parent_meeting.png',
+    fallbackColor: Color(0xFFE1F5FE),
+  ),
+];

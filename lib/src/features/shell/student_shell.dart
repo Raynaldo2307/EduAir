@@ -1,12 +1,18 @@
 // lib/src/features/shell/student_shell.dart
 
-import 'package:edu_air/src/features/student/proflie/student_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/student/home/student_home_page.dart';
+import 'package:edu_air/src/features/student/proflie/student_profile.dart';
+import 'package:edu_air/src/features/attendance/presentation/student/student_attendance_page.dart';
 
+/// Shell for all student-facing tabs:
+/// 0 → Home
+/// 1 → Calendar / Attendance
+/// 2 → Messages
+/// 3 → Profile
 class StudentShell extends ConsumerStatefulWidget {
   const StudentShell({super.key});
 
@@ -15,30 +21,38 @@ class StudentShell extends ConsumerStatefulWidget {
 }
 
 class _StudentShellState extends ConsumerState<StudentShell> {
-  /// Which tab is currently selected in the bottom navigation bar.
-  int _currentIndex = 0;
+  /// Currently selected bottom-nav tab.
+  int _tabIndex = 0;
+
+  /// Helper: jump to the Calendar/Attendance tab.
+  void _goToCalendarTab() {
+    setState(() {
+      _tabIndex = 1;
+    });
+  }
 
   /// Pages for each tab.
   ///
-  /// The order **must match** the order of the [BottomNavigationBarItem]s:
-  /// 0 → Home
-  /// 1 → Calendar
-  /// 2 → Messages
-  /// 3 → Profile
+  /// Order MUST match [BottomNavigationBarItem]s.
   late final List<Widget> _pages = [
-    const StudentHomePage(),
-    const _PlaceholderPage(
-      title: 'Calendar',
-      icon: Icons.calendar_today_outlined,
-    ),
+    // 0 → Home: pass a callback so tapping the "Attendance" quick link
+    // switches the shell to the Calendar tab instead of pushing a new route.
+    StudentHomePage(onTapAttendance: _goToCalendarTab),
+
+    // 1 → Calendar / Attendance
+    const StudentAttendancePage(),
+
+    // 2 → Messages (placeholder for now)
     const _PlaceholderPage(title: 'Messages', icon: Icons.chat_bubble_outline),
+
+    // 3 → Profile
     const StudentProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(index: _tabIndex, children: _pages),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -46,12 +60,16 @@ class _StudentShellState extends ConsumerState<StudentShell> {
   /// Bottom navigation bar for switching between student tabs.
   Widget _buildBottomNav() {
     return BottomNavigationBar(
-      currentIndex: _currentIndex,
+      currentIndex: _tabIndex,
       selectedItemColor: AppTheme.primaryColor,
       unselectedItemColor: AppTheme.grey,
       backgroundColor: AppTheme.white,
       type: BottomNavigationBarType.fixed,
-      onTap: (index) => setState(() => _currentIndex = index),
+      onTap: (index) {
+        setState(() {
+          _tabIndex = index;
+        });
+      },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(

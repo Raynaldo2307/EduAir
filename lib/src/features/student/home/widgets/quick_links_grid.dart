@@ -28,41 +28,48 @@ class QuickLinksGrid extends StatelessWidget {
 }
 
 class QuickLinkItemWidget extends StatelessWidget {
-  const QuickLinkItemWidget({super.key, required this.item});
+  const QuickLinkItemWidget({super.key, required this.item, this.onTap});
 
   final QuickLinkItem item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Material(
-          elevation: 3,
-          borderRadius: BorderRadius.circular(16),
-          color: item.backgroundColor,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
-          child: Container(
-            height: 70,
-            width: 70,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-            child: Center(
-              child: Icon(item.icon, color: item.iconColor, size: 28),
+    return InkWell(
+      onTap: item.onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Material(
+            elevation: 3,
+            borderRadius: BorderRadius.circular(16),
+            color: item.backgroundColor,
+            shadowColor: Colors.black.withValues(alpha: 0.1),
+            child: Container(
+              height: 70,
+              width: 70,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Icon(item.icon, color: item.iconColor, size: 28),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          item.label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+          const SizedBox(height: 8),
+          Text(
+            item.label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -73,10 +80,12 @@ class QuickLinkItem {
     required this.label,
     required this.backgroundColor,
     this.iconColor = AppTheme.primaryColor,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final Color backgroundColor;
   final Color iconColor;
+  final VoidCallback? onTap;
 }

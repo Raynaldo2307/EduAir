@@ -86,12 +86,18 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     try {
       final user = await authService.signIn(email: email, password: password);
 
+      // Store user in global states
       userNotifier.state = user;
 
+
       if (!mounted) return;
+
+      //Ask the same Logic the Splash use 
+      final targetRoute = await ref.read(startupRouteProvider.future);
+
       _showSnack('Login successful!');
       // Let root decide where to go based on auth/profile
-      navigator.pushReplacementNamed('/');
+      navigator.pushReplacementNamed(targetRoute);
     } catch (e) {
       if (!mounted) return;
       _showSnack('Login failed: $e');
@@ -114,11 +120,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       userNotifier.state = user;
 
       if (!mounted) return;
+
+
+      //Ask the same Logic the Splash use 
+      final targetRoute = await ref.read(startupRouteProvider.future);
+
       _showSnack('Signed in with Google');
-      navigator.pushReplacementNamed('/');
+      navigator.pushReplacementNamed(targetRoute);
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Google sign-in failed: $e');
+      _showSnack('Google sign in failed: $e');
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
