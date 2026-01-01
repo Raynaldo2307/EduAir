@@ -2,6 +2,9 @@
 
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/attendance/data/attendance_repository.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as dev;
 
 /// AttendanceService
 /// -----------------
@@ -68,17 +71,23 @@ class AttendanceService {
       throw StateError('Late clock-in must include a late reason.');
     }
 
+final cleanedReason = lateReason?.trim();
+
     final day = AttendanceDay(
       dateKey: dateKey,
       studentUid: studentUid,
       status: status,
       clockInAt: ts,
       clockInLocation: location,
-      lateReason: lateReason?.trim().isEmpty ?? true
-          ? null
-          : lateReason!.trim(),
+      //lateReason: lateReason?.trim().isEmpty ?? true
+          //? null
+          //: lateReason!.trim(),
+    lateReason:(cleanedReason == null || cleanedReason.isEmpty)
+         ? null
+         : cleanedReason,
     );
 
+      try {
     await _repo.saveDay(
       studentUid: studentUid,
       day: day,
@@ -86,9 +95,16 @@ class AttendanceService {
     );
 
     return day;
+  } on FirebaseException catch (e) {
+    dev.log(
+      '🔥 Firestore clockIn error: code=${e.code}, message=${e.message}',
+      name: 'AttendanceService.clockIn',
+      error: e,
+    );
+    rethrow;
   }
-
-  /// Student taps "Clock Out".
+  }
+     /// Student taps "Clock Out".
   ///
   /// - Requires that the student already clocked in.
   /// - Adds `clockOutAt` and `clockOutLocation` to the day's record.
@@ -137,4 +153,14 @@ class AttendanceService {
   }) {
     return _repo.getRecentDays(studentUid: studentUid, limit: limit);
   }
+// Convenience wrapper for ui code .
+Future<List<AttendanceDay>> getRecentDaysForStudent({
+
+  required String studentUid,
+  int limit = 14,
+})
+{
+  return getRecentDays(studentUid: studentUid, limit:limit);
 }
+}
+
