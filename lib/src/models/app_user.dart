@@ -8,6 +8,7 @@ class AppUser {
   final String email;
   final String phone;
   final String role; // student | teacher | parent | admin
+  final String? schoolId;
   final String? photoUrl;
 
   final DateTime? createdAt;
@@ -32,6 +33,7 @@ class AppUser {
     required this.email,
     required this.phone,
     required this.role,
+    this.schoolId,
     this.photoUrl,
     this.gender,
     this.bio,
@@ -71,6 +73,10 @@ class AppUser {
         ? map['updatedAt'] as Timestamp
         : null;
 
+        final Timestamp? dobTs =
+      map['dateOfBirth'] is Timestamp ? map['dateOfBirth'] as Timestamp : null;
+
+
     return AppUser(
       uid: uid,
       firstName: (map['firstName'] ?? "").toString(),
@@ -78,6 +84,7 @@ class AppUser {
       email: (map['email'] ?? "").toString(),
       phone: (map['phone'] ?? "").toString(),
       role: (map['role'] ?? "student").toString(),
+      schoolId: map['schoolId'] as String?,
       photoUrl: map['photoUrl'],
       gender: map['gender'],
       bio: map['bio'],
@@ -89,6 +96,14 @@ class AppUser {
           : null,
       createdAt: cts?.toDate(),
       updatedAt: uts?.toDate(),
+    
+    
+    // NEW: hydrate profile fields
+    parentGuardianName: map['parentGuardianName'] as String?,
+    parentGuardianPhone: map['parentGuardianPhone'] as String?,
+    address: map['address'] as String?,
+    dateOfBirth: dobTs?.toDate(),
+    
     );
   }
 
@@ -106,6 +121,7 @@ class AppUser {
       'email': email,
       'phone': phone,
       'role': role,
+      'schoolId': schoolId,
       'photoUrl': photoUrl,
       'gender': gender,
       'bio': bio,
@@ -113,6 +129,14 @@ class AppUser {
       'gradeLevel': gradeLevel,
       'teacherDepartment': teacherDepartment,
       'childrenIds': childrenIds,
+
+      // NEW: profile fields
+    'parentGuardianName': parentGuardianName,
+    'parentGuardianPhone': parentGuardianPhone,
+    'address': address,
+    'dateOfBirth': dateOfBirth != null
+        ? Timestamp.fromDate(dateOfBirth!)
+        : null,
 
       /// ✅ Timestamp strategy
       'createdAt': createdAt != null
@@ -133,6 +157,7 @@ class AppUser {
     String? email,
     String? phone,
     String? role,
+    String? schoolId,
     String? photoUrl,
     String? gender,
     String? bio,
@@ -156,6 +181,7 @@ class AppUser {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       role: role ?? this.role,
+      schoolId: schoolId ?? this.schoolId,
       photoUrl: photoUrl ?? this.photoUrl,
       gender: gender ?? this.gender,
       bio: bio ?? this.bio,

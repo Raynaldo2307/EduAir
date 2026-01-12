@@ -73,10 +73,12 @@ class ClockButtonsRow extends StatelessWidget {
 
     // Case 3: done for today
     return Text(
-      'You are done for today.',
+      'You’re all set for today 🎉',
       textAlign: TextAlign.center,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: AppTheme.textPrimary.withValues(alpha: 0.6),
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

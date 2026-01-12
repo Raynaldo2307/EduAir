@@ -75,9 +75,17 @@ class AttendanceDay {
   /// Optional reason if late **or** note (e.g. excused absence).
   final String? lateReason;
 
+
+  /// New: did the student leave before class end?
+  final bool isEarlyLeave;
+
+  /// New: did the student stay after the overtime cutoff?
+  final bool isOvertime;
+
   /// Core constructor.
   ///
   /// Contains light-weight asserts to avoid obviously broken state.
+  /// 
   const AttendanceDay({
     required this.dateKey,
     required this.studentUid,
@@ -87,6 +95,8 @@ class AttendanceDay {
     this.clockInLocation,
     this.clockOutLocation,
     this.lateReason,
+    this.isEarlyLeave = false,   // 👈 NEW
+    this.isOvertime = false,     
   })  : assert(
           // Absent: no times/locations; reason is allowed (excused absence).
           status != AttendanceStatus.absent ||
@@ -130,6 +140,8 @@ class AttendanceDay {
     Object? clockInLocation = _sentinel,
     Object? clockOutLocation = _sentinel,
     Object? lateReason = _sentinel,
+    bool? isEarlyLeave,
+    bool? isOvertime,
   }) {
     return AttendanceDay(
       dateKey: dateKey ?? this.dateKey,
@@ -150,8 +162,11 @@ class AttendanceDay {
       lateReason: identical(lateReason, _sentinel)
           ? this.lateReason
           : lateReason as String?,
+           isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave,  // 👈 NEW
+      isOvertime: isOvertime ?? this.isOvertime,        // 👈 NEW
     );
   }
+    
 
   /// Simple helper: is this day tagged as late?
   ///

@@ -16,7 +16,14 @@ final studentRecentAttendanceProvider = FutureProvider<List<AttendanceDay>>((
   // Not logged in → nothing to show.
   if (user == null) return [];
 
-  return service.getRecentDays(studentUid: user.uid, limit: 14);
+  final schoolId = user.schoolId;
+  if (schoolId == null || schoolId.isEmpty) return [];
+
+  return service.getRecentDays(
+    schoolId: schoolId,
+    studentUid: user.uid,
+    limit: 14,
+  );
 });
 
 /// Simple summary (present / absent counts) for the current student,

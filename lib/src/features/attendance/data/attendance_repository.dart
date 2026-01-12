@@ -11,8 +11,8 @@ import 'package:edu_air/src/features/attendance/data/attendance_firestore_source
 /// - It hides the Firestore details (paths, maps, GeoPoint, Timestamp, etc.).
 /// - Later we can plug in offline/local storage without touching the UI.
 ///
-/// Current Firestore layout (V1):
-///   users/{uid}/attendanceDays/{YYYY-MM-DD}
+/// Current Firestore layout (multi-school):
+///   schools/{schoolId}/attendance/{YYYY-MM-DD}_{studentUid}
 ///
 /// Each document maps to an [AttendanceDay] (one student, one school day).
 
@@ -26,29 +26,45 @@ class AttendanceRepository {
   /// Returns `null` if there's no record for that day yet.
   ///
   Future<AttendanceDay?> getDay({
+    required String schoolId,
     required String studentUid,
-    required String dateKey, //"YYY-MM-DD"
+    required String dateKey, //"YYYY-MM-DD"
   }) {
-    return _remote.getDay(studentUid: studentUid, dateKey: dateKey);
+    return _remote.getDay(
+      schoolId: schoolId,
+      studentUid: studentUid,
+      dateKey: dateKey,
+    );
   }
 
   /// Get the most recent [limit] days of attendance for a student,
   /// ordered by date descending (today first).
   Future<List<AttendanceDay>> getRecentDays({
+    required String schoolId,
     required String studentUid,
     int limit = 14,
   }) {
-    return _remote.getRecentDays(studentUid: studentUid, limit: limit);
+    return _remote.getRecentDays(
+      schoolId: schoolId,
+      studentUid: studentUid,
+      limit: limit,
+    );
   }
 
   /// Create or update a daily attendance document.
-  Future<AttendanceDay?> saveDay({
+  Future<AttendanceDay> saveDay({
+    required String schoolId,
     required String studentUid,
     required AttendanceDay day,
     bool isNew = false,
   }) async {
-    // Note: we trust [day.dateKey] to be the doc id.
-    await _remote.saveDay(studentUid: studentUid, day: day, isNew: isNew);
+    // Note: we trust [day.dateKey] + studentUid to form the doc id.
+    await _remote.saveDay(
+      schoolId: schoolId,
+      studentUid: studentUid,
+      day: day,
+      isNew: isNew,
+    );
 
     // For now, simply return the same day we just saved. If in the future
     // you need server-populated fields (e.g. server timestamps), you could
@@ -59,9 +75,14 @@ class AttendanceRepository {
   // Optional: stream a single day's record so UI can react in real-time
   // (e.g. after admin overrides)
   Stream<AttendanceDay?> watchDay({
+    required String schoolId,
     required String studentUid,
     required String dateKey,
   }) {
-    return _remote.watchDay(studentUid: studentUid, dateKey: dateKey);
+    return _remote.watchDay(
+      schoolId: schoolId,
+      studentUid: studentUid,
+      dateKey: dateKey,
+    );
   }
 }

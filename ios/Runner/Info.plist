@@ -71,5 +71,9 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This is required to discover the Dart VM Service while debugging on the local network.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EduAir uses your location to verify you are on campus when clocking in and out.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>EduAir uses your location to verify you are on campus when clocking in and out.</string>
 </dict>
 </plist>

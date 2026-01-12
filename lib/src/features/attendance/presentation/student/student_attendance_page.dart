@@ -1,3 +1,7 @@
+// Student view – Calendar tab (Attendance + Time Table).
+// UX rules (Jan 2026):
+
+import 'package:edu_air/src/features/attendance/domain/attendance_geo_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:developer' as dev;
@@ -23,13 +27,15 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
   /// 0 = Attendance, 1 = Time Table
   int _selectedTab = 0;
 
-  /// Today (for now we fake it – will be replaced by AttendanceService).
+  /// Today in *school time* (coming from AttendanceService).
   late DateTime _today;
 
   bool _isSubmitting = false;
 
   /// Which month is currently shown in the calendar
   late DateTime _focusedMonth;
+
+  int _mockGpsStrikes = 0; // new
 
   AttendanceDay? _findDayByKey(List<AttendanceDay> days, String key) {
     for (final d in days) {
@@ -38,12 +44,49 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     return null;
   }
 
+  void _handleMockLocationError() async {
+    _mockGpsStrikes++;
+
+    if (_mockGpsStrikes >= 3) {
+      // Harder UX after 3 strikes
+      await showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('Fake GPS detected'),
+            content: const Text(
+              'EduAir has detected repeated mock GPS locations.\n\n'
+              'Please turn off any fake location or VPN apps and '
+              'use your real location to clock in or out.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Softer UX for first 1–2 strikes
+      _showSnack(
+        'EduAir detected a mock GPS location.\n'
+        'Please disable fake location apps and use your real location '
+        'to check in.',
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _today = DateTime.now();
 
-    // 👇 Add this line
+    // Use the same time source as AttendanceService (school timezone).
+    final service = ref.read(attendanceServiceProvider);
+    final now = service.schoolNow();
+
+    _today = now;
     _focusedMonth = DateTime(_today.year, _today.month, 1);
   }
 
@@ -63,10 +106,42 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       return;
     }
 
-    final service = ref.read(attendanceServiceProvider);
+    final schoolId = user.schoolId;
+    if (schoolId == null || schoolId.isEmpty) {
+      _showSnack('No school assigned to your account.');
+      return;
+    }
 
-    // 1. Decide if this tap is "late" using the SAME logic as the service.
-    final now = DateTime.now();
+    final service = ref.read(attendanceServiceProvider);
+    final geo = ref.read(attendanceGeoServiceProvider);
+    final school = ref.read(currentSchoolProvider);
+
+    // Use the same time source as service
+    final now = service.schoolNow();
+    if (!service.isSchoolDay(now)) {
+      _showSnack('No school today. You can only clock in on school days.');
+      return;
+    }
+
+    // 0. Enforce on-campus rule (after confirming it's a school day)
+    try {
+      final onCampus = await geo.isUserOnCampus(school);
+      if (!onCampus) {
+        _showSnack('You must be on campus to clock in.');
+        return;
+      }
+    } on LocationServiceDisabledException {
+      _showSnack('Turn on location services to clock in.');
+      return;
+    } on PermissionDeniedException catch (e) {
+      _showSnack(e.message);
+      return;
+    } on MockLocationsException {
+      _handleMockLocationError();
+      return;
+    }
+
+    // 1. Decide if this tap is "late" using the SAME logic as the service
     final status = AttendanceDay.resolveStatusFromClockIn(
       clockIn: now,
       classStart: DateTime(now.year, now.month, now.day, 8, 0),
@@ -79,7 +154,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     if (status == AttendanceStatus.late) {
       lateReason = await _showLateReasonDialog();
       if (lateReason == null || lateReason.trim().isEmpty) {
-        _showSnack('Clock-in cancelled. Late reason is required.');
+        _showSnack('Clock in cancelled. Late reason is required.');
         return;
       }
     }
@@ -89,20 +164,21 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
     try {
       dev.log(
-        'Clock-in requested | uid=${user.uid}, '
+        'Clock-in requested | schoolId=$schoolId, uid=${user.uid}, '
         'now=${now.toIso8601String()}, '
         'status=${status.name}, '
         'lateReason="$lateReason"',
         name: 'StudentAttendance',
       );
 
-      // TODO: replace with real device location.
-      const location = AttendanceLocation(lat: 0.0, lng: 0.0);
+      // ✅ Use real device location via geo service
+      final location = await geo.currentAttendanceLocation();
 
       final savedDay = await service.clockIn(
+        schoolId: schoolId,
         studentUid: user.uid,
         location: location,
-        lateReason: lateReason, // null for on-time, non-null for late
+        lateReason: lateReason,
         at: now,
       );
 
@@ -117,10 +193,13 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       ref.invalidate(studentRecentAttendanceProvider);
       ref.invalidate(studentAttendanceSummaryProvider);
 
-      _showSnack('Clock-in recorded.');
+      _showSnack('Clock in recorded.');
+    } on MockLocationsException {
+      // 🔥 Use your nice UX instead of crashing
+      _handleMockLocationError();
     } catch (e, st) {
       dev.log(
-        'Clock-in FAILED: $e',
+        'Clock in FAILED: $e',
         name: 'StudentAttendance',
         error: e,
         stackTrace: st,
@@ -144,21 +223,59 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       return;
     }
 
+    final schoolId = user.schoolId;
+    if (schoolId == null || schoolId.isEmpty) {
+      _showSnack('No school assigned to your account.');
+      return;
+    }
+
     final service = ref.read(attendanceServiceProvider);
+    final geo = ref.read(attendanceGeoServiceProvider);
+    final school = ref.read(currentSchoolProvider);
+
+    final now = service.schoolNow();
+    if (!service.isSchoolDay(now)) {
+      _showSnack('No school today. You can only clock out on school days.');
+      return;
+    }
+
+    // 🔹 0. Enforce on-campus rule BEFORE clock-out
+    try {
+      final onCampus = await geo.isUserOnCampus(school);
+      if (!onCampus) {
+        _showSnack('You must be on campus to clock out.');
+        return;
+      }
+    } on LocationServiceDisabledException {
+      _showSnack('Turn on location services to clock out.');
+      return;
+    } on PermissionDeniedException catch (e) {
+      _showSnack(e.message);
+      return;
+    } on MockLocationsException {
+      _handleMockLocationError();
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
     try {
-      // TODO: replace with real device location.
-      const location = AttendanceLocation(lat: 0.0, lng: 0.0);
+      // ✅ Use real device location via geo service
+      final location = await geo.currentAttendanceLocation();
 
-      await service.clockOut(studentUid: user.uid, location: location);
+      await service.clockOut(
+        schoolId: schoolId,
+        studentUid: user.uid,
+        location: location,
+      );
 
       // Refresh UI data
       ref.invalidate(studentRecentAttendanceProvider);
       ref.invalidate(studentAttendanceSummaryProvider);
 
       _showSnack('Clock-out recorded.');
+    } on MockLocationsException {
+      _handleMockLocationError();
     } catch (e) {
       _showSnack('Could not clock out: $e');
     } finally {
@@ -387,7 +504,9 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
     final summaryAsync = ref.watch(studentAttendanceSummaryProvider);
     final recentAsync = ref.watch(studentRecentAttendanceProvider);
-    final todayKey = AttendanceDay.dateKeyFor(_today);
+
+    // Use the same school time source for the "auto-done after 16:30" logic.
+    final service = ref.read(attendanceServiceProvider);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
@@ -425,22 +544,40 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: recentAsync.when(
             data: (days) {
-              final todayDay = days.firstWhere(
-                (d) => d.dateKey == todayKey,
-                orElse: () => AttendanceDay(
-                  dateKey: todayKey,
-                  studentUid: user.uid,
-                  status: AttendanceStatus.absent,
-                ),
-              );
+              final todayKey = AttendanceDay.dateKeyFor(_today);
 
-              final isClockedIn = todayDay.clockInAt != null;
-              final isClockedOut = todayDay.clockOutAt != null;
+              // 1) Try to find today's record; may be null if not clocked in yet
+              final todayDay = _findDayByKey(days, todayKey);
+
+              // 2) Base flags from Firestore (handle null safely)
+              final hasClockedIn = todayDay?.clockInAt != null;
+              final hasClockedOut = todayDay?.clockOutAt != null;
+
+              // 3) Figure out if we should *treat* this as "done for today"
+              final now = service.schoolNow();
+
+              // Only auto-complete if we're looking at "today" on the calendar
+              final isToday = todayKey == AttendanceDay.dateKeyFor(now);
+
+              // Choose your auto cut-off time (here: 16:30 = 4:30pm)
+              final autoCutoff = DateTime(now.year, now.month, now.day, 16, 30);
+
+              final shouldTreatAsDone =
+                  isToday &&
+                  hasClockedIn &&
+                  !hasClockedOut &&
+                  now.isAfter(autoCutoff);
+
+              final isClockedIn = hasClockedIn;
+              final isClockedOut = hasClockedOut || shouldTreatAsDone;
+
+              // 👇 ask the service if *today* is a school day
+              final isSchoolDay = service.isSchoolDay(_today);
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Button first, then status strip (your new UX)
+                  // Button first, then status strip
                   ClockButtonsRow(
                     isClockedIn: isClockedIn,
                     isClockedOut: isClockedOut,
@@ -449,7 +586,10 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
                     onClockOut: _handleClockOut,
                   ),
                   const SizedBox(height: 12),
-                  AttendanceStatusStrip(today: todayDay),
+                  AttendanceStatusStrip(
+                    today: todayDay,
+                    isSchoolDay: isSchoolDay,
+                  ),
                 ],
               );
             },
@@ -476,7 +616,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     );
   }
 
-  ///Calendar
+  /// Calendar
   Widget _buildCalendarBox(
     BuildContext context,
     AsyncValue<List<AttendanceDay>> recentAsync,
@@ -588,7 +728,6 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
                           horizontal: 3,
                           vertical: 2.5,
                         ),
-
                         child: Container(
                           decoration: BoxDecoration(
                             color: inHighlightedRange

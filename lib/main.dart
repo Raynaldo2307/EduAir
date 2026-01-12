@@ -8,6 +8,7 @@ import 'package:edu_air/src/shared/app_router.dart';
 // Theme + Router
 import 'package:edu_air/src/core/app_theme.dart';
 //import 'package:edu_air/src/features/shell/teacher_shell.dart';
+//import 'src/dev/dev_seed_schools.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
