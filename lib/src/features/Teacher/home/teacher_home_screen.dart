@@ -37,7 +37,10 @@ import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart
 import 'package:edu_air/src/models/class_session.dart';
 
 class TeacherHomeScreen extends ConsumerWidget {
-  const TeacherHomeScreen({super.key});
+  const TeacherHomeScreen({super.key, required this.onSelectTab});
+
+  /// Callback from the shell to switch bottom nav tab (0 = Home, 1 = Student Info, ...)
+  final void Function(int index) onSelectTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -82,6 +85,7 @@ class TeacherHomeScreen extends ConsumerWidget {
         label: 'Attendance',
         backgroundColor: Color(0xFFE8F2FF),
         iconColor: Color(0xFF4A7CFF),
+        routeName: '/teacherAttendance',
       ),
       QuickLinkItem(
         icon: Icons.description_outlined,
@@ -112,6 +116,7 @@ class TeacherHomeScreen extends ConsumerWidget {
         label: 'Student Info',
         backgroundColor: Color(0xFFFDE9EC),
         iconColor: Color(0xFFE65D7B),
+        // routeName: '/teacherStudentInfo',
       ),
       QuickLinkItem(
         icon: Icons.chat_bubble_outline,
@@ -179,80 +184,90 @@ class TeacherHomeScreen extends ConsumerWidget {
 
     // ----- 6. Build the page --------------------------------------------------
     return Scaffold(
-    body:SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header (name, ID, avatar)
-            GreetingHeader(
-              name: name,
-              teacherId: teacherId,
-              teacherDepartment: department,
-              avatarUrl: user?.photoUrl,
-            ),
-
-            const SizedBox(height: 18),
-
-            // Hero cards (no green strip for teacher, matches your FlutterFlow UI)
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.heroStripBackground,
-                borderRadius: BorderRadius.circular(24),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (name, ID, avatar)
+              GreetingHeader(
+                name: name,
+                teacherId: teacherId,
+                teacherDepartment: department,
+                avatarUrl: user?.photoUrl,
               ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: InfoCardsRow(cards: heroCards),
-            ),
-           
 
-          //InfoCardsRow(cards: heroCards),
-            
-            const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
-            // Quick links title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                'Dashboard',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+              // Hero cards (no green strip for teacher, matches your FlutterFlow UI)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.heroStripBackground,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: InfoCardsRow(cards: heroCards),
               ),
-            ),
 
-            const SizedBox(height: 15),
+              //InfoCardsRow(cards: heroCards),
+              const SizedBox(height: 24),
 
-            // Quick links grid
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: QuickLinksGrid(links: quickLinks),
-            ),
+              // Quick links title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Dashboard',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+                ),
+              ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 15),
 
-            // Today lectures / classes
-            TodayClassesSection(
-              sessions: todayClasses,
-              onViewAll: () {
-                // TODO: navigate to full timetable screen
-              },
-            ),
+              // Quick links grid
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: QuickLinksGrid(
+                  links: quickLinks,
+                  onItemTap: (context, item) {
+                    // Attendance → push to attendance page
+                    if (item.label == 'Attendance') {
+                      Navigator.of(context).pushNamed('/teacherAttendance');
+                    }
+                    // Student Info → switch bottom tab to index 1
+                    else if (item.label == 'Student Info') {
+                      onSelectTab(1);
+                    }
 
-            const SizedBox(height: 24),
+                    // other links can stay empty for now or get routes later
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
 
-            // Upcoming events (shared between student + teacher)
-            UpcomingEventsSection(
-              events: upcomingEvents,
-              onViewAll: () {
-                // TODO: navigate to full events screen
-              },
-            ),
-          ],
+              // Today lectures / classes
+              TodayClassesSection(
+                sessions: todayClasses,
+                onViewAll: () {
+                  // TODO: navigate to full timetable screen
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Upcoming events (shared between student + teacher)
+              UpcomingEventsSection(
+                events: upcomingEvents,
+                onViewAll: () {
+                  // TODO: navigate to full events screen
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
-  
   }
 }

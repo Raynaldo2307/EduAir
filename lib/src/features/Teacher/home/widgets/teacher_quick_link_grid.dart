@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
-
 import 'package:edu_air/src/core/app_theme.dart';
 
 /// Reusable grid for quick actions on the dashboard
 /// (used on both student + teacher side).
 class QuickLinksGrid extends StatelessWidget {
-  const QuickLinksGrid({super.key, required this.links});
+  const QuickLinksGrid({super.key, required this.links, this.onItemTap});
 
+  /// All quick-link items to render in the grid.
   final List<QuickLinkItem> links;
+
+  /// Optional parent-level tap handler.
+  ///
+  /// If this is provided (e.g. from TeacherHomeScreen), it will be called
+  /// with `(context, item)` and *completely override* the item-level
+  /// routeName / onTap behavior.
+  final void Function(BuildContext context, QuickLinkItem item)? onItemTap;
 
   @override
   Widget build(BuildContext context) {
@@ -19,60 +26,90 @@ class QuickLinksGrid extends StatelessWidget {
         crossAxisCount: 4, // 4 items per row
         crossAxisSpacing: 10, // space between items horizontally
         mainAxisSpacing: 10, // space between rows
-        // Slightly more height per cell so icon + label fit comfortably
-        childAspectRatio: 0.78,
+        childAspectRatio: 0.78, // icon + label fits nicely
       ),
       itemBuilder: (context, index) {
         final link = links[index];
-        return QuickLinkItemWidget(item: link);
+        return QuickLinkItemWidget(item: link, onTap: onItemTap);
       },
     );
   }
 }
 
 class QuickLinkItemWidget extends StatelessWidget {
-  const QuickLinkItemWidget({super.key, required this.item});
+  const QuickLinkItemWidget({super.key, required this.item, this.onTap});
 
   final QuickLinkItem item;
 
+  /// Optional parent-level tap handler.
+  /// If not null, this wins over the item’s own `routeName` / `onTap`.
+  final void Function(BuildContext context, QuickLinkItem item)? onTap;
+
+  /// Default behavior when no parent handler is passed.
+  void _handleTapFallback(BuildContext context) {
+    // 1) Custom handler on the item wins
+    if (item.onTap != null) {
+      item.onTap!(context);
+      return;
+    }
+
+    // 2) Otherwise, use routeName if provided
+    if (item.routeName != null) {
+      Navigator.of(context).pushNamed(item.routeName!);
+      return;
+    }
+
+    // 3) Else: nothing for now (could show "Coming soon" later)
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Icon tile
-        Material(
-          elevation: 3,
-          borderRadius: BorderRadius.circular(16),
-          color: item.backgroundColor,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
-          child: Container(
-            height: 64, // was 70 – slightly smaller to avoid overflow
-            width: 64, // was 70
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-            child: Center(
-              child: Icon(
-                item.icon,
-                color: item.iconColor,
-                size: 26, // was 28
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        if (onTap != null) {
+          // Parent (e.g. TeacherHomeScreen) decides what happens
+          onTap!(context, item);
+        } else {
+          // Fallback: item-level behavior
+          _handleTapFallback(context);
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon tile
+          Material(
+            elevation: 3,
+            borderRadius: BorderRadius.circular(16),
+            color: item.backgroundColor,
+            shadowColor: Colors.black.withValues(alpha: 0.1),
+            child: Container(
+              height: 64,
+              width: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Icon(item.icon, color: item.iconColor, size: 26),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 6), // was 8
-        // Label
-        Text(
-          item.label,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 12, // was 13 – a bit more compact
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+          const SizedBox(height: 6),
+          // Label
+          Text(
+            item.label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -83,10 +120,20 @@ class QuickLinkItem {
     required this.label,
     required this.backgroundColor,
     this.iconColor = AppTheme.primaryColor,
+    this.routeName,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final Color backgroundColor;
   final Color iconColor;
+
+  /// Named route to navigate to when tapped (optional).
+  final String? routeName;
+
+  /// Custom tap handler (optional).
+  /// If set, this is used instead of [routeName] when there is **no**
+  /// parent `onItemTap` passed into [QuickLinksGrid].
+  final void Function(BuildContext context)? onTap;
 }

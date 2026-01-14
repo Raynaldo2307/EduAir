@@ -7,7 +7,11 @@ import '../features/auth/sign_up_form.dart';
 import '../features/shell/select_role.dart';
 import '../features/shell/student_shell.dart';
 import '../features/shell/teacher_shell.dart';
-import '../features/shell/select_school.dart'; // 👈 NEW
+import '../features/shell/select_school.dart';
+
+// 👇 NEW: teacher feature screens
+import '../features/teacher/teacher_attendance_page.dart';
+//import '../features/teacher/student_info_page.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -29,7 +33,7 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SelectRolePage());
 
       // After role is set but before school is chosen
-      case '/selectSchool': // 👈 NEW
+      case '/selectSchool':
         return MaterialPageRoute(builder: (_) => const SelectSchoolPage());
 
       // Main shells
@@ -38,6 +42,13 @@ class AppRouter {
 
       case '/teacherHome':
         return MaterialPageRoute(builder: (_) => const TeacherShell());
+
+      // 👇 NEW: teacher quick-link destinations
+      case '/teacherAttendance':
+        return MaterialPageRoute(builder: (_) => const TeacherAttendancePage());
+
+      //case '/teacherStudentInfo':
+       // return MaterialPageRoute(builder: (_) => const StudentInfoPage());
     }
 
     // 🔁 Fallback for unknown routes
