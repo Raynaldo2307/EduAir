@@ -198,6 +198,14 @@ class AttendanceFirestoreSource {
     final clockInLoc = _locationFromDynamic(data['clockInLoc']);
     final clockOutLoc = _locationFromDynamic(data['clockOutLoc']);
 
+    final takenAtTs = data['takenAt'] as Timestamp?;
+    final updatedAtTs = data['updatedAt'] as Timestamp?;
+
+    final rawGradeLevel = data['gradeLevel'];
+    final gradeLevel = rawGradeLevel is int
+        ? rawGradeLevel
+        : int.tryParse(rawGradeLevel?.toString() ?? '');
+
     // NEW (with safe default to false if field is missing)
     final isEarlyLeave = (data['isEarlyLeave'] as bool?) ?? false;
     final isOvertime = (data['isOvertime'] as bool?) ?? false;
@@ -206,11 +214,22 @@ class AttendanceFirestoreSource {
       dateKey: data['date'] as String? ?? _dateKeyFromDocId(doc.id),
       studentUid: studentUid,
       status: status,
+      schoolId: data['schoolId'] as String?,
+      classId: data['classId'] as String?,
+      className: data['className'] as String?,
+      gradeLevel: gradeLevel,
       clockInAt: clockInTs?.toDate(),
       clockOutAt: clockOutTs?.toDate(),
       clockInLocation: clockInLoc,
       clockOutLocation: clockOutLoc,
       lateReason: data['lateReason'] as String?,
+      takenByUid: data['takenByUid'] as String?,
+      takenAt: takenAtTs?.toDate(),
+      updatedAt: updatedAtTs?.toDate(),
+      subjectId: data['subjectId'] as String?,
+      subjectName: data['subjectName'] as String?,
+      periodId: data['periodId'] as String?,
+      shiftType: data['shiftType'] as String?,
       isEarlyLeave: isEarlyLeave,
       isOvertime: isOvertime,
     );
@@ -220,11 +239,21 @@ class AttendanceFirestoreSource {
     return <String, dynamic>{
       // Keep date as a field for querying (docId is composite).
       'date': day.dateKey,
+      if (day.schoolId != null) 'schoolId': day.schoolId,
       'studentUid': day.studentUid,
+      if (day.classId != null) 'classId': day.classId,
+      if (day.className != null) 'className': day.className,
+      if (day.gradeLevel != null) 'gradeLevel': day.gradeLevel,
       'status': day.status.name,
       'clockInAt': day.clockInAt,
       'clockOutAt': day.clockOutAt,
       'lateReason': day.lateReason,
+      if (day.takenByUid != null) 'takenByUid': day.takenByUid,
+      if (day.takenAt != null) 'takenAt': day.takenAt,
+      if (day.subjectId != null) 'subjectId': day.subjectId,
+      if (day.subjectName != null) 'subjectName': day.subjectName,
+      if (day.periodId != null) 'periodId': day.periodId,
+      if (day.shiftType != null) 'shiftType': day.shiftType,
 
       // New boolean flags
       'isEarlyLeave': day.isEarlyLeave,
@@ -243,6 +272,7 @@ class AttendanceFirestoreSource {
 
       // Audit fields
       'updateAt': FieldValue.serverTimestamp(), // (typo kept for compat)
+      'updatedAt': day.updatedAt ?? FieldValue.serverTimestamp(),
       if (isNew) 'createdAt': FieldValue.serverTimestamp(),
     };
   }

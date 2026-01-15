@@ -115,6 +115,9 @@ class AttendanceStatusStrip extends StatelessWidget {
       case AttendanceStatus.absent:
         chipColor = Colors.red.shade500;
         break;
+      case AttendanceStatus.excused:
+        chipColor = Colors.amber.shade600;
+        break;
     }
 
     final inTime = _formatTime(context, day.clockInAt);
@@ -135,6 +138,10 @@ class AttendanceStatusStrip extends StatelessWidget {
       subtitle = day.lateReason?.isNotEmpty == true
           ? 'Absent • ${day.lateReason}'
           : 'Absent';
+    } else if (status == AttendanceStatus.excused) {
+      subtitle = day.lateReason?.isNotEmpty == true
+          ? 'Excused • ${day.lateReason}'
+          : 'Excused';
     } else if (inTime == null && outTime == null) {
       subtitle = statusLabel;
     } else if (inTime != null && outTime != null) {

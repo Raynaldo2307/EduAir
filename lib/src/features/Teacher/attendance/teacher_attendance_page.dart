@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
+import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
+import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_providers.dart';
+import 'package:edu_air/src/models/app_user.dart';
 
 class TeacherAttendancePage extends ConsumerStatefulWidget {
   const TeacherAttendancePage({super.key});
@@ -12,14 +17,20 @@ class TeacherAttendancePage extends ConsumerStatefulWidget {
 }
 
 class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
-  static const List<String> _classes = ['7th A', '7th B', '7th C'];
-  static const double _statusColumnWidth = 72;
+  static const double _statusColumnWidth = 56;
+  static const List<TeacherClassOption> _fallbackClasses = [
+    TeacherClassOption(classId: '7th A', className: '7th A'),
+    TeacherClassOption(classId: '7th B', className: '7th B'),
+    TeacherClassOption(classId: '7th C', className: '7th C'),
+  ];
 
   int _selectedTab = 0;
-  String? _selectedClass;
   DateTime _selectedDate = DateTime.now();
-  bool _isLoading = true;
-  List<TeacherStudentRow> _students = [];
+  TeacherClassOption? _selectedClass;
+  final Map<String, AttendanceStatus?> _selectedStatuses = {};
+  bool _isSaving = false;
+  String? _shiftType = 'whole_day';
+
   late DateTime _focusedMonth;
   DateTime? _selectedTeacherDay;
 
@@ -32,77 +43,54 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       _selectedDate.month,
       _selectedDate.day,
     );
-    _loadStudents();
   }
 
-  Future<void> _loadStudents() async {
-    await Future.delayed(const Duration(seconds: 1));
-    if (!mounted) return;
-    setState(() {
-      _students = _buildSampleStudents();
-      _isLoading = false;
-    });
+  List<TeacherClassOption> _buildClassOptions(AppUser user) {
+    final options = <String, TeacherClassOption>{};
+
+    if (user.homeroomClassId != null &&
+        user.homeroomClassId!.trim().isNotEmpty) {
+      options[user.homeroomClassId!] = TeacherClassOption(
+        classId: user.homeroomClassId!,
+        className: user.homeroomClassName?.trim().isNotEmpty == true
+            ? user.homeroomClassName!
+            : user.homeroomClassId!,
+        gradeLevel: user.gradeLevelNumber,
+      );
+    }
+
+    final assignments = user.subjectAssignments ?? const <SubjectAssignment>[];
+    for (final assignment in assignments) {
+      if (assignment.classId.trim().isEmpty) continue;
+      options.putIfAbsent(
+        assignment.classId,
+        () => TeacherClassOption(
+          classId: assignment.classId,
+          className: assignment.className,
+          gradeLevel: assignment.gradeLevel,
+        ),
+      );
+    }
+
+    if (options.isEmpty) {
+      return _fallbackClasses;
+    }
+
+    return options.values.toList();
   }
 
-  List<TeacherStudentRow> _buildSampleStudents() {
-    return [
-      TeacherStudentRow(
-        id: 's1',
-        name: 'Leslie Alexander',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-      TeacherStudentRow(
-        id: 's2',
-        name: 'Wade Warren',
-        avatarUrl: '',
-        isPresent: false,
-        isAbsent: true,
-      ),
-      TeacherStudentRow(
-        id: 's3',
-        name: 'Brooklyn Simmons',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-      TeacherStudentRow(
-        id: 's4',
-        name: 'Jenny Wilson',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-      TeacherStudentRow(
-        id: 's5',
-        name: 'Bessie Cooper',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-      TeacherStudentRow(
-        id: 's6',
-        name: 'Jerome Bell',
-        avatarUrl: '',
-        isPresent: false,
-        isAbsent: true,
-      ),
-      TeacherStudentRow(
-        id: 's7',
-        name: 'Kathryn Murphy',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-      TeacherStudentRow(
-        id: 's8',
-        name: 'Annette Black',
-        avatarUrl: '',
-        isPresent: true,
-        isAbsent: false,
-      ),
-    ];
+  void _ensureSelectedClass(List<TeacherClassOption> options) {
+    if (options.isEmpty) return;
+    final fallback = options.first;
+    if (_selectedClass == null || !options.contains(_selectedClass)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selectedClass = fallback;
+          _selectedStatuses.clear();
+        });
+      });
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -137,21 +125,14 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       lastDate: DateTime(2035),
     );
     if (picked == null) return;
-    setState(() => _selectedDate = picked);
-  }
-
-  void _togglePresent(TeacherStudentRow row) {
     setState(() {
-      row.isPresent = true;
-      row.isAbsent = false;
+      _selectedDate = picked;
+      _selectedStatuses.clear();
     });
   }
 
-  void _toggleAbsent(TeacherStudentRow row) {
-    setState(() {
-      row.isAbsent = true;
-      row.isPresent = false;
-    });
+  void _toggleStatus(String studentUid, AttendanceStatus status) {
+    setState(() => _selectedStatuses[studentUid] = status);
   }
 
   void _changeMonth(int delta) {
@@ -173,6 +154,81 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  AttendanceStatus? _effectiveStatusForStudent(
+    String studentUid,
+    Map<String, AttendanceStatus> attendanceMap,
+  ) {
+    if (_selectedStatuses.containsKey(studentUid)) {
+      return _selectedStatuses[studentUid];
+    }
+    final existing = attendanceMap[studentUid];
+    if (existing == AttendanceStatus.early) {
+      return AttendanceStatus.present;
+    }
+    return existing;
+  }
+
+  Future<void> _saveAttendance({
+    required String schoolId,
+    required String teacherUid,
+    required TeacherClassOption classOption,
+    required List<TeacherAttendanceStudent> students,
+    required Map<String, AttendanceStatus> existingStatuses,
+  }) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    final repo = ref.read(teacherAttendanceRepositoryProvider);
+    final dateKey = AttendanceDay.dateKeyFor(_selectedDate);
+
+    try {
+      final entries = <TeacherAttendanceEntry>[];
+      for (final student in students) {
+        final override = _selectedStatuses[student.uid];
+        final existing = existingStatuses[student.uid];
+        final status = override ?? existing ?? AttendanceStatus.absent;
+
+        entries.add(
+          TeacherAttendanceEntry(
+            schoolId: schoolId,
+            dateKey: dateKey,
+            status: status,
+            student: student,
+            classOption: classOption,
+            takenByUid: teacherUid,
+            shiftType: _shiftType,
+          ),
+        );
+      }
+
+      await repo.saveAttendanceBatch(
+        schoolId: schoolId,
+        entries: entries,
+      );
+
+      if (!mounted) return;
+      _showSnack('Attendance saved.');
+
+      ref.invalidate(
+        teacherAttendanceForDateProvider(
+          TeacherAttendanceQuery(
+            schoolId: schoolId,
+            classOption: classOption,
+            dateKey: dateKey,
+            shiftType: null,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not save attendance: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -180,6 +236,38 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
+    final schoolId = user?.schoolId;
+
+    final classOptions =
+        user == null ? const <TeacherClassOption>[] : _buildClassOptions(user);
+    _ensureSelectedClass(classOptions);
+    final selectedClass = _selectedClass;
+
+    AsyncValue<List<TeacherAttendanceStudent>>? studentsAsync;
+    AsyncValue<Map<String, AttendanceStatus>>? attendanceAsync;
+
+    if (_selectedTab == 0 &&
+        user != null &&
+        schoolId != null &&
+        selectedClass != null) {
+      final classQuery = TeacherClassQuery(
+        schoolId: schoolId,
+        classOption: selectedClass,
+      );
+      studentsAsync = ref.watch(teacherClassStudentsProvider(classQuery));
+      attendanceAsync = ref.watch(
+        teacherAttendanceForDateProvider(
+          TeacherAttendanceQuery(
+            schoolId: schoolId,
+            classOption: selectedClass,
+            dateKey: AttendanceDay.dateKeyFor(_selectedDate),
+            shiftType: null,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Attendance'),
@@ -194,7 +282,27 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _showSnack('Attendance saved (stub).'),
+                  onPressed: (_isSaving ||
+                          user == null ||
+                          schoolId == null ||
+                          selectedClass == null ||
+                          studentsAsync == null ||
+                          attendanceAsync == null ||
+                          studentsAsync.hasError ||
+                          attendanceAsync.hasError ||
+                          studentsAsync.isLoading ||
+                          attendanceAsync.isLoading)
+                      ? null
+                      : () => _saveAttendance(
+                            schoolId: schoolId,
+                            teacherUid: user.uid,
+                            classOption: selectedClass,
+                            students: studentsAsync!.value ??
+                                const <TeacherAttendanceStudent>[],
+                            existingStatuses:
+                                attendanceAsync!.value ??
+                                    const <String, AttendanceStatus>{},
+                          ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: AppTheme.white,
@@ -203,10 +311,19 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Save Attendance',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Attendance',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
             )
@@ -222,7 +339,14 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             const SizedBox(height: 12),
             Expanded(
               child: _selectedTab == 0
-                  ? _buildStudentsTab(context)
+                  ? _buildStudentsTab(
+                      context,
+                      user,
+                      classOptions,
+                      selectedClass,
+                      studentsAsync,
+                      attendanceAsync,
+                    )
                   : _buildTeacherTab(context),
             ),
           ],
@@ -319,42 +443,90 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     );
   }
 
-  Widget _buildStudentsTab(BuildContext context) {
+  Widget _buildStudentsTab(
+    BuildContext context,
+    AppUser? user,
+    List<TeacherClassOption> classOptions,
+    TeacherClassOption? selectedClass,
+    AsyncValue<List<TeacherAttendanceStudent>>? studentsAsync,
+    AsyncValue<Map<String, AttendanceStatus>>? attendanceAsync,
+  ) {
+    if (user == null) {
+      return const Center(child: Text('Please sign in to view attendance.'));
+    }
+
+    if (user.schoolId == null || user.schoolId!.trim().isEmpty) {
+      return const Center(child: Text('No school assigned to your account.'));
+    }
+
+    if (classOptions.isEmpty || selectedClass == null) {
+      return const Center(child: Text('No classes assigned to you yet.'));
+    }
+
+    if (studentsAsync == null || attendanceAsync == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (studentsAsync.isLoading || attendanceAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (studentsAsync.hasError) {
+      return const Center(child: Text('Failed to load students.'));
+    }
+
+    if (attendanceAsync.hasError) {
+      return const Center(child: Text('Failed to load attendance.'));
+    }
+
+    final students = studentsAsync.value ?? const <TeacherAttendanceStudent>[];
+    final attendanceMap =
+        attendanceAsync.value ?? const <String, AttendanceStatus>{};
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          _buildFiltersRow(),
+          _buildFiltersRow(classOptions, selectedClass),
           const SizedBox(height: 12),
           _buildTableHeader(),
           const SizedBox(height: 8),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildStudentsList(),
+            child: students.isEmpty
+                ? const Center(child: Text('No students found.'))
+                : _buildStudentsList(students, attendanceMap),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFiltersRow() {
+  Widget _buildFiltersRow(
+    List<TeacherClassOption> classOptions,
+    TeacherClassOption selectedClass,
+  ) {
     return Row(
       children: [
         Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: _selectedClass,
+          child: DropdownButtonFormField<TeacherClassOption>(
+            value: selectedClass,
             isExpanded: true,
             decoration: _inputDecoration('Select Class'),
-            items: _classes
+            items: classOptions
                 .map(
-                  (value) => DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+                  (option) => DropdownMenuItem<TeacherClassOption>(
+                    value: option,
+                    child: Text(option.className),
                   ),
                 )
                 .toList(),
-            onChanged: (value) => setState(() => _selectedClass = value),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() {
+                _selectedClass = value;
+                _selectedStatuses.clear();
+              });
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -424,6 +596,12 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildTableHeader() {
+    TextStyle headerStyle = TextStyle(
+      fontSize: 11,
+      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+      fontWeight: FontWeight.w600,
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
@@ -433,55 +611,46 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              'Name',
-              style: TextStyle(
-                color: AppTheme.textPrimary.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: Text('Name', style: headerStyle),
           ),
           SizedBox(
             width: _statusColumnWidth,
-            child: Center(
-              child: Text(
-                'Present',
-                style: TextStyle(
-                  color: AppTheme.textPrimary.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            child: Center(child: Text('Present', style: headerStyle)),
           ),
           SizedBox(
             width: _statusColumnWidth,
-            child: Center(
-              child: Text(
-                'Absent',
-                style: TextStyle(
-                  color: AppTheme.textPrimary.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            child: Center(child: Text('Absent', style: headerStyle)),
+          ),
+          SizedBox(
+            width: _statusColumnWidth,
+            child: Center(child: Text('Late', style: headerStyle)),
+          ),
+          SizedBox(
+            width: _statusColumnWidth,
+            child: Center(child: Text('Excused', style: headerStyle)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStudentsList() {
+  Widget _buildStudentsList(
+    List<TeacherAttendanceStudent> students,
+    Map<String, AttendanceStatus> attendanceMap,
+  ) {
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 12),
-      itemCount: _students.length,
+      itemCount: students.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final student = _students[index];
+        final student = students[index];
+        final status = _effectiveStatusForStudent(student.uid, attendanceMap);
+
         return _StudentAttendanceRow(
           student: student,
+          status: status,
           statusColumnWidth: _statusColumnWidth,
-          onPresent: () => _togglePresent(student),
-          onAbsent: () => _toggleAbsent(student),
+          onStatusSelected: (selected) => _toggleStatus(student.uid, selected),
         );
       },
     );
@@ -690,32 +859,28 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
 class _StudentAttendanceRow extends StatelessWidget {
   const _StudentAttendanceRow({
     required this.student,
+    required this.status,
     required this.statusColumnWidth,
-    required this.onPresent,
-    required this.onAbsent,
+    required this.onStatusSelected,
   });
 
-  final TeacherStudentRow student;
+  final TeacherAttendanceStudent student;
+  final AttendanceStatus? status;
   final double statusColumnWidth;
-  final VoidCallback onPresent;
-  final VoidCallback onAbsent;
+  final ValueChanged<AttendanceStatus> onStatusSelected;
 
   @override
   Widget build(BuildContext context) {
-    final initials = student.name.trim().isNotEmpty
-        ? student.name.trim().substring(0, 1).toUpperCase()
-        : '?';
-
-    final avatar = student.avatarUrl.isNotEmpty
+    final avatar = student.photoUrl != null && student.photoUrl!.isNotEmpty
         ? CircleAvatar(
             radius: 20,
-            backgroundImage: NetworkImage(student.avatarUrl),
+            backgroundImage: NetworkImage(student.photoUrl!),
           )
         : CircleAvatar(
             radius: 20,
             backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.4),
             child: Text(
-              initials,
+              student.initials,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textPrimary,
@@ -736,7 +901,7 @@ class _StudentAttendanceRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              student.name,
+              student.displayName,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -748,9 +913,9 @@ class _StudentAttendanceRow extends StatelessWidget {
             width: statusColumnWidth,
             child: Center(
               child: _AttendanceIndicator(
-                selected: student.isPresent,
+                selected: status == AttendanceStatus.present,
                 activeColor: AppTheme.primaryColor,
-                onTap: onPresent,
+                onTap: () => onStatusSelected(AttendanceStatus.present),
               ),
             ),
           ),
@@ -758,9 +923,29 @@ class _StudentAttendanceRow extends StatelessWidget {
             width: statusColumnWidth,
             child: Center(
               child: _AttendanceIndicator(
-                selected: student.isAbsent,
+                selected: status == AttendanceStatus.absent,
                 activeColor: AppTheme.danger,
-                onTap: onAbsent,
+                onTap: () => onStatusSelected(AttendanceStatus.absent),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: statusColumnWidth,
+            child: Center(
+              child: _AttendanceIndicator(
+                selected: status == AttendanceStatus.late,
+                activeColor: const Color(0xFFE68A00),
+                onTap: () => onStatusSelected(AttendanceStatus.late),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: statusColumnWidth,
+            child: Center(
+              child: _AttendanceIndicator(
+                selected: status == AttendanceStatus.excused,
+                activeColor: const Color(0xFFF2B233),
+                onTap: () => onStatusSelected(AttendanceStatus.excused),
               ),
             ),
           ),
@@ -858,20 +1043,4 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class TeacherStudentRow {
-  TeacherStudentRow({
-    required this.id,
-    required this.name,
-    required this.avatarUrl,
-    required this.isPresent,
-    required this.isAbsent,
-  });
-
-  final String id;
-  final String name;
-  final String avatarUrl;
-  bool isPresent;
-  bool isAbsent;
 }

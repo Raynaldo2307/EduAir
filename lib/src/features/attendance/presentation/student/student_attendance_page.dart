@@ -178,6 +178,9 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
         schoolId: schoolId,
         studentUid: user.uid,
         location: location,
+        classId: user.classId,
+        className: user.className,
+        gradeLevel: user.gradeLevelNumber,
         lateReason: lateReason,
         at: now,
       );
@@ -267,6 +270,9 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
         schoolId: schoolId,
         studentUid: user.uid,
         location: location,
+        classId: user.classId,
+        className: user.className,
+        gradeLevel: user.gradeLevelNumber,
       );
 
       // Refresh UI data

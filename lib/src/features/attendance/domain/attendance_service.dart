@@ -97,6 +97,9 @@ class AttendanceService {
     required String schoolId,
     required String studentUid,
     required AttendanceLocation location,
+    String? classId,
+    String? className,
+    int? gradeLevel,
     String? lateReason,
     DateTime? at, // for tests or special cases; default = now()
   }) async {
@@ -139,6 +142,10 @@ class AttendanceService {
       dateKey: dateKey,
       studentUid: studentUid,
       status: status,
+      schoolId: schoolId,
+      classId: classId,
+      className: className,
+      gradeLevel: gradeLevel,
       clockInAt: ts,
       clockInLocation: location,
       lateReason: (cleanedReason == null || cleanedReason.isEmpty)
@@ -175,6 +182,9 @@ class AttendanceService {
     required String schoolId,
     required String studentUid,
     required AttendanceLocation location,
+    String? classId,
+    String? className,
+    int? gradeLevel,
     DateTime? at,
   }) async {
     final ts = at ?? now();
@@ -224,6 +234,10 @@ class AttendanceService {
     }
 
     final updated = existing.copyWith(
+      schoolId: schoolId,
+      classId: classId ?? existing.classId,
+      className: className ?? existing.className,
+      gradeLevel: gradeLevel ?? existing.gradeLevel,
       clockOutAt: ts,
       clockOutLocation: location,
       isEarlyLeave: isEarlyLeave,

@@ -10,7 +10,7 @@ import '../features/shell/teacher_shell.dart';
 import '../features/shell/select_school.dart';
 
 // 👇 NEW: teacher feature screens
-import '../features/teacher/teacher_attendance_page.dart';
+import '../features/teacher/attendance/teacher_attendance_page.dart';
 //import '../features/teacher/student_info_page.dart';
 
 class AppRouter {

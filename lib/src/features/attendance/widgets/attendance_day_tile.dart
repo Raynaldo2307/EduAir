@@ -140,6 +140,8 @@ class AttendanceDayTile extends StatelessWidget {
         return AppTheme.primaryColor;
       case AttendanceStatus.absent:
         return const Color(0xFF9E9E9E); // grey
+      case AttendanceStatus.excused:
+        return const Color(0xFFF2B233); // amber
     }
   }
 }

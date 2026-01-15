@@ -11,6 +11,7 @@ enum AttendanceStatus {
   late,
   present,
   absent,
+  excused,
 }
 
 extension AttendanceStatusLabel on AttendanceStatus {
@@ -24,11 +25,16 @@ extension AttendanceStatusLabel on AttendanceStatus {
         return 'Present';
       case AttendanceStatus.absent:
         return 'Absent';
+      case AttendanceStatus.excused:
+        return 'Excused';
     }
   }
 
   /// Convenience: is the student considered present in school?
-  bool get isPresentLike => this != AttendanceStatus.absent;
+  bool get isPresentLike =>
+      this == AttendanceStatus.early ||
+      this == AttendanceStatus.late ||
+      this == AttendanceStatus.present;
 }
 
 /// Simple location snapshot (no Firestore types here).
@@ -57,6 +63,14 @@ class AttendanceDay {
   /// The student's uid.
   final String studentUid;
 
+  /// Multi-tenant anchor.
+  final String? schoolId;
+
+  /// Class/form context (homeroom or subject attendance).
+  final String? classId;
+  final String? className;
+  final int? gradeLevel;
+
   /// High-level status for that day.
   final AttendanceStatus status;
 
@@ -75,6 +89,18 @@ class AttendanceDay {
   /// Optional reason if late **or** note (e.g. excused absence).
   final String? lateReason;
 
+  /// Teacher/auditor fields (for homeroom roll).
+  final String? takenByUid;
+  final DateTime? takenAt;
+  final DateTime? updatedAt;
+
+  /// Optional subject fields (lesson attendance).
+  final String? subjectId;
+  final String? subjectName;
+  final String? periodId;
+
+  /// Optional shift (Jamaican shift systems).
+  final String? shiftType;
 
   /// New: did the student leave before class end?
   final bool isEarlyLeave;
@@ -90,16 +116,28 @@ class AttendanceDay {
     required this.dateKey,
     required this.studentUid,
     required this.status,
+    this.schoolId,
+    this.classId,
+    this.className,
+    this.gradeLevel,
     this.clockInAt,
     this.clockOutAt,
     this.clockInLocation,
     this.clockOutLocation,
     this.lateReason,
+    this.takenByUid,
+    this.takenAt,
+    this.updatedAt,
+    this.subjectId,
+    this.subjectName,
+    this.periodId,
+    this.shiftType,
     this.isEarlyLeave = false,   // 👈 NEW
     this.isOvertime = false,     
   })  : assert(
           // Absent: no times/locations; reason is allowed (excused absence).
-          status != AttendanceStatus.absent ||
+          (status != AttendanceStatus.absent &&
+                  status != AttendanceStatus.excused) ||
               (clockInAt == null &&
                   clockOutAt == null &&
                   clockInLocation == null &&
@@ -109,6 +147,7 @@ class AttendanceDay {
         assert(
           // Early/late MUST have a clock-in time.
           status == AttendanceStatus.absent ||
+              status == AttendanceStatus.excused ||
               status == AttendanceStatus.present ||
               clockInAt != null,
           'Early/late day $dateKey for $studentUid must have clockInAt.',
@@ -135,11 +174,23 @@ class AttendanceDay {
     String? studentUid,
     AttendanceStatus? status,
 
+    Object? schoolId = _sentinel,
+    Object? classId = _sentinel,
+    Object? className = _sentinel,
+    Object? gradeLevel = _sentinel,
+
     Object? clockInAt = _sentinel,
     Object? clockOutAt = _sentinel,
     Object? clockInLocation = _sentinel,
     Object? clockOutLocation = _sentinel,
     Object? lateReason = _sentinel,
+    Object? takenByUid = _sentinel,
+    Object? takenAt = _sentinel,
+    Object? updatedAt = _sentinel,
+    Object? subjectId = _sentinel,
+    Object? subjectName = _sentinel,
+    Object? periodId = _sentinel,
+    Object? shiftType = _sentinel,
     bool? isEarlyLeave,
     bool? isOvertime,
   }) {
@@ -147,6 +198,17 @@ class AttendanceDay {
       dateKey: dateKey ?? this.dateKey,
       studentUid: studentUid ?? this.studentUid,
       status: status ?? this.status,
+      schoolId: identical(schoolId, _sentinel)
+          ? this.schoolId
+          : schoolId as String?,
+      classId:
+          identical(classId, _sentinel) ? this.classId : classId as String?,
+      className: identical(className, _sentinel)
+          ? this.className
+          : className as String?,
+      gradeLevel: identical(gradeLevel, _sentinel)
+          ? this.gradeLevel
+          : gradeLevel as int?,
       clockInAt: identical(clockInAt, _sentinel)
           ? this.clockInAt
           : clockInAt as DateTime?,
@@ -162,7 +224,28 @@ class AttendanceDay {
       lateReason: identical(lateReason, _sentinel)
           ? this.lateReason
           : lateReason as String?,
-           isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave,  // 👈 NEW
+      takenByUid: identical(takenByUid, _sentinel)
+          ? this.takenByUid
+          : takenByUid as String?,
+      takenAt: identical(takenAt, _sentinel)
+          ? this.takenAt
+          : takenAt as DateTime?,
+      updatedAt: identical(updatedAt, _sentinel)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
+      subjectId: identical(subjectId, _sentinel)
+          ? this.subjectId
+          : subjectId as String?,
+      subjectName: identical(subjectName, _sentinel)
+          ? this.subjectName
+          : subjectName as String?,
+      periodId: identical(periodId, _sentinel)
+          ? this.periodId
+          : periodId as String?,
+      shiftType: identical(shiftType, _sentinel)
+          ? this.shiftType
+          : shiftType as String?,
+      isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave,  // 👈 NEW
       isOvertime: isOvertime ?? this.isOvertime,        // 👈 NEW
     );
   }
