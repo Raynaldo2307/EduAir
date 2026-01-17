@@ -95,9 +95,7 @@ class AppUser {
         map['dateOfBirth'] is Timestamp ? map['dateOfBirth'] as Timestamp : null;
 
     final rawGradeLevel = map['gradeLevel'];
-    final String? gradeLevel = rawGradeLevel == null
-        ? null
-        : rawGradeLevel.toString();
+    final String? gradeLevel = rawGradeLevel?.toString();
 
     final rawSex = map['sex']?.toString();
     final rawGender = map['gender']?.toString();
@@ -110,7 +108,7 @@ class AppUser {
     final subjectAssignmentsRaw = map['subjectAssignments'];
     final subjectAssignments = subjectAssignmentsRaw is List
         ? subjectAssignmentsRaw
-            .where((entry) => entry is Map)
+            .whereType<Map>()
             .map(
               (entry) => SubjectAssignment.fromMap(
                 Map<String, dynamic>.from(entry as Map),

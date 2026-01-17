@@ -6,13 +6,7 @@
 /// 🔹 `late`   = present + clocked in after 08:30
 /// 🔹 `present`= manual present / remote case where you don't care about timing
 /// 🔹 `absent` = no valid clock-in for this school day
-enum AttendanceStatus {
-  early,
-  late,
-  present,
-  absent,
-  excused,
-}
+enum AttendanceStatus { early, late, present, absent, excused }
 
 extension AttendanceStatusLabel on AttendanceStatus {
   String get label {
@@ -42,10 +36,7 @@ class AttendanceLocation {
   final double lat;
   final double lng;
 
-  const AttendanceLocation({
-    required this.lat,
-    required this.lng,
-  });
+  const AttendanceLocation({required this.lat, required this.lng});
 }
 
 /// One day's attendance record for a student.
@@ -57,6 +48,13 @@ class AttendanceLocation {
 /// - For `early` / `late`, `clockInAt` SHOULD be non-null.
 /// - For `present`, `clockInAt` MAY be null (manual present override).
 class AttendanceDay {
+  static const String defaultShiftType = 'whole_day';
+  static const Set<String> validShiftTypes = {
+    'morning',
+    'afternoon',
+    'whole_day',
+  };
+
   /// School day key, e.g. "2025-12-20" (normalized to school timezone).
   final String dateKey;
 
@@ -70,6 +68,7 @@ class AttendanceDay {
   final String? classId;
   final String? className;
   final int? gradeLevel;
+  final String? sex;
 
   /// High-level status for that day.
   final AttendanceStatus status;
@@ -111,7 +110,7 @@ class AttendanceDay {
   /// Core constructor.
   ///
   /// Contains light-weight asserts to avoid obviously broken state.
-  /// 
+  ///
   const AttendanceDay({
     required this.dateKey,
     required this.studentUid,
@@ -120,6 +119,7 @@ class AttendanceDay {
     this.classId,
     this.className,
     this.gradeLevel,
+    this.sex,
     this.clockInAt,
     this.clockOutAt,
     this.clockInLocation,
@@ -132,26 +132,26 @@ class AttendanceDay {
     this.subjectName,
     this.periodId,
     this.shiftType,
-    this.isEarlyLeave = false,   // 👈 NEW
-    this.isOvertime = false,     
-  })  : assert(
-          // Absent: no times/locations; reason is allowed (excused absence).
-          (status != AttendanceStatus.absent &&
-                  status != AttendanceStatus.excused) ||
-              (clockInAt == null &&
-                  clockOutAt == null &&
-                  clockInLocation == null &&
-                  clockOutLocation == null),
-          'Absent day $dateKey for $studentUid should not have clock-in/out data.',
-        ),
-        assert(
-          // Early/late MUST have a clock-in time.
-          status == AttendanceStatus.absent ||
-              status == AttendanceStatus.excused ||
-              status == AttendanceStatus.present ||
-              clockInAt != null,
-          'Early/late day $dateKey for $studentUid must have clockInAt.',
-        );
+    this.isEarlyLeave = false, // 👈 NEW
+    this.isOvertime = false,
+  }) : assert(
+         // Absent: no times/locations; reason is allowed (excused absence).
+         (status != AttendanceStatus.absent &&
+                 status != AttendanceStatus.excused) ||
+             (clockInAt == null &&
+                 clockOutAt == null &&
+                 clockInLocation == null &&
+                 clockOutLocation == null),
+         'Absent day $dateKey for $studentUid should not have clock-in/out data.',
+       ),
+       assert(
+         // Early/late MUST have a clock-in time.
+         status == AttendanceStatus.absent ||
+             status == AttendanceStatus.excused ||
+             status == AttendanceStatus.present ||
+             clockInAt != null,
+         'Early/late day $dateKey for $studentUid must have clockInAt.',
+       );
 
   /// Helper to build a "YYYY-MM-DD" key from a [DateTime].
   ///
@@ -162,6 +162,36 @@ class AttendanceDay {
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     return '$y-$m-$d';
+  }
+
+  static String normalizeShiftType(String? shiftType) {
+    final shiftInput = (shiftType ?? '').trim();
+    if (shiftInput.isEmpty) return defaultShiftType;
+
+    final lower = shiftInput.toLowerCase();
+
+    // Accept some aliases
+    if (lower == 'evening') return 'afternoon';
+    if (lower == 'am' || lower == 'morning') return 'morning';
+    if (lower == 'pm' || lower == 'afternoon') return 'afternoon';
+    if (lower == 'whole_day' || lower == 'wholeday' || lower == 'full_day') {
+      return 'whole_day';
+    }
+
+    // If it’s already one of the canonical values, keep it
+    if (validShiftTypes.contains(lower)) return lower;
+
+    // Fallback
+    return defaultShiftType;
+  }
+
+  static String docIdFor({
+    required String dateKey,
+    required String shiftType,
+    required String studentUid,
+  }) {
+    final effectiveShiftType = normalizeShiftType(shiftType);
+    return '${dateKey}_${effectiveShiftType}_$studentUid';
   }
 
   /// Copy with support for explicitly clearing nullable fields.
@@ -176,8 +206,16 @@ class AttendanceDay {
 
     Object? schoolId = _sentinel,
     Object? classId = _sentinel,
-    Object? className = _sentinel,
+    Object? className = _sentinel,        /*
+                                         
+
+	4.	teacher_attendance_models.dart
+	5.	teacher_attendance_data_source.dart
+	6.	teacher_attendance_repository.dart
+
+                                           */
     Object? gradeLevel = _sentinel,
+    Object? sex = _sentinel,
 
     Object? clockInAt = _sentinel,
     Object? clockOutAt = _sentinel,
@@ -201,14 +239,16 @@ class AttendanceDay {
       schoolId: identical(schoolId, _sentinel)
           ? this.schoolId
           : schoolId as String?,
-      classId:
-          identical(classId, _sentinel) ? this.classId : classId as String?,
+      classId: identical(classId, _sentinel)
+          ? this.classId
+          : classId as String?,
       className: identical(className, _sentinel)
           ? this.className
           : className as String?,
       gradeLevel: identical(gradeLevel, _sentinel)
           ? this.gradeLevel
           : gradeLevel as int?,
+      sex: identical(sex, _sentinel) ? this.sex : sex as String?,
       clockInAt: identical(clockInAt, _sentinel)
           ? this.clockInAt
           : clockInAt as DateTime?,
@@ -245,11 +285,10 @@ class AttendanceDay {
       shiftType: identical(shiftType, _sentinel)
           ? this.shiftType
           : shiftType as String?,
-      isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave,  // 👈 NEW
-      isOvertime: isOvertime ?? this.isOvertime,        // 👈 NEW
+      isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave, // 👈 NEW
+      isOvertime: isOvertime ?? this.isOvertime, // 👈 NEW
     );
   }
-    
 
   /// Simple helper: is this day tagged as late?
   ///

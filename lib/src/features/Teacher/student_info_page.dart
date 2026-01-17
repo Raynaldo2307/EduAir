@@ -136,7 +136,7 @@ class _StudentInfoPageState extends ConsumerState<StudentInfoPage> {
 
   Widget _buildClassDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedClass,
+      initialValue: _selectedClass,
       isExpanded: true,
       decoration: _inputDecoration('Select Class'),
       items: _classes

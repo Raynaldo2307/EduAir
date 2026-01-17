@@ -12,7 +12,7 @@ import 'package:edu_air/src/features/attendance/data/attendance_firestore_source
 /// - Later we can plug in offline/local storage without touching the UI.
 ///
 /// Current Firestore layout (multi-school):
-///   schools/{schoolId}/attendance/{YYYY-MM-DD}_{studentUid}
+///   schools/{schoolId}/attendance/{YYYY-MM-DD}_{shiftType}_{studentUid}
 ///
 /// Each document maps to an [AttendanceDay] (one student, one school day).
 
@@ -24,16 +24,19 @@ class AttendanceRepository {
   /// Get a single day of attendance for a student.
   ///
   /// Returns `null` if there's no record for that day yet.
-  ///
+  /// [shiftType] is optional. If null, the data layer will default
+/// to AttendanceDay.defaultShiftType ("whole_day").
   Future<AttendanceDay?> getDay({
     required String schoolId,
     required String studentUid,
     required String dateKey, //"YYYY-MM-DD"
+    String? shiftType,
   }) {
-    return _remote.getDay(
+    return _remote.fetchDay(
       schoolId: schoolId,
       studentUid: studentUid,
       dateKey: dateKey,
+      shiftType: shiftType,
     );
   }
 
@@ -43,11 +46,13 @@ class AttendanceRepository {
     required String schoolId,
     required String studentUid,
     int limit = 14,
+    String? shiftType,
   }) {
-    return _remote.getRecentDays(
+    return _remote.fetchRecentDays(
       schoolId: schoolId,
       studentUid: studentUid,
       limit: limit,
+      shiftType: shiftType,
     );
   }
 
@@ -57,13 +62,15 @@ class AttendanceRepository {
     required String studentUid,
     required AttendanceDay day,
     bool isNew = false,
+    String? changedByUid,
   }) async {
-    // Note: we trust [day.dateKey] + studentUid to form the doc id.
+    // Note: we trust [day.dateKey] + shiftType + studentUid to form the doc id.
     await _remote.saveDay(
       schoolId: schoolId,
       studentUid: studentUid,
       day: day,
       isNew: isNew,
+      changedByUid: changedByUid,
     );
 
     // For now, simply return the same day we just saved. If in the future
@@ -78,11 +85,13 @@ class AttendanceRepository {
     required String schoolId,
     required String studentUid,
     required String dateKey,
+    String? shiftType,
   }) {
-    return _remote.watchDay(
+    return _remote.fetchDayStream(
       schoolId: schoolId,
       studentUid: studentUid,
       dateKey: dateKey,
+      shiftType: shiftType,
     );
   }
 }

@@ -29,7 +29,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   TeacherClassOption? _selectedClass;
   final Map<String, AttendanceStatus?> _selectedStatuses = {};
   bool _isSaving = false;
-  String? _shiftType = 'whole_day';
+  final String? _shiftType = 'whole_day';
 
   late DateTime _focusedMonth;
   DateTime? _selectedTeacherDay;
@@ -509,7 +509,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       children: [
         Expanded(
           child: DropdownButtonFormField<TeacherClassOption>(
-            value: selectedClass,
+            initialValue: selectedClass,
             isExpanded: true,
             decoration: _inputDecoration('Select Class'),
             items: classOptions
