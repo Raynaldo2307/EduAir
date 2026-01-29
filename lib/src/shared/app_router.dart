@@ -13,6 +13,9 @@ import '../features/shell/select_school.dart';
 import '../features/teacher/attendance/teacher_attendance_page.dart';
 //import '../features/teacher/student_info_page.dart';
 
+// 👇 Admin feature screens
+import '../features/admin/students/admin_student_list_page.dart';
+
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -49,6 +52,10 @@ class AppRouter {
 
       //case '/teacherStudentInfo':
        // return MaterialPageRoute(builder: (_) => const StudentInfoPage());
+
+      // 👇 Admin/Principal student management
+      case '/adminStudents':
+        return MaterialPageRoute(builder: (_) => const AdminStudentListPage());
     }
 
     // 🔁 Fallback for unknown routes

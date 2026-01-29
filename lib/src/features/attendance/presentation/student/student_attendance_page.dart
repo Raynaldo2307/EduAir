@@ -13,6 +13,8 @@ import 'package:edu_air/src/features/attendance/widgets/attendance_status_strip.
 import 'package:edu_air/src/features/attendance/widgets/attendance_history_list.dart';
 import 'package:edu_air/src/features/attendance/presentation/student/attendance_providers.dart';
 import 'package:edu_air/src/features/attendance/widgets/clock_button_row.dart';
+import 'package:edu_air/src/features/attendance/application/late_reason_provider.dart';
+import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 
 /// Student view – Calendar tab (Attendance + Time Table).
 class StudentAttendancePage extends ConsumerStatefulWidget {
@@ -207,7 +209,8 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
         error: e,
         stackTrace: st,
       );
-      _showSnack('Could not clock in: $e');
+      // Use the error mapper for consistent user-friendly messages
+      _showSnack(mapAttendanceErrorToMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -283,7 +286,8 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     } on MockLocationsException {
       _handleMockLocationError();
     } catch (e) {
-      _showSnack('Could not clock out: $e');
+      // Use the error mapper for consistent user-friendly messages
+      _showSnack(mapAttendanceErrorToMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -291,78 +295,123 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     }
   }
 
-  // ───────────────── Late reason dialog ─────────────────
+  // ───────────────── Late reason dialog (MoEYI dropdown) ─────────────────
 
+  /// Shows a dialog with MoEYI late reason categories.
+  ///
+  /// Returns the selected reason code (e.g. 'transportation') or null if cancelled.
+  /// Free-text is not permitted per MoEYI compliance requirements.
   Future<String?> _showLateReasonDialog() async {
-    final controller = TextEditingController();
+    // Get the list of MoEYI reason options
+    final options = ref.read(lateReasonOptionsProvider);
+    String? selectedCode;
 
     return showDialog<String>(
       context: context,
       builder: (ctx) {
         final theme = Theme.of(ctx);
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-          contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          title: Text(
-            'Late reason',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Explain why you are late...',
-                filled: true,
-                fillColor: AppTheme.surface,
-                contentPadding: const EdgeInsets.all(12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppTheme.outline.withValues(alpha: 0.5),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppTheme.outline.withValues(alpha: 0.5),
-                  ),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  borderSide: BorderSide(
-                    color: AppTheme.primaryColor,
-                    width: 1.6,
-                  ),
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              title: Text(
+                'Why are you late?',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: AppTheme.primaryColor),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select a reason from the list below:',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // MoEYI reason dropdown
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCode,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Reason',
+                        filled: true,
+                        fillColor: AppTheme.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: AppTheme.outline.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: AppTheme.outline.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AppTheme.primaryColor,
+                            width: 1.6,
+                          ),
+                        ),
+                      ),
+                      items: options.map((option) {
+                        return DropdownMenuItem<String>(
+                          value: option.code,
+                          child: Text(option.label),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selectedCode = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-              child: const Text(
-                'Submit',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(null),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: AppTheme.primaryColor),
+                  ),
+                ),
+                TextButton(
+                  onPressed: selectedCode != null
+                      ? () => Navigator.of(ctx).pop(selectedCode)
+                      : null,
+                  child: Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: selectedCode != null
+                          ? AppTheme.primaryColor
+                          : AppTheme.grey,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -517,6 +566,9 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        // Non-blocking error banner — keeps the rest of the screen usable
+        if (recentAsync.hasError || summaryAsync.hasError)
+          _buildErrorBanner(recentAsync.error ?? summaryAsync.error),
         const SizedBox(height: 8),
         _buildCalendarBox(context, recentAsync),
         const SizedBox(height: 16),
@@ -619,6 +671,45 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorBanner(Object? error) {
+    final message = error != null
+        ? mapAttendanceErrorToMessage(error)
+        : 'Something went wrong. Please try again.';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFE9E9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFFE25563).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Color(0xFFE25563),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Color(0xFFB91C1C),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/teacher/home/teacher_home_screen.dart';
 import 'package:edu_air/src/features/teacher/profile/teacher_profile_page.dart';
 import 'package:edu_air/src/features/teacher/student_info_page.dart';
+import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 
 class TeacherShell extends ConsumerStatefulWidget {
   const TeacherShell({super.key});
@@ -25,14 +27,21 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
+    final isAdminOrPrincipal =
+        user?.role == 'admin' || user?.role == 'principal';
+
     // Build pages here so we can pass callbacks that use `this`.
+    // Admin/Principal users see the editable student list with shift management.
     final pages = <Widget>[
       TeacherHomeScreen(
         onSelectTab: _onSelectTab, // 👈 home can tell shell to change tab
       ),
-      StudentInfoPage(
-        onBackToHome: () => _onSelectTab(0), // 👈 back arrow goes to Home tab
-      ),
+      isAdminOrPrincipal
+          ? AdminStudentListPage(onBackToHome: () => _onSelectTab(0))
+          : StudentInfoPage(
+              onBackToHome: () => _onSelectTab(0), // 👈 back arrow goes to Home tab
+            ),
       const _PlaceholderPage(
         title: 'Messages',
         icon: Icons.chat_bubble_outline,

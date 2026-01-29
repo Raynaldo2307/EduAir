@@ -6,6 +6,7 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_providers.dart';
+import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 import 'package:edu_air/src/models/app_user.dart';
 
 class TeacherAttendancePage extends ConsumerStatefulWidget {
@@ -29,7 +30,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   TeacherClassOption? _selectedClass;
   final Map<String, AttendanceStatus?> _selectedStatuses = {};
   bool _isSaving = false;
-  final String? _shiftType = 'whole_day';
+  final String _shiftType = 'whole_day';
 
   late DateTime _focusedMonth;
   DateTime? _selectedTeacherDay;
@@ -221,7 +222,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Could not save attendance: $e');
+      _showSnack(mapAttendanceErrorToMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -472,11 +473,23 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     }
 
     if (studentsAsync.hasError) {
-      return const Center(child: Text('Failed to load students.'));
+      return Center(
+        child: _ErrorCard(
+          message: mapAttendanceErrorToMessage(
+            studentsAsync.error ?? 'Failed to load students.',
+          ),
+        ),
+      );
     }
 
     if (attendanceAsync.hasError) {
-      return const Center(child: Text('Failed to load attendance.'));
+      return Center(
+        child: _ErrorCard(
+          message: mapAttendanceErrorToMessage(
+            attendanceAsync.error ?? 'Failed to load attendance.',
+          ),
+        ),
+      );
     }
 
     final students = studentsAsync.value ?? const <TeacherAttendanceStudent>[];
@@ -976,6 +989,49 @@ class _AttendanceIndicator extends StatelessWidget {
       onTap: onTap,
       radius: 18,
       child: Icon(icon, size: 22, color: color),
+    );
+  }
+}
+
+/// Non-blocking error card shown when attendance data fails to load.
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFE9E9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFE25563).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Color(0xFFE25563),
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Color(0xFFB91C1C),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

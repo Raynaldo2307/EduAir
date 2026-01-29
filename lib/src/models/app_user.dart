@@ -11,6 +11,16 @@ class AppUser {
   final String? schoolId;
   final String? photoUrl;
 
+  /// Student's current shift assignment for attendance:
+  /// - 'morning'
+  /// - 'afternoon'
+  /// - 'whole_day'
+  ///
+  /// Used by AttendanceService to decide:
+  /// - which shift doc to write ({dateKey}_{shiftType}_{uid})
+  /// - what start time to use for early/late
+  final String? currentShift;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -41,6 +51,7 @@ class AppUser {
     required this.role,
     this.schoolId,
     this.photoUrl,
+    this.currentShift,
     this.gender,
     this.sex,
     this.bio,
@@ -91,8 +102,9 @@ class AppUser {
         ? map['updatedAt'] as Timestamp
         : null;
 
-    final Timestamp? dobTs =
-        map['dateOfBirth'] is Timestamp ? map['dateOfBirth'] as Timestamp : null;
+    final Timestamp? dobTs = map['dateOfBirth'] is Timestamp
+        ? map['dateOfBirth'] as Timestamp
+        : null;
 
     final rawGradeLevel = map['gradeLevel'];
     final String? gradeLevel = rawGradeLevel?.toString();
@@ -102,19 +114,25 @@ class AppUser {
     final normalizedSex = (rawSex != null && rawSex.trim().isNotEmpty)
         ? rawSex
         : (rawGender == 'M' || rawGender == 'F')
-            ? rawGender
-            : null;
+        ? rawGender
+        : null;
+
+    // NEW: shift – prefer currentShift, fall back to legacy shiftType if it exists
+    final rawCurrentShift = map['currentShift']?.toString();
+    final rawLegacyShift = map['shiftType']?.toString();
+    final normalizedShift = _normalizeShiftType(
+      rawCurrentShift ?? rawLegacyShift,
+    );
 
     final subjectAssignmentsRaw = map['subjectAssignments'];
     final subjectAssignments = subjectAssignmentsRaw is List
         ? subjectAssignmentsRaw
-            .whereType<Map>()
-            .map(
-              (entry) => SubjectAssignment.fromMap(
-                Map<String, dynamic>.from(entry as Map),
-              ),
-            )
-            .toList()
+              .whereType<Map>()
+              .map(
+                (entry) =>
+                    SubjectAssignment.fromMap(Map<String, dynamic>.from(entry)),
+              )
+              .toList()
         : null;
 
     return AppUser(
@@ -126,6 +144,7 @@ class AppUser {
       role: (map['role'] ?? "student").toString(),
       schoolId: map['schoolId'] as String?,
       photoUrl: map['photoUrl'],
+      currentShift: normalizedShift,
       gender: map['gender'],
       sex: normalizedSex,
       bio: map['bio'],
@@ -182,6 +201,11 @@ class AppUser {
           .toList(),
       'childrenIds': childrenIds,
 
+      // NEW: shift fields
+      'currentShift': currentShift,
+      // Optional: also write legacy key for any old code or external tools
+      //'shiftType': currentShift,
+
       // NEW: profile fields
       'parentGuardianName': parentGuardianName,
       'parentGuardianPhone': parentGuardianPhone,
@@ -196,7 +220,6 @@ class AppUser {
           : (includeTimestampsWhenMissing
                 ? FieldValue.serverTimestamp()
                 : null),
-
       'updatedAt': updatedAt != null
           ? Timestamp.fromDate(updatedAt!)
           : FieldValue.serverTimestamp(),
@@ -211,6 +234,7 @@ class AppUser {
     String? role,
     String? schoolId,
     String? photoUrl,
+    String? currentShift,// new shift field
     String? gender,
     String? sex,
     String? bio,
@@ -241,6 +265,7 @@ class AppUser {
       role: role ?? this.role,
       schoolId: schoolId ?? this.schoolId,
       photoUrl: photoUrl ?? this.photoUrl,
+      currentShift: currentShift ?? this.currentShift,
       gender: gender ?? this.gender,
       sex: sex ?? this.sex,
       bio: bio ?? this.bio,
@@ -266,7 +291,34 @@ class AppUser {
 
   @override
   String toString() {
-    return "AppUser(uid: $uid, name: $displayName, email: $email, role: $role)";
+    return "AppUser(uid: $uid, name: $displayName, email: $email, role: $role, currentShift: $currentShift)";
+  }
+
+  /// Local normalizer so this file does not depend on attendance_models.dart.
+  /// We keep only the 3 canonical forms we care about.
+  static String? _normalizeShiftType(String? value) {
+    if (value == null) return null;
+    final v = value.trim().toLowerCase();
+    if (v.isEmpty) return null;
+
+    if (v == 'morning' || v == 'am' || v == 'a.m.') {
+      return 'morning';
+    }
+    if (v == 'afternoon' || v == 'evening' || v == 'pm' || v == 'p.m.') {
+      return 'afternoon';
+    }
+    if (v == 'whole_day' ||
+        v == 'whole-day' ||
+        v == 'wholeday' ||
+        v == 'full_day' ||
+        v == 'allday' ||
+        v == 'all_day' ||
+        v == 'full') {
+      return 'whole_day';
+    }
+
+    // Unknown values → null; AttendanceService will treat null as "whole_day"
+    return null;
   }
 }
 

@@ -31,6 +31,64 @@ extension AttendanceStatusLabel on AttendanceStatus {
       this == AttendanceStatus.present;
 }
 
+/// MoEYI (Ministry of Education, Youth & Information) standardized late reason categories.
+///
+/// Used for:
+/// - Form SF4 attendance reporting (Jamaican schools)
+/// - AI behavioral analysis
+/// - Data Protection Act 2020 compliance (authentic, categorized records)
+///
+/// Students must select one of these categories when clocking in late.
+/// Free-text is not permitted to ensure data quality for government reporting.
+enum MoEYILateReason {
+  transportation,
+  economic,
+  illness,
+  emergency,
+  family,
+  other,
+}
+
+extension MoEYILateReasonLabel on MoEYILateReason {
+  String get label {
+    switch (this) {
+      case MoEYILateReason.transportation:
+        return 'Transportation';
+      case MoEYILateReason.economic:
+        return 'Economic';
+      case MoEYILateReason.illness:
+        return 'Illness';
+      case MoEYILateReason.emergency:
+        return 'Emergency';
+      case MoEYILateReason.family:
+        return 'Family';
+      case MoEYILateReason.other:
+        return 'Other';
+    }
+  }
+
+  /// Get the category code for Firestore storage.
+  String get code => name;
+
+  /// Parse a stored code back to enum value.
+  static MoEYILateReason? fromCode(String? code) {
+    if (code == null || code.trim().isEmpty) return null;
+    final normalized = code.trim().toLowerCase();
+
+    return MoEYILateReason.values.firstWhere(
+      (reason) => reason.code == normalized,
+      orElse: () => MoEYILateReason.other,
+    );
+  }
+
+  /// Validate if a string is a valid MoEYI reason code.
+  static bool isValid(String? code) {
+    if (code == null || code.trim().isEmpty) return false;
+    final normalized = code.trim().toLowerCase();
+    return MoEYILateReason.values.any((reason) => reason.code == normalized);
+  }
+}
+
 /// Simple location snapshot (no Firestore types here).
 class AttendanceLocation {
   final double lat;

@@ -1,7 +1,11 @@
 // lib/src/features/attendance/data/attendance_firestore_source.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as dev;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+
+import 'package:edu_air/src/features/attendance/domain/attendance_exceptions.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/models/app_user.dart';
 
@@ -67,15 +71,23 @@ class AttendanceFirestoreSource {
     String? shiftType,
   }) async {
     final effectiveShiftType = AttendanceDay.normalizeShiftType(shiftType);
-    final doc = await _dayDoc(
-      schoolId: schoolId,
-      studentUid: studentUid,
-      dateKey: dateKey,
-      shiftType: effectiveShiftType,
-    ).get();
+    try {
+      final doc = await _dayDoc(
+        schoolId: schoolId,
+        studentUid: studentUid,
+        dateKey: dateKey,
+        shiftType: effectiveShiftType,
+      ).get();
 
-    if (!doc.exists) return null;
-    return _fromDoc(studentUid: studentUid, doc: doc);
+      if (!doc.exists) return null;
+      return _fromDoc(studentUid: studentUid, doc: doc);
+    } on FirebaseException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } on PlatformException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } catch (e, st) {
+      _handleFirestoreError(e, st);
+    }
   }
 
   /// Save/overwrite a day for a student.
@@ -96,60 +108,68 @@ class AttendanceFirestoreSource {
     );
 
     final effectiveShiftType = AttendanceDay.normalizeShiftType(day.shiftType);
-    final docRef = _dayDoc(
-      schoolId: schoolId,
-      studentUid: studentUid,
-      dateKey: day.dateKey,
-      shiftType: effectiveShiftType,
-    );
-
-    // Read existing status when needed so we can write immutable history.
-    DocumentSnapshot<Map<String, dynamic>>? snapshot;
-    AttendanceStatus? previousStatus;
-    bool effectiveIsNew;
-
-    if (isNew == true) {
-      effectiveIsNew = true;
-    } else {
-      snapshot = await docRef.get();
-      effectiveIsNew = !snapshot.exists;
-      if (snapshot.exists) {
-        previousStatus = _statusFromStringOrNull(
-          snapshot.data()?['status'] as String?,
-        );
-      }
-    }
-
-    final resolvedFields = await _resolveStudentFields(
-      studentUid: studentUid,
-      sex: day.sex,
-      gradeLevel: day.gradeLevel,
-    );
-
-    await docRef.set(
-      _toMap(
-        day,
+    try {
+      final docRef = _dayDoc(
+        schoolId: schoolId,
+        studentUid: studentUid,
+        dateKey: day.dateKey,
         shiftType: effectiveShiftType,
-        sex: resolvedFields.sex,
-        gradeLevel: resolvedFields.gradeLevel,
-        isNew: effectiveIsNew,
-      ),
-      SetOptions(merge: true),
-    );
+      );
 
-    final effectiveChangedByUid = _resolveChangedByUid(
-      changedByUid: changedByUid,
-      takenByUid: day.takenByUid,
-      studentUid: studentUid,
-    );
+      // Read existing status when needed so we can write immutable history.
+      DocumentSnapshot<Map<String, dynamic>>? snapshot;
+      AttendanceStatus? previousStatus;
+      bool effectiveIsNew;
 
-    if (effectiveIsNew || previousStatus != day.status) {
-      await docRef.collection('history').add({
-        'previousStatus': previousStatus?.name,
-        'newStatus': day.status.name,
-        'changedByUid': effectiveChangedByUid,
-        'serverTimestamp': FieldValue.serverTimestamp(),
-      });
+      if (isNew == true) {
+        effectiveIsNew = true;
+      } else {
+        snapshot = await docRef.get();
+        effectiveIsNew = !snapshot.exists;
+        if (snapshot.exists) {
+          previousStatus = _statusFromStringOrNull(
+            snapshot.data()?['status'] as String?,
+          );
+        }
+      }
+
+      final resolvedFields = await _resolveStudentFields(
+        studentUid: studentUid,
+        sex: day.sex,
+        gradeLevel: day.gradeLevel,
+      );
+
+      await docRef.set(
+        _toMap(
+          day,
+          shiftType: effectiveShiftType,
+          sex: resolvedFields.sex,
+          gradeLevel: resolvedFields.gradeLevel,
+          isNew: effectiveIsNew,
+        ),
+        SetOptions(merge: true),
+      );
+
+      final effectiveChangedByUid = _resolveChangedByUid(
+        changedByUid: changedByUid,
+        takenByUid: day.takenByUid,
+        studentUid: studentUid,
+      );
+
+      if (effectiveIsNew || previousStatus != day.status) {
+        await docRef.collection('history').add({
+          'previousStatus': previousStatus?.name,
+          'newStatus': day.status.name,
+          'changedByUid': effectiveChangedByUid,
+          'serverTimestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    } on FirebaseException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } on PlatformException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } catch (e, st) {
+      _handleFirestoreError(e, st);
     }
   }
 
@@ -183,17 +203,25 @@ class AttendanceFirestoreSource {
     final toKey = AttendanceDay.dateKeyFor(end);
     final effectiveShiftType = AttendanceDay.normalizeShiftType(shiftType);
 
-    final query = await _daysCollection(schoolId)
-        .where('studentUid', isEqualTo: studentUid)
-        .where('shiftType', isEqualTo: effectiveShiftType)
-        .where('date', isGreaterThanOrEqualTo: fromKey)
-        .where('date', isLessThanOrEqualTo: toKey)
-        .orderBy('date', descending: true)
-        .get();
+    try {
+      final query = await _daysCollection(schoolId)
+          .where('studentUid', isEqualTo: studentUid)
+          .where('shiftType', isEqualTo: effectiveShiftType)
+          .where('date', isGreaterThanOrEqualTo: fromKey)
+          .where('date', isLessThanOrEqualTo: toKey)
+          .orderBy('date', descending: true)
+          .get();
 
-    return query.docs
-        .map((doc) => _fromDoc(studentUid: studentUid, doc: doc))
-        .toList();
+      return query.docs
+          .map((doc) => _fromDoc(studentUid: studentUid, doc: doc))
+          .toList();
+    } on FirebaseException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } on PlatformException catch (e, st) {
+      _handleFirestoreError(e, st);
+    } catch (e, st) {
+      _handleFirestoreError(e, st);
+    }
   }
 
   /// Convenience helper: fetch the most recent [limit] days for a student,
@@ -428,7 +456,72 @@ class AttendanceFirestoreSource {
     ).snapshots().map((doc) {
       if (!doc.exists) return null;
       return _fromDoc(studentUid: studentUid, doc: doc);
+    }).handleError((Object error, StackTrace stackTrace) {
+      _handleFirestoreError(error, stackTrace);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Firestore error handling
+  // ---------------------------------------------------------------------------
+
+  /// Checks whether [error] is a Firestore "missing composite index" error.
+  ///
+  /// Firestore throws `failed-precondition` with a message containing
+  /// "The query requires an index" and a clickable URL when a composite
+  /// index has not been created yet.
+  static bool _isMissingIndexError(Object error) {
+    if (error is FirebaseException) {
+      return error.code == 'failed-precondition' &&
+          (error.message?.contains('The query requires an index') ?? false);
+    }
+    if (error is PlatformException) {
+      return error.code == 'failed-precondition' &&
+          (error.message?.contains('The query requires an index') ?? false);
+    }
+    return false;
+  }
+
+  /// Wraps a Firestore / platform error into [AttendancePersistenceException].
+  ///
+  /// Why we detect "The query requires an index":
+  /// Firestore composite queries need indexes created in the Firebase console.
+  /// When missing, Firestore throws a `failed-precondition` error that includes
+  /// a URL to create the index. We log the full error (including that URL) to
+  /// the debug console so developers can click the link and create the index,
+  /// but we convert it to a friendly [AttendancePersistenceException] so the
+  /// app never crashes — the UI just shows an error state.
+  ///
+  /// For non-index errors we still log and wrap, ensuring raw
+  /// FirebaseException / PlatformException never escapes the data layer.
+  Never _handleFirestoreError(Object error, StackTrace stackTrace) {
+    if (_isMissingIndexError(error)) {
+      dev.log(
+        'FIRESTORE INDEX NEEDED (attendance)\n'
+        'Full error: $error',
+        name: 'AttendanceFirestoreSource',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      throw AttendancePersistenceException(
+        'Attendance query requires a Firestore index',
+        cause: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    // Non-index Firestore / platform error
+    dev.log(
+      'Firestore error (attendance): $error',
+      name: 'AttendanceFirestoreSource',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    throw AttendancePersistenceException(
+      'Attendance data could not be loaded',
+      cause: error,
+      stackTrace: stackTrace,
+    );
   }
 }
 

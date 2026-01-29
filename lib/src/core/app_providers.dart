@@ -87,7 +87,8 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     targetRoute = '/selectSchool';
   } else if (role == 'student') {
     targetRoute = '/studentHome'; // StudentShell
-  } else if (role == 'teacher') {
+  } else if (role == 'teacher' || role == 'admin' || role == 'principal') {
+    // Admin/Principal use TeacherShell with elevated permissions
     targetRoute = '/teacherHome'; // TeacherShell
   } else {
     targetRoute = '/onboarding';
@@ -105,12 +106,18 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
 ///
 /// Injects:
 /// - [AttendanceRepository] for data access
+/// - [UserService] for fetching student shift information
 /// - [schoolHolidayDateKeysProvider] as the single source of truth for holidays
 final attendanceServiceProvider = Provider<AttendanceService>((ref) {
   final repo = ref.read(attendanceRepositoryProvider);
+  final userService = ref.read(userServiceProvider);
   final holidayKeys = ref.read(schoolHolidayDateKeysProvider);
 
-  return AttendanceService(repo: repo, schoolHolidayDateKeys: holidayKeys);
+  return AttendanceService(
+    repo: repo,
+    userService: userService,
+    schoolHolidayDateKeys: holidayKeys,
+  );
 });
 
 /// 🔹 Geo service – wraps Geolocator and geofence logic.
