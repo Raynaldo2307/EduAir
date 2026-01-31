@@ -187,6 +187,7 @@ class TeacherAttendanceEntry {
       if (subjectName != null) 'subjectName': subjectName,
       if (periodId != null) 'periodId': periodId,
       'shiftType': resolvedShiftType,
+      'source': AttendanceSource.teacherBatch.name,
     };
   }
 }

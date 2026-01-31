@@ -283,6 +283,10 @@ class AttendanceFirestoreSource {
     final isEarlyLeave = (data['isEarlyLeave'] as bool?) ?? false;
     final isOvertime = (data['isOvertime'] as bool?) ?? false;
 
+    // Source + deviceId (backward-compat: default to studentSelf for old docs)
+    final source = _sourceFromString(data['source'] as String?);
+    final deviceId = data['deviceId'] as String?;
+
     return AttendanceDay(
       dateKey: data['date'] as String? ?? _dateKeyFromDocId(doc.id),
       studentUid: studentUid,
@@ -306,6 +310,8 @@ class AttendanceFirestoreSource {
       shiftType: shiftType,
       isEarlyLeave: isEarlyLeave,
       isOvertime: isOvertime,
+      source: source,
+      deviceId: deviceId,
     );
   }
 
@@ -342,6 +348,10 @@ class AttendanceFirestoreSource {
       // New boolean flags
       'isEarlyLeave': day.isEarlyLeave,
       'isOvertime': day.isOvertime,
+
+      // Source + deviceId
+      'source': day.source.name,
+      if (day.deviceId != null) 'deviceId': day.deviceId,
      
 
      //Location
@@ -372,6 +382,16 @@ class AttendanceFirestoreSource {
       if (status.name == value) return status;
     }
     return AttendanceStatus.present;
+  }
+
+  /// Parse a stored source string back to [AttendanceSource].
+  /// Defaults to [AttendanceSource.studentSelf] for old docs without the field.
+  AttendanceSource _sourceFromString(String? value) {
+    if (value == null || value.isEmpty) return AttendanceSource.studentSelf;
+    for (final source in AttendanceSource.values) {
+      if (source.name == value) return source;
+    }
+    return AttendanceSource.studentSelf;
   }
 
   AttendanceStatus? _statusFromStringOrNull(String? value) {

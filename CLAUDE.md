@@ -408,7 +408,6 @@ schools/{schoolId}/incidents/{incidentId}      # Geofence incidents
 4. Role check: only `admin` or `principal` see edit UI
 
 ---
-
 *Last updated: January 2026*
 
 

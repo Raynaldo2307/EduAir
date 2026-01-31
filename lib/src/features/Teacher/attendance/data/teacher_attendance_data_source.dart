@@ -140,6 +140,7 @@ class TeacherAttendanceDataSource {
         data['sex'] = payload.resolvedSex;
         data['gradeLevel'] = payload.resolvedGradeLevel;
         data['shiftType'] = entry.resolvedShiftType;
+        data['source'] = 'teacherBatch';
 
         // Audit timestamps.
         if (payload.isNew) {

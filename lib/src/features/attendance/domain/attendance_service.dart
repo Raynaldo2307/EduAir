@@ -259,6 +259,8 @@ class AttendanceService {
       lateReason: (cleanedReason == null || cleanedReason.isEmpty)
           ? null
           : cleanedReason,
+      source: AttendanceSource.studentSelf,
+      deviceId: null, // TODO: wire real device ID for anti-fraud / offline
     );
 
     try {
@@ -383,6 +385,8 @@ class AttendanceService {
       clockOutLocation: location,
       isEarlyLeave: isEarlyLeave,
       isOvertime: isOvertime,
+      source: AttendanceSource.studentSelf,
+      deviceId: null, // TODO: wire real device ID for anti-fraud / offline
     );
 
     try {

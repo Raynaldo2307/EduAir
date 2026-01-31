@@ -89,6 +89,14 @@ extension MoEYILateReasonLabel on MoEYILateReason {
   }
 }
 
+/// Who/what created this attendance record.
+///
+/// Used for audit, analytics, and future anti-fraud checks.
+/// - `studentSelf`  — student self clock-in/clock-out
+/// - `teacherBatch` — teacher class register / batch mark
+/// - `adminEdit`    — admin or principal manual correction
+enum AttendanceSource { studentSelf, teacherBatch, adminEdit }
+
 /// Simple location snapshot (no Firestore types here).
 class AttendanceLocation {
   final double lat;
@@ -165,6 +173,12 @@ class AttendanceDay {
   /// New: did the student stay after the overtime cutoff?
   final bool isOvertime;
 
+  /// Who/what created this record (student self-service, teacher batch, admin).
+  final AttendanceSource source;
+
+  /// Optional device identifier for future anti-fraud / offline support.
+  final String? deviceId;
+
   /// Core constructor.
   ///
   /// Contains light-weight asserts to avoid obviously broken state.
@@ -190,8 +204,10 @@ class AttendanceDay {
     this.subjectName,
     this.periodId,
     this.shiftType,
-    this.isEarlyLeave = false, // 👈 NEW
+    this.isEarlyLeave = false,
     this.isOvertime = false,
+    this.source = AttendanceSource.studentSelf,
+    this.deviceId,
   }) : assert(
          // Absent: no times/locations; reason is allowed (excused absence).
          (status != AttendanceStatus.absent &&
@@ -289,6 +305,8 @@ class AttendanceDay {
     Object? shiftType = _sentinel,
     bool? isEarlyLeave,
     bool? isOvertime,
+    AttendanceSource? source,
+    Object? deviceId = _sentinel,
   }) {
     return AttendanceDay(
       dateKey: dateKey ?? this.dateKey,
@@ -343,8 +361,12 @@ class AttendanceDay {
       shiftType: identical(shiftType, _sentinel)
           ? this.shiftType
           : shiftType as String?,
-      isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave, // 👈 NEW
-      isOvertime: isOvertime ?? this.isOvertime, // 👈 NEW
+      isEarlyLeave: isEarlyLeave ?? this.isEarlyLeave,
+      isOvertime: isOvertime ?? this.isOvertime,
+      source: source ?? this.source,
+      deviceId: identical(deviceId, _sentinel)
+          ? this.deviceId
+          : deviceId as String?,
     );
   }
 

@@ -46,6 +46,7 @@ Whenever you modify this module, you should preserve these goals.
 - `lib/src/features/attendance/domain/attendance_models.dart`
   - `AttendanceDay` (one student, one `dateKey`, one `shiftType`).
   - `AttendanceStatus` (`early`, `late`, `present`, `absent`, `excused`).
+  - `AttendanceSource` (`studentSelf`, `teacherBatch`, `adminEdit`) -- provenance of the record.
   - `AttendanceLocation` (lat/lng snapshot).
   - `MoEYILateReason` enum + helpers (codes + labels).
 
@@ -79,6 +80,8 @@ Whenever you modify this module, you should preserve these goals.
   - Actual Firestore queries / writes.
   - Paths like:
     `schools/{schoolId}/attendance/{dateKey}_{shiftType}_{studentUid}`
+  - Serializes `source` (enum name) and `deviceId` (if non-null) to Firestore.
+  - Deserializes `source` with backward-compatible default (`studentSelf` when field is missing in old docs).
   - All calls wrapped in `try / on FirebaseException / on PlatformException / catch`.
   - Detects missing index errors (`failed-precondition` + "The query requires an index").
   - Logs a **dev-friendly message** with the index creation URL.
@@ -232,7 +235,7 @@ Flow:
 8. If `late`:
    - `lateReason` must be non-empty.
    - `lateReason` must be valid MoEYI code (see section **8**).
-9. Build `AttendanceDay` with `shiftType`, `clockInAt`, `location`, etc.
+9. Build `AttendanceDay` with `shiftType`, `clockInAt`, `location`, `source: AttendanceSource.studentSelf`, etc.
 10. Save via repo -> Firestore source.
 11. On any low-level error, throw `AttendancePersistenceException`.
 
@@ -250,7 +253,7 @@ Flow:
 6. Derive UX flags:
    - `isEarlyLeave = ts.isBefore(classEnd)`
    - `isOvertime = ts.isAfter(overtimeCutoff)`
-7. Copy existing `AttendanceDay` -> `updated` with clock-out fields.
+7. Copy existing `AttendanceDay` -> `updated` with clock-out fields and `source: AttendanceSource.studentSelf`.
 8. Save via repo and return.
 
 ---
@@ -275,7 +278,7 @@ TeacherAttendanceDataSource.saveAttendanceBatch()
   +-- Build Firestore batch (atomic, all-or-nothing)
   |   +-- For each entry:
   |   |   +-- Upsert: schools/{schoolId}/attendance/{docId}
-  |   |   |   (stamps sex, gradeLevel, shiftType, updatedAt, takenAt-if-new)
+  |   |   |   (stamps sex, gradeLevel, shiftType, source='teacherBatch', updatedAt, takenAt-if-new)
   |   |   +-- Append audit history (only if new or status changed)
   |   +-- Commit batch
   +-- Return AttendanceBatchResult
@@ -303,6 +306,8 @@ UI receives result -> show success/error snackbar
 | `shiftType` | String? | Resolved from student profile |
 | `subjectId` / `subjectName` | String? | Optional subject-level attendance |
 | `periodId` | String? | Optional period reference |
+
+> **Note:** `toFirestoreMap()` also stamps `source: 'teacherBatch'` on every document written through the teacher batch path.
 
 ### `AttendanceBatchResult`
 
@@ -401,13 +406,19 @@ This is critical for rural Jamaican schools and students with limited data.
 - **Teacher as source of truth:** Teacher batch attendance (section 6) is the primary path. Student self clock-in is supplemental.
 - **Geofencing:** `AttendanceGeoService` checks GPS against `School.lat/lng/radiusMeters` before allowing clock-in. Out-of-zone attempts can be blocked or flagged.
 - **Audit trail:** Every status change records `changedByUid` and server timestamp (section 6A), making tampering traceable.
+- **Record provenance (`AttendanceSource`):** Every attendance document stores a `source` field indicating who/what created it:
+  - `studentSelf` -- student self clock-in/clock-out (default for backward compat with old docs).
+  - `teacherBatch` -- teacher class register / batch mark.
+  - `adminEdit` -- admin or principal manual correction (enum defined, write path not yet built).
+- **`deviceId` field (placeholder):** `AttendanceDay` carries an optional `deviceId` string. Currently written as `null`; ready for future device fingerprinting without a schema migration.
 
 ### Planned (Not Yet Implemented)
 
 - **Re-auth on shared devices:** Optional PIN / biometrics before clock-in on shared devices.
 - **Shorter session lifetimes:** For sensitive flows like self clock-in.
-- **Device fingerprinting:** Record device info alongside attendance events to detect one device clocking in multiple UIDs.
+- **Device fingerprinting:** Wire real `deviceId` values (e.g., via `device_info_plus`) to detect one device clocking in multiple UIDs. The `deviceId` field on `AttendanceDay` is already in place.
 - **Suspicious pattern detection:** Alerts for admins when anomalous patterns are detected.
+- **Source-based analytics:** Query by `source` field to understand what percentage of records come from student self-service vs teacher batch vs admin edits.
 
 > **Rule:**
 > When adding new features, consider: "Does this make it easier or harder to cheat?"
@@ -574,4 +585,4 @@ When you (or Claude) modify the attendance module:
 Before touching attendance, read this file and follow its rules.
 This is the contract for how the attendance engine of EduAir must behave.
 
-*Last updated: January 2026*
+*Last updated: January /30 /2026*
