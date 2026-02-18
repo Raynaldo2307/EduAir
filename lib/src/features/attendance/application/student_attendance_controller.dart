@@ -124,6 +124,8 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
     state = state.copyWith(today: const AsyncValue.loading(), clearError: true);
 
     try {
+      final deviceId = _ref.read(deviceIdProvider).value;
+
       final day = await _service.clockIn(
         schoolId: user.schoolId!,
         studentUid: user.uid,
@@ -132,6 +134,7 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
         className: user.className,
         gradeLevel: user.gradeLevelNumber,
         lateReason: lateReasonCode,
+        deviceId: deviceId,
       );
 
       state = state.copyWith(today: AsyncValue.data(day));
@@ -176,6 +179,8 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
     state = state.copyWith(today: const AsyncValue.loading(), clearError: true);
 
     try {
+      final deviceId = _ref.read(deviceIdProvider).value;
+
       final day = await _service.clockOut(
         schoolId: user.schoolId!,
         studentUid: user.uid,
@@ -183,6 +188,7 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
         classId: user.classId,
         className: user.className,
         gradeLevel: user.gradeLevelNumber,
+        deviceId: deviceId,
       );
 
       state = state.copyWith(today: AsyncValue.data(day));

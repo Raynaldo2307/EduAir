@@ -102,6 +102,7 @@ class TeacherAttendanceEntry {
     this.subjectId,
     this.subjectName,
     this.periodId,
+    this.deviceId,
   });
 
   /// School this attendance belongs to (multi-tenant anchor).
@@ -129,6 +130,9 @@ class TeacherAttendanceEntry {
   final String? subjectId;
   final String? subjectName;
   final String? periodId;
+
+  /// Device ID of the teacher's device (for anti-fraud analytics).
+  final String? deviceId;
 
   /// Normalized shift type using [AttendanceDay.normalizeShiftType].
   String get resolvedShiftType => AttendanceDay.normalizeShiftType(shiftType);
@@ -188,6 +192,7 @@ class TeacherAttendanceEntry {
       if (periodId != null) 'periodId': periodId,
       'shiftType': resolvedShiftType,
       'source': AttendanceSource.teacherBatch.name,
+      if (deviceId != null) 'deviceId': deviceId,
     };
   }
 }

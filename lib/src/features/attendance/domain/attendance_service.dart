@@ -169,6 +169,8 @@ class AttendanceService {
   /// - [AttendancePersistenceException] on persistence errors
   ///
   /// **Returns:** The saved [AttendanceDay].
+  /// 
+  
   Future<AttendanceDay> clockIn({
     required String schoolId,
     required String studentUid,
@@ -177,6 +179,7 @@ class AttendanceService {
     String? className,
     int? gradeLevel,
     String? lateReason, // MoEYI category code (e.g., 'transportation')
+    String? deviceId, // Device identifier for anti-fraud
     DateTime? at, // for tests or special cases; default = now()
   }) async {
     final ts = at ?? schoolNow();
@@ -260,7 +263,7 @@ class AttendanceService {
           ? null
           : cleanedReason,
       source: AttendanceSource.studentSelf,
-      deviceId: null, // TODO: wire real device ID for anti-fraud / offline
+      deviceId: deviceId,
     );
 
     try {
@@ -311,6 +314,7 @@ class AttendanceService {
     String? classId,
     String? className,
     int? gradeLevel,
+    String? deviceId, // Device identifier for anti-fraud
     DateTime? at,
   }) async {
     final ts = at ?? schoolNow();
@@ -386,7 +390,7 @@ class AttendanceService {
       isEarlyLeave: isEarlyLeave,
       isOvertime: isOvertime,
       source: AttendanceSource.studentSelf,
-      deviceId: null, // TODO: wire real device ID for anti-fraud / offline
+      deviceId: deviceId,
     );
 
     try {

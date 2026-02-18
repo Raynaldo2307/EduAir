@@ -21,8 +21,17 @@ import 'package:edu_air/src/features/attendance/domain/attendance_config.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_geo_service.dart';
 import 'package:edu_air/src/models/school/domain/school.dart';
 
+// Device ID
+import 'package:edu_air/src/services/device_id_service.dart';
+
 // 🔹 Attendance: UI-level providers (includes schoolHolidayDateKeysProvider)
 //import 'package:edu_air/src/features/attendance/presentation/student/attendance_providers.dart';
+
+/// Device identifier for attendance anti-fraud.
+/// Resolves once and caches. Returns `null` on unsupported platforms or errors.
+final deviceIdProvider = FutureProvider<String?>((ref) async {
+  return DeviceIdService.instance.getDeviceId();
+});
 
 /// Global provider holding the currently authenticated [AppUser].
 final userProvider = StateProvider<AppUser?>((ref) => null);

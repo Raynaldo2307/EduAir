@@ -209,6 +209,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
         error: e,
         stackTrace: st,
       );
+
       // Use the error mapper for consistent user-friendly messages
       _showSnack(mapAttendanceErrorToMessage(e));
     } finally {
@@ -221,6 +222,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       );
     }
   }
+  
 
   Future<void> _handleClockOut() async {
     final user = ref.read(userProvider);

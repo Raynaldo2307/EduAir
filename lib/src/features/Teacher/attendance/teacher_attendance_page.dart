@@ -183,6 +183,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     final dateKey = AttendanceDay.dateKeyFor(_selectedDate);
 
     try {
+      final deviceId = ref.read(deviceIdProvider).value;
+
       final entries = <TeacherAttendanceEntry>[];
       for (final student in students) {
         final override = _selectedStatuses[student.uid];
@@ -198,6 +200,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             classOption: classOption,
             takenByUid: teacherUid,
             shiftType: _shiftType,
+            deviceId: deviceId,
           ),
         );
       }
