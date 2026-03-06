@@ -9,6 +9,13 @@ import 'package:edu_air/src/features/auth/services/auth_services.dart';
 // User service
 import 'package:edu_air/src/services/user_services.dart';
 
+// Node API services
+import 'package:edu_air/src/services/api_client.dart';
+import 'package:edu_air/src/services/token_storage_service.dart';
+import 'package:edu_air/src/features/auth/data/auth_api_repository.dart';
+import 'package:edu_air/src/features/attendance/data/attendance_api_repository.dart';
+import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
+
 // 🔹 Attendance: repo + service
 import 'package:edu_air/src/features/attendance/data/attendance_repository.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_service.dart';
@@ -55,55 +62,55 @@ final userProfileStreamProvider = StreamProvider<AppUser?>((ref) {
 });
 
 /// Determines the initial route to navigate to after splash.
+/// Auth is now Node JWT-based. Firebase is only used for Google Sign In.
 final startupRouteProvider = FutureProvider<String>((ref) async {
-  final authService = ref.read(authServiceProvider);
-  final userService = ref.read(userServiceProvider);
+  final tokenStorage = ref.read(tokenStorageProvider);
+  final authRepo = ref.read(authApiRepositoryProvider);
   final userNotifier = ref.read(userProvider.notifier);
 
-  // Step 1: Default route.
-  String targetRoute = '/onboarding';
+  const targetRoute = '/onboarding';
 
-  // Step 2: Check if Firebase user exists.
-  final firebaseUser = await authService.getCurrentFirebaseUser();
-  if (firebaseUser == null) {
-    dev.log('No Firebase user found.', name: 'StartupProvider');
+  // Step 1: Check if a Node JWT token is stored on device.
+  final token = await tokenStorage.read();
+  if (token == null) {
+    dev.log('No JWT found — sending to onboarding.', name: 'StartupProvider');
     return targetRoute;
   }
 
-  // Step 3: Fetch profile from Firestore.
-  final profile = await userService.getUser(firebaseUser.uid);
-  if (profile == null) {
-    dev.log(
-      'Firebase user found but no profile in Firestore.',
-      name: 'StartupProvider',
+  // Step 2: Validate token by calling /api/auth/me.
+  try {
+    final userData = await authRepo.getMe();
+
+    final profile = AppUser(
+      uid: userData['id'].toString(),
+      firstName: userData['firstName'] ?? '',
+      lastName: userData['lastName'] ?? '',
+      email: userData['email'] ?? '',
+      phone: '',
+      role: userData['role'] ?? '',
+      schoolId: userData['schoolId']?.toString(),
     );
+
+    userNotifier.state = profile;
+    dev.log('Session restored for ${profile.email}', name: 'StartupProvider');
+
+    // Step 3: Route based on role.
+    final role = profile.role;
+    final schoolId = profile.schoolId;
+
+    if (role.isEmpty) return '/selectRole';
+    if (schoolId == null || schoolId.isEmpty) return '/selectSchool';
+    if (role == 'student') return '/studentHome';
+    if (role == 'teacher' || role == 'admin' || role == 'principal') {
+      return '/teacherHome';
+    }
     return targetRoute;
-    //return '/teacherHome';
+  } catch (e) {
+    // Token expired or invalid — clear it and send to onboarding.
+    dev.log('JWT invalid: $e — clearing token.', name: 'StartupProvider');
+    await tokenStorage.delete();
+    return targetRoute;
   }
-
-  // Step 4: Save profile globally.
-  userNotifier.state = profile;
-  dev.log('Loaded profile for ${profile.uid}', name: 'StartupProvider');
-
-  // Step 5: Determine the route based on user role.
-  final role = profile.role;
-  final schoolId = profile.schoolId;
-
-  if (role.isEmpty) {
-    targetRoute = '/selectRole';
-  } else if (schoolId == null || schoolId.isEmpty) {
-    // ✅ Role is set but no school yet → go to Select School
-    targetRoute = '/selectSchool';
-  } else if (role == 'student') {
-    targetRoute = '/studentHome'; // StudentShell
-  } else if (role == 'teacher' || role == 'admin' || role == 'principal') {
-    // Admin/Principal use TeacherShell with elevated permissions
-    targetRoute = '/teacherHome'; // TeacherShell
-  } else {
-    targetRoute = '/onboarding';
-  }
-
-  return targetRoute;
 });
 
 /// 🔹 Attendance repository – wraps Firestore source behind a clean API.
@@ -133,6 +140,39 @@ final attendanceServiceProvider = Provider<AttendanceService>((ref) {
 final attendanceGeoServiceProvider = Provider<AttendanceGeoService>((ref) {
   return const AttendanceGeoService(allowMockLocations: false);
 });
+
+// ─── Node API Providers ──────────────────────────────────────────────────────
+
+/// Singleton token storage — persists JWT securely on device.
+final tokenStorageProvider = Provider<TokenStorageService>(
+  (ref) => const TokenStorageService(),
+);
+
+/// Singleton Dio client — injects JWT on every request automatically.
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final tokenStorage = ref.read(tokenStorageProvider);
+  return ApiClient(tokenStorage);
+});
+
+/// Auth API — login, register, logout via Node backend.
+final authApiRepositoryProvider = Provider<AuthApiRepository>((ref) {
+  return AuthApiRepository(
+    client: ref.read(apiClientProvider),
+    tokenStorage: ref.read(tokenStorageProvider),
+  );
+});
+
+/// Attendance API — clock-in/out, history, admin corrections via Node backend.
+final attendanceApiRepositoryProvider = Provider<AttendanceApiRepository>((ref) {
+  return AttendanceApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// Students API — full CRUD for admin student management via Node backend.
+final studentsApiRepositoryProvider = Provider<StudentsApiRepository>((ref) {
+  return StudentsApiRepository(client: ref.read(apiClientProvider));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// The currently active school for this build / environment.
 /// Later this can come from Firestore / admin config.

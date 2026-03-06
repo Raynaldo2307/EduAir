@@ -6,16 +6,28 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
 import 'admin_student_edit_page.dart';
 
-/// Provider that fetches all students for the current user's school.
+/// Maps a raw Node API student record to [AppUser].
+AppUser _nodeStudentToAppUser(Map<String, dynamic> d) {
+  return AppUser(
+    uid: d['student_id'].toString(),
+    firstName: d['first_name'] ?? '',
+    lastName: d['last_name'] ?? '',
+    email: d['email'] ?? '',
+    phone: d['phone_number'] ?? '',
+    role: 'student',
+    studentId: d['student_code'],
+    currentShift: d['current_shift_type'],
+    sex: d['sex'],
+    className: d['class_name'],
+    gradeLevel: d['grade_level']?.toString(),
+  );
+}
+
+/// Fetches all active students for the admin's school via the Node API.
 final schoolStudentsProvider = FutureProvider<List<AppUser>>((ref) async {
-  final currentUser = ref.watch(userProvider);
-  final userService = ref.read(userServiceProvider);
-
-  if (currentUser?.schoolId == null) {
-    return [];
-  }
-
-  return userService.getStudentsBySchool(currentUser!.schoolId!);
+  final studentsRepo = ref.read(studentsApiRepositoryProvider);
+  final raw = await studentsRepo.getAll();
+  return raw.map(_nodeStudentToAppUser).toList();
 });
 
 /// Admin/Principal page to view and manage students in their school.

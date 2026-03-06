@@ -98,23 +98,30 @@ class _AdminStudentEditPageState extends ConsumerState<AdminStudentEditPage> {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
-    final userService = ref.read(userServiceProvider);
+    final studentsRepo = ref.read(studentsApiRepositoryProvider);
 
     String? clean(String value) => value.trim().isEmpty ? null : value.trim();
 
-    final updated = widget.student.copyWith(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      studentId: clean(_studentIdController.text),
-      className: clean(_classNameController.text),
-      gradeLevel: clean(_gradeLevelController.text),
-      currentShift: _selectedShift,
-    );
+    final payload = <String, dynamic>{
+      'first_name': _firstNameController.text.trim(),
+      'last_name': _lastNameController.text.trim(),
+      'current_shift_type': _selectedShift,
+      if (clean(_studentIdController.text) != null)
+        'student_code': clean(_studentIdController.text),
+    };
 
     setState(() => _saving = true);
 
     try {
-      await userService.updateUser(updated);
+      final studentId = int.parse(widget.student.uid);
+      await studentsRepo.update(studentId, payload);
+
+      final updated = widget.student.copyWith(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        studentId: clean(_studentIdController.text),
+        currentShift: _selectedShift,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,9 +136,7 @@ class _AdminStudentEditPageState extends ConsumerState<AdminStudentEditPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 

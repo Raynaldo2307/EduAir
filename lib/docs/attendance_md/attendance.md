@@ -869,3 +869,183 @@ Before touching attendance, read this file and follow its rules.
 This is the contract for how the attendance engine of EduAir must behave.
 
 *Last updated: January 31, 2026*
+
+That's a problem we need to fix before the API is built. With only a students table, teachers, admins, and principals have no place in the database.
+
+  As CTO — here's what your schema needs:
+
+  users       ← auth for ALL roles (id, email, password, role, school_id)
+  students    ← student profile only (id, user_id FK, grade, class, shift...)
+  schools     ← school config (id, name, lat, lng, radius, timezone)
+  attendance  ← records (id, student_id FK, school_id FK, date, shift, status...)
+
+  users is the foundation. Every person who logs in — student, teacher, admin — gets a row in users. The students table just holds the extra
+  student-specific fields and points back to users via user_id.
+
+  Before you paste the prompt into ChatGPT, do this first:
+
+  Go into MySQL Workbench and create the users table:
+
+  CREATE TABLE users (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    school_id   INT NOT NULL,
+    email       VARCHAR(255) NOT NULL UNIQUE,
+    password    VARCHAR(255) NOT NULL,
+    role        ENUM('student','teacher','admin','principal','parent') NOT NULL,
+    first_name  VARCHAR(100),
+    last_name   VARCHAR(100),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (school_id) REFERENCES schools(id)
+  );
+
+  Then add user_id as a foreign key to your students table linking back to users.
+
+  Once that's done, the prompt is ready and your backend Claude has a solid foundation to build on.
+
+❯ ok give me the query to alter and add the updated in the users table what that what yuo think here ? 
+
+⏺ ALTER TABLE users
+  ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+  The ON UPDATE CURRENT_TIMESTAMP means MySQL automatically updates that column whenever the row is modified — you don't have to touch it in your Node.js
+  code.
+
+❯ OK NOW MY SNIOR DEVLOP WRITE ME THE PROMT CAUSE YUOR AREDY THE ONE THAT undestand ym code base here ok now is the time for the edu_api contract ok  
+
+⏺ Here's your prompt — copy and paste the whole thing:
+
+  ---
+  You are a senior backend developer writing the official API Contract
+  for EduAir — a multi-tenant school management platform built for
+  Jamaican schools.
+
+  Your job is to produce a complete, production-ready API Contract
+  document that a Node.js backend developer will implement and a
+  Flutter frontend developer will consume.
+
+  --- TECH STACK ---
+  - Runtime:    Node.js + Express.js
+  - Database:   MySQL
+  - Auth:       JWT (JSON Web Tokens)
+  - Email:      Mailtrap (development/testing)
+  - Base path:  /api/v1
+
+  --- DATABASE SCHEMA ---
+  Table: schools
+    id, name, lat, lng, radius_meters, timezone, created_at, updated_at
+
+  Table: users (all roles login through here)
+    id, school_id (FK → schools), email, password (hashed), role,
+    first_name, last_name, created_at, updated_at
+    role ENUM: student | teacher | admin | principal | parent
+
+  Table: students (student-specific profile data)
+    id, user_id (FK → users), school_id (FK → schools),
+    student_id_number, grade_level, class_id, class_name,
+    shift (morning | afternoon | whole_day), sex, date_of_birth,
+    created_at, updated_at
+
+  Table: attendance
+    id, student_id (FK → students), school_id (FK → schools),
+    date_key (YYYY-MM-DD), shift (morning | afternoon | whole_day),
+    status (early | late | present | absent | excused),
+    clock_in_at, clock_out_at,
+    late_reason (transportation | economic | illness |
+                 emergency | family | other | NULL),
+    taken_by_user_id (FK → users — teacher or system),
+    created_at, updated_at
+
+  --- AUTH MIDDLEWARE PATTERN ---
+  - All protected routes use a verifyToken middleware
+  - Middleware decodes JWT and injects req.userId and req.userRole
+  - Routes always use req.userId — NEVER trust userId from request body
+  - School scoping: middleware also injects req.schoolId from the
+    decoded token
+  - Role guard middleware: requireRole('admin', 'principal') used on
+    sensitive routes
+
+  --- JAMAICAN SCHOOL CONTEXT ---
+  Shifts (each shift = a separate school day legally):
+    morning:   07:00 – 12:00 (grace period until 12:30)
+    afternoon: 12:00 – 17:00 (grace period until 17:30)
+    whole_day: 08:00 – 16:00 (grace period until 16:30)
+
+  Attendance status rules:
+    - Clock in before shift start              → early
+    - Clock in within grace period             → late (reason required)
+    - Clock in after grace period              → late (reason required)
+    - Never clocked in by end of day           → absent
+    - Teacher manually marks                   → present / excused
+
+  Late reason is REQUIRED when status is late.
+  Allowed values: transportation, economic, illness, emergency,
+  family, other. No free text allowed (government reporting requirement).
+
+  --- EMAIL TRIGGERS (Mailtrap) ---
+  - Welcome email on new user registration
+  - Password reset email with token link
+
+  --- BUSINESS RULES ---
+  1. All data is scoped by school_id — no cross-school data access ever
+  2. A student cannot clock in twice for the same shift on the same date
+  3. A student cannot clock out without first clocking in
+  4. Late clock-in requires a late_reason — reject the request without it
+  5. Only admin and principal can create/edit school and user records
+  6. Teachers can batch-mark attendance for their class
+  7. Students can only see their own attendance records
+  8. Parents can only see their linked child's records
+
+  --- WHAT TO PRODUCE ---
+  Write the full API Contract covering these 6 resource groups:
+
+  1. AUTH
+     POST /api/v1/auth/register
+     POST /api/v1/auth/login
+     POST /api/v1/auth/logout
+     POST /api/v1/auth/forgot-password
+     POST /api/v1/auth/reset-password
+
+  2. USERS
+     GET    /api/v1/users/me
+     PUT    /api/v1/users/me
+     GET    /api/v1/users/:id        (admin/principal only)
+
+  3. SCHOOLS
+     GET    /api/v1/schools/:id
+     PUT    /api/v1/schools/:id      (admin/principal only)
+
+  4. STUDENTS
+     GET    /api/v1/students                (admin/principal/teacher)
+     GET    /api/v1/students/:id
+     PUT    /api/v1/students/:id            (admin/principal only)
+
+  5. ATTENDANCE
+     POST   /api/v1/attendance/clock-in
+     POST   /api/v1/attendance/clock-out
+     GET    /api/v1/attendance/today
+     GET    /api/v1/attendance/history      (query: limit, shift)
+     POST   /api/v1/attendance/batch        (teacher only)
+     GET    /api/v1/attendance/report       (admin/principal only)
+
+  6. PASSWORD RESET FLOW
+     (covered under auth but document the full token flow)
+
+  --- FORMAT FOR EACH ENDPOINT ---
+  For every endpoint provide:
+
+  Method & Path:
+  Access:         (which roles)
+  Auth required:  yes/no
+  Request:        (body fields or query params with types)
+  Success:        (HTTP status + JSON response shape)
+  Errors:         (HTTP status codes + error messages)
+  Business rules: (any constraints or validations)
+
+  Be specific, complete, and production-ready.
+  This contract will be handed directly to a Node.js developer to build
+  and a Flutter developer to integrate — no ambiguity allowed.
+
+  ---
+  Paste that into ChatGPT and bring the contract back here. We review it together before your backend Claude writes a single route.
+
+✻ Brewed for 35s

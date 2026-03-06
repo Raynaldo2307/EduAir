@@ -39,43 +39,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (!_termsAccepted) {
-      _showSnack('Please accept the Terms & Conditions.');
-      return;
-    }
-
-    // Hide keyboard
-    FocusScope.of(context).unfocus();
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      final userNotifier = ref.read(userProvider.notifier);
-
-      final user = await authService.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        fullName: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        role:
-            'student', // first default role, then user can change via /selectRole
-      );
-      userNotifier.state = user;
-
-      if (!mounted) return;
-      _showSnack('Sign up successful!');
-      Navigator.pushReplacementNamed(context, '/selectRole');
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('Sign up failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
+    // Accounts are created by your school admin.
+    // Students and teachers do not self-register.
+    _showSnack('Contact your school admin to create your account.');
   }
 
   Future<void> _handleGoogleSignUp() async {
@@ -88,18 +54,20 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
     try {
       final user = await authService.signInWithGoogle();
-      userNotifier.state = user;
 
+      // null = user cancelled — reset silently, no snackbar
+      if (user == null) return;
+
+      userNotifier.state = user;
       if (!mounted) return;
       _showSnack('Google sign-in successful!');
       navigator.pushReplacementNamed('/selectRole');
     } catch (e) {
+      // Only reaches here on a real error (network, Firebase config, etc.)
       if (!mounted) return;
-      _showSnack('Google sign-in failed: $e');
+      _showSnack('Google sign-in is not available right now. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 

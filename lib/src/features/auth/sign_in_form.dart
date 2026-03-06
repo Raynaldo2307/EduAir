@@ -1,8 +1,12 @@
+import 'dart:developer' as dev;
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/models/app_user.dart';
 import 'package:edu_air/src/features/auth/sign_up_form.dart';
 import 'package:edu_air/src/features/auth/reset_password_page.dart'; //
 
@@ -69,14 +73,23 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _routeForRole(String role, String? schoolId) {
+    if (role.isEmpty) return '/selectRole';
+    if (schoolId == null || schoolId.isEmpty) return '/selectSchool';
+    if (role == 'student') return '/studentHome';
+    if (role == 'teacher' || role == 'admin' || role == 'principal') {
+      return '/teacherHome';
+    }
+    return '/onboarding';
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Hide keyboard
     FocusScope.of(context).unfocus();
 
     final navigator = Navigator.of(context);
-    final authService = ref.read(authServiceProvider);
+    final authRepo = ref.read(authApiRepositoryProvider);
     final userNotifier = ref.read(userProvider.notifier);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -84,27 +97,40 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final user = await authService.signIn(email: email, password: password);
+      // Call Node API — saves JWT automatically inside the repository.
+      final data = await authRepo.login(email: email, password: password);
+      final userData = data['user'] as Map<String, dynamic>;
 
-      // Store user in global states
-      userNotifier.state = user;
+      final role = userData['role'] ?? '';
+      final schoolId = userData['schoolId']?.toString();
 
+      userNotifier.state = AppUser(
+        uid: userData['id'].toString(),
+        firstName: userData['firstName'] ?? '',
+        lastName: userData['lastName'] ?? '',
+        email: userData['email'] ?? '',
+        phone: '',
+        role: role,
+        schoolId: schoolId,
+      );
 
       if (!mounted) return;
 
-      //Ask the same Logic the Splash use 
-      final targetRoute = await ref.read(startupRouteProvider.future);
-
+      final targetRoute = _routeForRole(role, schoolId);
       _showSnack('Login successful!');
-      // Let root decide where to go based on auth/profile
       navigator.pushReplacementNamed(targetRoute);
     } catch (e) {
+      dev.log('Login error: $e', name: 'SignInPage');
       if (!mounted) return;
-      _showSnack('Login failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
+      if (e is DioException && e.type == DioExceptionType.connectionError) {
+        _showSnack('Cannot reach server. Is the backend running?');
+      } else if (e is DioException && e.response?.statusCode == 401) {
+        _showSnack('Invalid email or password.');
+      } else {
+        _showSnack('Login failed. Please try again.');
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -117,23 +143,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
     try {
       final user = await authService.signInWithGoogle();
-      userNotifier.state = user;
 
+      // null = user cancelled — reset silently, no snackbar
+      if (user == null) return;
+
+      userNotifier.state = user;
       if (!mounted) return;
 
-
-      //Ask the same Logic the Splash use 
-      final targetRoute = await ref.read(startupRouteProvider.future);
-
+      final targetRoute = _routeForRole(user.role, user.schoolId);
       _showSnack('Signed in with Google');
       navigator.pushReplacementNamed(targetRoute);
     } catch (e) {
+      // Only reaches here on a real error (network, Firebase config, etc.)
       if (!mounted) return;
-      _showSnack('Google sign in failed: $e');
+      _showSnack(
+        'Google sign-in is not available right now. Please try again.',
+      );
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -168,7 +195,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Hello, welcome back to your account.',
                   style: theme.textTheme.bodyMedium?.copyWith(
