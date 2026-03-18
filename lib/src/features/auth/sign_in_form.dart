@@ -24,6 +24,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
   bool _obscurePassword = true;
   bool _isSubmitting = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -94,7 +95,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
 
     try {
       // Call Node API — saves JWT automatically inside the repository.
@@ -112,23 +116,36 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         phone: '',
         role: role,
         schoolId: schoolId,
+        defaultShiftType:  userData['defaultShiftType']  as String?,
+        isShiftSchool:     userData['isShiftSchool']  as bool? ?? false,
+        studentId:         userData['studentId']         as String?,
+        currentShift:      userData['currentShift']      as String?,
+        sex:               userData['sex']               as String?,
+        classId:           userData['classId']           as String?,
+        className:         userData['className']         as String?,
+        gradeLevel:        userData['gradeLevel']        as String?,
+        homeroomClassId:   userData['homeroomClassId']   as String?,
+        homeroomClassName: userData['homeroomClassName'] as String?,
       );
 
       if (!mounted) return;
 
       final targetRoute = _routeForRole(role, schoolId);
-      _showSnack('Login successful!');
       navigator.pushReplacementNamed(targetRoute);
     } catch (e) {
       dev.log('Login error: $e', name: 'SignInPage');
       if (!mounted) return;
+
+      String message;
       if (e is DioException && e.type == DioExceptionType.connectionError) {
-        _showSnack('Cannot reach server. Is the backend running?');
+        message = 'Cannot reach server. Check your connection and try again.';
       } else if (e is DioException && e.response?.statusCode == 401) {
-        _showSnack('Invalid email or password.');
+        message = 'Invalid email or password. Please try again.';
       } else {
-        _showSnack('Login failed. Please try again.');
+        message = 'Something went wrong. Please try again.';
       }
+
+      setState(() => _errorMessage = message);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -207,10 +224,53 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   key: _formKey,
                   child: Column(
                     children: [
+                      // Inline error banner — shown when login fails
+                      if (_errorMessage != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE9E9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFE25563).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFB91C1C),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(
+                                    color: Color(0xFFB91C1C),
+                                    fontSize: 13.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Email
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        onChanged: (_) {
+                          if (_errorMessage != null) {
+                            setState(() => _errorMessage = null);
+                          }
+                        },
                         decoration: _inputDecoration(
                           hintText: 'Enter your email',
                         ),
@@ -230,6 +290,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        onChanged: (_) {
+                          if (_errorMessage != null) {
+                            setState(() => _errorMessage = null);
+                          }
+                        },
                         decoration: _inputDecoration(
                           hintText: 'Enter your password',
                           suffixIcon: IconButton(

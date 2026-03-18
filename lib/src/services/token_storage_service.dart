@@ -2,6 +2,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Persists the Node API JWT token securely on-device.
 /// Use this instead of SharedPreferences — tokens are sensitive.
+/// TokenStorageService — stores the JWT securely
+ // - Uses flutter_secure_storage (not SharedPreferences)
+  //- Stores under key 'node_api_jwt'
+  //- Three methods: save(), read(), delete()
+  //- Why secure storage? — encrypted on iOS Keychain / Android Keystore. Plain SharedPreferences is unencrypted.
+
 class TokenStorageService {
   static const _tokenKey = 'node_api_jwt';
 

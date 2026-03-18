@@ -41,6 +41,7 @@ class AdminStudentListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final studentsAsync = ref.watch(schoolStudentsProvider);
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         leading: onBackToHome != null
@@ -51,8 +52,8 @@ class AdminStudentListPage extends ConsumerWidget {
             : null,
         title: const Text('Manage Students'),
         centerTitle: true,
-        backgroundColor: AppTheme.surface,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: cs.surface,
+        foregroundColor: cs.onSurface,
         elevation: 0,
       ),
       body: studentsAsync.when(
@@ -119,10 +120,12 @@ class _StudentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final shiftLabel = _shiftDisplayLabel(student.currentShift);
 
     return Material(
-      color: AppTheme.white,
+      color: isDark ? AppTheme.darkCard : AppTheme.white,
       borderRadius: BorderRadius.circular(12),
       elevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.08),
@@ -138,9 +141,9 @@ class _StudentTile extends StatelessWidget {
                 backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.35),
                 child: Text(
                   student.initials,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
@@ -151,10 +154,10 @@ class _StudentTile extends StatelessWidget {
                   children: [
                     Text(
                       student.displayName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -162,7 +165,7 @@ class _StudentTile extends StatelessWidget {
                       '${student.className ?? 'No class'} • $shiftLabel',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.textPrimary.withValues(alpha: 0.6),
+                        color: cs.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -171,7 +174,7 @@ class _StudentTile extends StatelessWidget {
               Icon(
                 Icons.edit_outlined,
                 size: 20,
-                color: AppTheme.textPrimary.withValues(alpha: 0.5),
+                color: cs.onSurface.withValues(alpha: 0.5),
               ),
             ],
           ),

@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/student/home/student_home_page.dart';
-import 'package:edu_air/src/features/student/proflie/student_profile.dart';
+import 'package:edu_air/src/features/settings/settings_page.dart';
 import 'package:edu_air/src/features/attendance/presentation/student/student_attendance_page.dart';
+import 'package:edu_air/src/features/messaging/presentation/student/student_messages_page.dart';
 
 /// Shell for all student-facing tabs:
 /// 0 → Home
@@ -42,11 +43,11 @@ class _StudentShellState extends ConsumerState<StudentShell> {
     // 1 → Calendar / Attendance
     const StudentAttendancePage(),
 
-    // 2 → Messages (placeholder for now)
-    const _PlaceholderPage(title: 'Messages', icon: Icons.chat_bubble_outline),
+    // 2 → Messages
+    const StudentMessagesPage(),
 
-    // 3 → Profile
-    const StudentProfilePage(),
+    // 3 → Settings
+    const SettingsPage(),
   ];
 
   @override
@@ -59,11 +60,12 @@ class _StudentShellState extends ConsumerState<StudentShell> {
 
   /// Bottom navigation bar for switching between student tabs.
   Widget _buildBottomNav() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BottomNavigationBar(
       currentIndex: _tabIndex,
       selectedItemColor: AppTheme.primaryColor,
-      unselectedItemColor: AppTheme.grey,
-      backgroundColor: AppTheme.white,
+      unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.white,
       type: BottomNavigationBarType.fixed,
       onTap: (index) {
         setState(() {
@@ -81,39 +83,10 @@ class _StudentShellState extends ConsumerState<StudentShell> {
           label: 'Messages',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
+          icon: Icon(Icons.settings_outlined),
+          label: 'Settings',
         ),
       ],
-    );
-  }
-}
-
-/// Temporary "coming soon" placeholder for tabs that are not implemented yet.
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 42, color: AppTheme.primaryColor),
-          const SizedBox(height: 12),
-          Text(
-            '$title coming soon',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

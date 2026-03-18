@@ -40,10 +40,41 @@ class AttendanceApiRepository {
     return List<Map<String, dynamic>>.from(response.data['data'] as List);
   }
 
+  /// GET /api/attendance/today
+  /// Returns the logged-in student's own today record (JWT-resolved).
+  /// Returns null if the student has not clocked in yet today.
+  Future<Map<String, dynamic>?> getMyToday({String? shiftType}) async {
+    final response = await _dio.get(
+      '/api/attendance/today',
+      queryParameters: {
+        if (shiftType != null) 'shift_type': shiftType,
+      },
+    );
+    return response.data['data'] as Map<String, dynamic>?;
+  }
+
+  /// GET /api/attendance/me?limit=14&shift_type=morning
+  /// Returns the logged-in student's own attendance history (JWT-resolved).
+  Future<List<Map<String, dynamic>>> getMyHistory({
+    int limit = 14,
+    String? shiftType,
+  }) async {
+    final response = await _dio.get(
+      '/api/attendance/me',
+      queryParameters: {
+        'limit': limit,
+        if (shiftType != null) 'shift_type': shiftType,
+      },
+    );
+    return List<Map<String, dynamic>>.from(response.data['data'] as List);
+  }
+
   /// POST /api/attendance/clock-in
   /// Status (early/late) is resolved by the Node server using Jamaica time.
+  /// [studentId] is optional — omit for student self-clock-in (server resolves from JWT).
+  /// Pass [studentId] when a teacher or admin is clocking in on behalf of a student.
   Future<Map<String, dynamic>> clockIn({
-    required int studentId,
+    int? studentId,
     required String shiftType,
     required double lat,
     required double lng,
@@ -53,7 +84,7 @@ class AttendanceApiRepository {
     final response = await _dio.post(
       '/api/attendance/clock-in',
       data: {
-        'student_id': studentId,
+        if (studentId != null) 'student_id': studentId,
         'shift_type': shiftType,
         'clock_in_lat': lat,
         'clock_in_lng': lng,

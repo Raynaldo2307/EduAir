@@ -60,7 +60,9 @@ class ProfileHeader extends StatelessWidget {
         Positioned(
           right : -2,
           bottom : -2,
-          child : InkWell(
+          child : Material(
+            color: Colors.transparent,
+            child: InkWell(
             onTap: onEditPhoto,
             borderRadius: BorderRadius.circular(16),
             child:Container( 
@@ -84,6 +86,7 @@ class ProfileHeader extends StatelessWidget {
               ),
             ),
           ),
+          ),
         ),
           ],
         ),
@@ -99,13 +102,15 @@ class ProfileHeader extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       
        if (onEditProfile != null) ...[
          const SizedBox(width: 6),
-          InkWell(
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap:onEditProfile,
             child:const Padding(
@@ -116,7 +121,7 @@ class ProfileHeader extends StatelessWidget {
                 color: AppTheme.primaryColor,
               ),
           ),
-
+          ),
           ),
        ],
           ],
@@ -134,7 +139,7 @@ class ProfileHeader extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.w500,
             // slightly darker than pure grey so it’s easier to read
-            color: AppTheme.textPrimary.withValues(alpha: 0.7),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],

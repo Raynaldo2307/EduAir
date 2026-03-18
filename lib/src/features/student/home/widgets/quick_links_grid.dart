@@ -17,7 +17,7 @@ class QuickLinksGrid extends StatelessWidget {
         crossAxisCount: 4,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.9,
+        childAspectRatio: 0.85,
       ),
       itemBuilder: (context, index) {
         final link = links[index];
@@ -48,13 +48,13 @@ class QuickLinkItemWidget extends StatelessWidget {
             color: item.backgroundColor,
             shadowColor: Colors.black.withValues(alpha: 0.1),
             child: Container(
-              height: 70,
-              width: 70,
+              height: 60,
+              width: 60,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
-                child: Icon(item.icon, color: item.iconColor, size: 28),
+                child: Icon(item.icon, color: item.iconColor, size: 24),
               ),
             ),
           ),
@@ -62,10 +62,10 @@ class QuickLinkItemWidget extends StatelessWidget {
           Text(
             item.label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],

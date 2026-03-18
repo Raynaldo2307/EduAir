@@ -15,8 +15,8 @@ import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendanc
 ///
 /// It delegates all Firestore details to [TeacherAttendanceDataSource].
 class TeacherAttendanceRepository {
-  TeacherAttendanceRepository({TeacherAttendanceDataSource? remote})
-      : _remote = remote ?? TeacherAttendanceDataSource();
+  TeacherAttendanceRepository({required TeacherAttendanceDataSource remote})
+      : _remote = remote;
 
   final TeacherAttendanceDataSource _remote;
 

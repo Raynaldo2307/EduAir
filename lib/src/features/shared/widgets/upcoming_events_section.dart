@@ -14,7 +14,8 @@ class UpcomingEventsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-     final screenHeight = MediaQuery.of(context).size.height;
+    final cs = Theme.of(context).colorScheme;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     // OUTER height for the whole row (band of grey)
     final rowHeight = (screenHeight * 0.26).clamp(200.0, 230.0).toDouble();
@@ -22,19 +23,18 @@ class UpcomingEventsSection extends StatelessWidget {
     // INNER card height – a bit smaller so we see grey above + below
     final cardHeight = rowHeight - 18; // ~9px top + 9px bottom
 
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Upcoming Events',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: cs.onSurface,
               ),
             ),
             TextButton(
@@ -42,7 +42,7 @@ class UpcomingEventsSection extends StatelessWidget {
               child: const Text(
                 'View all',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -76,10 +76,12 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       elevation: 6,
       borderRadius: BorderRadius.circular(16),
-      color: Colors.white,
+      color: isDark ? AppTheme.darkCard : Colors.white,
       child: Container(
         width: 190,
         height: height,
@@ -110,25 +112,25 @@ class _EventCard extends StatelessWidget {
                       event.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: cs.onSurface,
                       ),
                     ),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today_outlined,
                           size: 14,
-                          color: AppTheme.grey,
+                          color: cs.onSurface.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           event.dateLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.grey,
+                            color: cs.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -183,8 +185,8 @@ class _EventFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: color.withValues(alpha: 0.3),
-      child: const Center(
-        child: Icon(Icons.event_available, color: AppTheme.textPrimary),
+      child: Center(
+        child: Icon(Icons.event_available, color: Theme.of(context).colorScheme.onSurface),
       ),
     );
   }

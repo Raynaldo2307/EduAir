@@ -47,7 +47,7 @@ class AppTheme {
       EdgeInsets.fromLTRB(16, 24, 16, 32);
 
   // ─────────────────────────────────────────────
-  // 3) ColorScheme using tokens
+  // 3a) Light ColorScheme
   // ─────────────────────────────────────────────
   static const ColorScheme lightColorScheme = ColorScheme(
     brightness: Brightness.light,
@@ -65,40 +65,65 @@ class AppTheme {
   );
 
   // ─────────────────────────────────────────────
-  // 4) ThemeData using ColorScheme
+  // 3b) Dark ColorScheme — purple vibe
+  // ─────────────────────────────────────────────
+  static const Color darkBackground   = Color(0xFF1E1B2E); // deep purple-dark
+  static const Color darkCard         = Color(0xFF2D2640); // muted purple card
+  static const Color darkPrimary      = Color(0xFF9C27B0); // purple accent
+  static const Color darkOutline      = Color(0xFF3D3560); // dark purple border
+  static const Color darkMutedText    = Color(0xFFB0B0C8); // soft lavender-grey
+
+  static const ColorScheme darkColorScheme = ColorScheme(
+    brightness: Brightness.dark,
+    primary: darkPrimary,
+    onPrimary: white,
+    secondary: darkCard,
+    onSecondary: white,
+    surface: darkBackground,
+    onSurface: white,
+    error: danger,
+    onError: white,
+    tertiary: Color(0xFFCE93D8), // light purple highlight
+    onTertiary: darkBackground,
+    outline: darkOutline,
+  );
+
+  // ─────────────────────────────────────────────
+  // 4) ThemeData — light + dark
   // ─────────────────────────────────────────────
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: lightColorScheme,
       scaffoldBackgroundColor: surface,
-
-      // Base typography used across the app
       textTheme: const TextTheme(
-        titleLarge: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: textPrimary,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          color: textPrimary,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
+        titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textPrimary),
+        titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
+        bodyMedium: TextStyle(fontSize: 14, color: textPrimary),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
       ),
-
       appBarTheme: const AppBarTheme(
         elevation: 0,
         backgroundColor: primaryColor,
+        foregroundColor: white,
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: darkColorScheme,
+      scaffoldBackgroundColor: darkBackground,
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: white),
+        titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: white),
+        bodyMedium: TextStyle(fontSize: 14, color: white),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: white),
+      ),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        backgroundColor: darkCard,
         foregroundColor: white,
       ),
     );

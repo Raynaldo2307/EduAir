@@ -5,6 +5,7 @@ import 'package:edu_air/src/features/attendance/domain/attendance_geo_service.da
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:developer' as dev;
+import 'package:dio/dio.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
@@ -14,7 +15,9 @@ import 'package:edu_air/src/features/attendance/widgets/attendance_history_list.
 import 'package:edu_air/src/features/attendance/presentation/student/attendance_providers.dart';
 import 'package:edu_air/src/features/attendance/widgets/clock_button_row.dart';
 import 'package:edu_air/src/features/attendance/application/late_reason_provider.dart';
-import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
+import 'package:edu_air/src/features/attendance/presentation/student/widgets/timetable_tab.dart';
+import 'package:edu_air/src/features/attendance/presentation/student/widgets/attendance_calendar.dart';
+import 'package:edu_air/src/features/attendance/presentation/student/widgets/attendance_summary_row.dart';
 
 /// Student view – Calendar tab (Attendance + Time Table).
 class StudentAttendancePage extends ConsumerStatefulWidget {
@@ -118,14 +121,13 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     final geo = ref.read(attendanceGeoServiceProvider);
     final school = ref.read(currentSchoolProvider);
 
-    // Use the same time source as service
     final now = service.schoolNow();
     if (!service.isSchoolDay(now)) {
       _showSnack('No school today. You can only clock in on school days.');
       return;
     }
 
-    // 0. Enforce on-campus rule (after confirming it's a school day)
+    // 0. Enforce on-campus rule
     try {
       final onCampus = await geo.isUserOnCampus(school);
       if (!onCampus) {
@@ -143,7 +145,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       return;
     }
 
-    // 1. Decide if this tap is "late" using the SAME logic as the service
+    // 1. Decide late status
     final status = AttendanceDay.resolveStatusFromClockIn(
       clockIn: now,
       classStart: DateTime(now.year, now.month, now.day, 8, 0),
@@ -152,7 +154,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
     String? lateReason;
 
-    // 2. If late, ask for a reason BEFORE calling the service.
+    // 2. If late, ask for a reason BEFORE calling the API
     if (status == AttendanceStatus.late) {
       lateReason = await _showLateReasonDialog();
       if (lateReason == null || lateReason.trim().isEmpty) {
@@ -161,68 +163,42 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       }
     }
 
-    // 3. Call the service once with the correct lateReason.
     setState(() => _isSubmitting = true);
 
     try {
       dev.log(
-        'Clock-in requested | schoolId=$schoolId, uid=${user.uid}, '
-        'now=${now.toIso8601String()}, '
-        'status=${status.name}, '
-        'lateReason="$lateReason"',
+        'Clock-in requested | uid=${user.uid}, now=${now.toIso8601String()}, '
+        'status=${status.name}, lateReason="$lateReason"',
         name: 'StudentAttendance',
       );
 
-      // ✅ Use real device location via geo service
       final location = await geo.currentAttendanceLocation();
+      final repo = ref.read(attendanceApiRepositoryProvider);
+      final shiftType = AttendanceDay.normalizeShiftType(user.currentShift);
 
-      final savedDay = await service.clockIn(
-        schoolId: schoolId,
-        studentUid: user.uid,
-        location: location,
-        classId: user.classId,
-        className: user.className,
-        gradeLevel: user.gradeLevelNumber,
-        lateReason: lateReason,
-        at: now,
+      await repo.clockIn(
+        shiftType: shiftType,
+        lat: location.lat,
+        lng: location.lng,
+        lateReasonCode: lateReason,
       );
 
-      dev.log(
-        'Clock-in success | dateKey=${savedDay.dateKey}, '
-        'savedStatus=${savedDay.status.name}, '
-        'clockInAt=${savedDay.clockInAt?.toIso8601String()}',
-        name: 'StudentAttendance',
-      );
+      dev.log('Clock-in success', name: 'StudentAttendance');
 
-      // Refresh UI
+      ref.invalidate(studentTodayRawProvider);
       ref.invalidate(studentRecentAttendanceProvider);
       ref.invalidate(studentAttendanceSummaryProvider);
 
       _showSnack('Clock in recorded.');
     } on MockLocationsException {
-      // 🔥 Use your nice UX instead of crashing
       _handleMockLocationError();
     } catch (e, st) {
-      dev.log(
-        'Clock in FAILED: $e',
-        name: 'StudentAttendance',
-        error: e,
-        stackTrace: st,
-      );
-
-      // Use the error mapper for consistent user-friendly messages
-      _showSnack(mapAttendanceErrorToMessage(e));
+      dev.log('Clock in FAILED: $e', name: 'StudentAttendance', error: e, stackTrace: st);
+      _showSnack(_mapApiError(e));
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-      dev.log(
-        'Clock-in flow finished | isSubmitting=$_isSubmitting',
-        name: 'StudentAttendance',
-      );
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
-  
 
   Future<void> _handleClockOut() async {
     final user = ref.read(userProvider);
@@ -247,7 +223,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       return;
     }
 
-    // 🔹 0. Enforce on-campus rule BEFORE clock-out
+    // 0. Enforce on-campus rule
     try {
       final onCampus = await geo.isUserOnCampus(school);
       if (!onCampus) {
@@ -268,19 +244,24 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     setState(() => _isSubmitting = true);
 
     try {
-      // ✅ Use real device location via geo service
-      final location = await geo.currentAttendanceLocation();
+      // Get today's MySQL record id from the raw provider
+      final todayRaw = await ref.read(studentTodayRawProvider.future);
+      final attendanceId = todayRaw?['id'] as int?;
+      if (attendanceId == null) {
+        _showSnack('No clock-in found for today. Please clock in first.');
+        return;
+      }
 
-      await service.clockOut(
-        schoolId: schoolId,
-        studentUid: user.uid,
-        location: location,
-        classId: user.classId,
-        className: user.className,
-        gradeLevel: user.gradeLevelNumber,
+      final location = await geo.currentAttendanceLocation();
+      final repo = ref.read(attendanceApiRepositoryProvider);
+
+      await repo.clockOut(
+        attendanceId: attendanceId,
+        lat: location.lat,
+        lng: location.lng,
       );
 
-      // Refresh UI data
+      ref.invalidate(studentTodayRawProvider);
       ref.invalidate(studentRecentAttendanceProvider);
       ref.invalidate(studentAttendanceSummaryProvider);
 
@@ -288,13 +269,26 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     } on MockLocationsException {
       _handleMockLocationError();
     } catch (e) {
-      // Use the error mapper for consistent user-friendly messages
-      _showSnack(mapAttendanceErrorToMessage(e));
+      _showSnack(_mapApiError(e));
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Maps a Node API error (DioException) to a user-friendly message.
+  String _mapApiError(Object e) {
+    if (e is DioException) {
+      final status = e.response?.statusCode;
+      final data = e.response?.data;
+      final serverMsg = data is Map ? data['message'] as String? : null;
+      if (serverMsg != null && serverMsg.isNotEmpty) return serverMsg;
+      if (status == 409) return 'Already clocked in today.';
+      if (status == 404) return 'Attendance record not found.';
+      if (status == 403) return 'Permission denied.';
+      if (status == 401) return 'Session expired. Please sign in again.';
+      return 'Network error. Please try again.';
+    }
+    return 'Something went wrong. Please try again.';
   }
 
   // ───────────────── Late reason dialog (MoEYI dropdown) ─────────────────
@@ -424,7 +418,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -437,7 +431,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
             Expanded(
               child: _selectedTab == 0
                   ? _buildAttendanceTab(context)
-                  : _buildTimeTableTabPlaceholder(context),
+                  : const TimetableTab(),
             ),
           ],
         ),
@@ -448,22 +442,22 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
   // ───────────────── UI Pieces ─────────────────
 
   Widget _buildHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Text(
         'Calendar',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: AppTheme.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
   }
 
   Widget _buildTopTabs(BuildContext context) {
-    final inactiveTabColor = AppTheme.textPrimary.withValues(alpha: 0.6);
+    final inactiveTabColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -572,25 +566,40 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
         if (recentAsync.hasError || summaryAsync.hasError)
           _buildErrorBanner(recentAsync.error ?? summaryAsync.error),
         const SizedBox(height: 8),
-        _buildCalendarBox(context, recentAsync),
+        AttendanceCalendar(
+          focusedMonth: _focusedMonth,
+          today: _today,
+          recentAsync: recentAsync,
+          onPreviousMonth: () => setState(() {
+            _focusedMonth = DateTime(
+              _focusedMonth.year,
+              _focusedMonth.month - 1,
+              1,
+            );
+          }),
+          onNextMonth: () => setState(() {
+            _focusedMonth = DateTime(
+              _focusedMonth.year,
+              _focusedMonth.month + 1,
+              1,
+            );
+          }),
+        ),
         const SizedBox(height: 16),
 
         // ── Present / Absent / Event row ──
         summaryAsync.when(
-          data: (summary) => _buildSummaryRow(
-            context,
+          data: (summary) => AttendanceSummaryRow(
             presentCount: summary.presentCount,
             absentCount: summary.absentCount,
             eventCount: 0,
           ),
-          loading: () => _buildSummaryRow(
-            context,
+          loading: () => const AttendanceSummaryRow(
             presentCount: 0,
             absentCount: 0,
             eventCount: 0,
           ),
-          error: (_, __) => _buildSummaryRow(
-            context,
+          error: (_, __) => const AttendanceSummaryRow(
             presentCount: 0,
             absentCount: 0,
             eventCount: 0,
@@ -678,7 +687,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
   Widget _buildErrorBanner(Object? error) {
     final message = error != null
-        ? mapAttendanceErrorToMessage(error)
+        ? _mapApiError(error)
         : 'Something went wrong. Please try again.';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -715,363 +724,5 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     );
   }
 
-  /// Calendar
-  Widget _buildCalendarBox(
-    BuildContext context,
-    AsyncValue<List<AttendanceDay>> recentAsync,
-  ) {
-    final theme = Theme.of(context);
-
-    const weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const monthNames = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.outline.withValues(alpha: 0.4)),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: recentAsync.when(
-          data: (days) {
-            // ── Month math ──
-            final firstDayOfMonth = DateTime(
-              _focusedMonth.year,
-              _focusedMonth.month,
-              1,
-            );
-            final lastDayOfMonth = DateTime(
-              _focusedMonth.year,
-              _focusedMonth.month + 1,
-              0,
-            );
-            final daysInMonth = lastDayOfMonth.day;
-            final firstWeekday = firstDayOfMonth.weekday; // 1..7 (Mon..Sun)
-
-            // total cells and rows we need
-            final totalCells = (firstWeekday - 1) + daysInMonth;
-            final weeks = (totalCells / 7).ceil();
-
-            // current week highlight (based on "today")
-            final weekStart = _today.subtract(
-              Duration(days: _today.weekday - 1),
-            );
-            final weekEnd = weekStart.add(const Duration(days: 6));
-
-            final monthLabel =
-                '${monthNames[_focusedMonth.month - 1]} ${_focusedMonth.year}';
-
-            // build table rows
-            int cellIndex = 0;
-            final rows = <TableRow>[];
-            for (int week = 0; week < weeks; week++) {
-              rows.add(
-                TableRow(
-                  children: List.generate(7, (col) {
-                    const cellHeight = 40.0;
-
-                    final dayNumber = cellIndex - (firstWeekday - 1) + 1;
-                    cellIndex++;
-
-                    // cells before day 1 and after last day are empty
-                    if (dayNumber < 1 || dayNumber > daysInMonth) {
-                      return const SizedBox(height: cellHeight);
-                    }
-
-                    final cellDate = DateTime(
-                      _focusedMonth.year,
-                      _focusedMonth.month,
-                      dayNumber,
-                    );
-                    final key = AttendanceDay.dateKeyFor(cellDate);
-                    final dayData = _findDayByKey(days, key);
-                    final status = dayData?.status ?? AttendanceStatus.absent;
-
-                    final inHighlightedRange =
-                        !cellDate.isBefore(weekStart) &&
-                        !cellDate.isAfter(weekEnd);
-
-                    Color dotColor;
-                    if (status.isPresentLike) {
-                      dotColor = const Color(0xFF2F9E44);
-                    } else if (status == AttendanceStatus.late) {
-                      dotColor = const Color(0xFFE8590C);
-                    } else {
-                      dotColor = AppTheme.outline.withValues(alpha: 0.4);
-                    }
-
-                    final isToday =
-                        AttendanceDay.dateKeyFor(cellDate) ==
-                        AttendanceDay.dateKeyFor(_today);
-
-                    return SizedBox(
-                      height: cellHeight,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 3,
-                          vertical: 2.5,
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: inHighlightedRange
-                                ? AppTheme.heroStripBackground.withValues(
-                                    alpha: 0.7,
-                                  )
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: isToday
-                                ? Border.all(
-                                    color: AppTheme.primaryColor,
-                                    width: 1.4,
-                                  )
-                                : null,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                dayNumber.toString(),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: dotColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              );
-            }
-
-            return Column(
-              children: [
-                // ── Header: month label + prev/next ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () {
-                        setState(() {
-                          _focusedMonth = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month - 1,
-                            1,
-                          );
-                        });
-                      },
-                    ),
-                    Text(
-                      monthLabel,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () {
-                        setState(() {
-                          _focusedMonth = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month + 1,
-                            1,
-                          );
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // ── Weekday row ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(7, (index) {
-                    return Expanded(
-                      child: Center(
-                        child: Text(
-                          weekdayShort[index],
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textPrimary.withValues(alpha: 0.6),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 8),
-
-                // ── Month table ──
-                Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  children: rows,
-                ),
-              ],
-            );
-          },
-          loading: () =>
-              const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          error: (_, __) => Center(
-            child: Text(
-              'Calendar unavailable',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.textPrimary.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(
-    BuildContext context, {
-    required int presentCount,
-    required int absentCount,
-    required int eventCount,
-  }) {
-    return Row(
-      children: [
-        const SizedBox(width: 20),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Present',
-            count: presentCount,
-            background: const Color(0xFFE7F5FF),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Absent',
-            count: absentCount,
-            background: const Color(0xFFFFE9E9),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Event',
-            count: eventCount,
-            background: const Color(0xFFEDEDFF),
-          ),
-        ),
-        const SizedBox(width: 20),
-      ],
-    );
-  }
-
-  // ───────────────── Time table tab (placeholder) ─────────────────
-
-  Widget _buildTimeTableTabPlaceholder(BuildContext context) {
-    final mutedTextColor = AppTheme.textPrimary.withValues(alpha: 0.6);
-
-    return Center(
-      child: Text(
-        'Time Table coming soon',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: mutedTextColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
 }
 
-/// Small card used for Present / Absent / Event counts.
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.label,
-    required this.count,
-    required this.background,
-  });
-
-  final String label;
-  final int count;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 96,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.person_outline,
-                size: 20,
-                color: AppTheme.primaryColor,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textPrimary.withValues(alpha: 0.6),
-                  ),
-                ),
-                Text(
-                  count.toString().padLeft(2, '0'),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

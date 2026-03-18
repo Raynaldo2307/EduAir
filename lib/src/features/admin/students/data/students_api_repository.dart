@@ -11,9 +11,19 @@ class StudentsApiRepository {
   StudentsApiRepository({required ApiClient client}) : _dio = client.dio;
 
   /// GET /api/students
-  /// Returns all students for the admin's school (JWT-scoped).
+  /// Returns all students for the school (JWT-scoped).
   Future<List<Map<String, dynamic>>> getAll() async {
     final response = await _dio.get('/api/students');
+    return List<Map<String, dynamic>>.from(response.data['data'] as List);
+  }
+
+  /// GET /api/students?class_id=X
+  /// Returns only students in the given class.
+  Future<List<Map<String, dynamic>>> getByClass(int classId) async {
+    final response = await _dio.get(
+      '/api/students',
+      queryParameters: {'class_id': classId},
+    );
     return List<Map<String, dynamic>>.from(response.data['data'] as List);
   }
 

@@ -11,9 +11,10 @@ final _attendanceDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
 );
 
-/// Holds the currently selected shift filter.
+/// Shift is locked to the school's configured shift type.
+/// Reads from the logged-in user's profile — never a manual selection.
 final _attendanceShiftProvider = StateProvider<String>(
-  (ref) => 'morning',
+  (ref) => ref.read(userProvider)?.defaultShiftType ?? 'whole_day',
 );
 
 /// Fetches school-wide attendance from Node API for the selected date + shift.
@@ -45,13 +46,14 @@ class AdminAttendancePage extends ConsumerWidget {
     final selectedShift = ref.watch(_attendanceShiftProvider);
     final attendanceAsync = ref.watch(adminAttendanceResultProvider);
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: const Text('Attendance Report'),
         centerTitle: true,
-        backgroundColor: AppTheme.surface,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: cs.surface,
+        foregroundColor: cs.onSurface,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
@@ -65,8 +67,6 @@ class AdminAttendancePage extends ConsumerWidget {
             selectedShift: selectedShift,
             onDateChanged: (d) =>
                 ref.read(_attendanceDateProvider.notifier).state = d,
-            onShiftChanged: (s) =>
-                ref.read(_attendanceShiftProvider.notifier).state = s,
             onRefresh: () => ref.invalidate(adminAttendanceResultProvider),
           ),
           const Divider(height: 1),
@@ -93,24 +93,27 @@ class _FilterBar extends StatelessWidget {
     required this.selectedDate,
     required this.selectedShift,
     required this.onDateChanged,
-    required this.onShiftChanged,
     required this.onRefresh,
   });
 
   final DateTime selectedDate;
   final String selectedShift;
   final ValueChanged<DateTime> onDateChanged;
-  final ValueChanged<String> onShiftChanged;
   final VoidCallback onRefresh;
-
-  static const _shifts = {
-    'morning': 'Morning',
-    'afternoon': 'Afternoon',
-    'whole_day': 'Whole Day',
-  };
 
   String get _formattedDate =>
       '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
+
+  String get _shiftLabel {
+    switch (selectedShift) {
+      case 'morning':
+        return 'Morning Shift';
+      case 'afternoon':
+        return 'Afternoon Shift';
+      default:
+        return 'Whole Day';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +127,7 @@ class _FilterBar extends StatelessWidget {
               icon: const Icon(Icons.calendar_today_outlined, size: 16),
               label: Text(_formattedDate),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.textPrimary,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 side: const BorderSide(color: AppTheme.primaryColor),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -143,34 +146,34 @@ class _FilterBar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          // Shift dropdown
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: selectedShift,
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor),
-                ),
+          // Locked shift badge — school config, not user-selectable
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
               ),
-              items: _shifts.entries
-                  .map((e) => DropdownMenuItem(
-                        value: e.key,
-                        child: Text(e.value, style: const TextStyle(fontSize: 13)),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) onShiftChanged(v);
-              },
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline,
+                  size: 14,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _shiftLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -234,10 +237,12 @@ class _AttendanceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final status = record['status'] as String? ?? 'absent';
 
     return Material(
-      color: AppTheme.white,
+      color: isDark ? AppTheme.darkCard : AppTheme.white,
       borderRadius: BorderRadius.circular(12),
       elevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.07),
@@ -252,10 +257,10 @@ class _AttendanceTile extends StatelessWidget {
                   AppTheme.secondaryColor.withValues(alpha: 0.3),
               child: Text(
                 _initials,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: AppTheme.textPrimary,
+                  color: cs.onSurface,
                 ),
               ),
             ),
@@ -268,10 +273,10 @@ class _AttendanceTile extends StatelessWidget {
                 children: [
                   Text(
                     _studentName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: cs.onSurface,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -279,7 +284,7 @@ class _AttendanceTile extends StatelessWidget {
                     'In: $_clockIn   Out: $_clockOut',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textPrimary.withValues(alpha: 0.55),
+                      color: cs.onSurface.withValues(alpha: 0.55),
                     ),
                   ),
                 ],
@@ -302,6 +307,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final (label, bg, fg) = switch (status) {
       'early' => ('Early', const Color(0xFFD3F9D8), const Color(0xFF2F9E44)),
       'late' => ('Late', const Color(0xFFFFE8CC), const Color(0xFFE8590C)),
@@ -309,11 +315,12 @@ class _StatusChip extends StatelessWidget {
       'excused' => ('Excused', const Color(0xFFEDEDFF), const Color(0xFF5C5FC6)),
       _ => ('Absent', const Color(0xFFFFE3E3), const Color(0xFFC92A2A)),
     };
+    final chipBg = isDark ? fg.withValues(alpha: 0.2) : bg;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
+        color: chipBg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -335,13 +342,14 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final cs = Theme.of(context).colorScheme;
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Text(
           'No attendance records for this date and shift.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppTheme.grey),
+          style: TextStyle(fontSize: 15, color: cs.onSurface.withValues(alpha: 0.5)),
         ),
       ),
     );

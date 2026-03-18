@@ -23,6 +23,7 @@ class TodayClassesSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -32,10 +33,10 @@ class TodayClassesSection extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: cs.onSurface,
               ),
             ),
             if (onViewAll != null)
@@ -44,7 +45,7 @@ class TodayClassesSection extends StatelessWidget {
                 child: const Text(
                   'View all',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -83,12 +84,14 @@ class _ClassSessionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final timeRange = _formatTimeRange(session.startTime, session.endTime);
 
     return Material(
       elevation: 2,
       borderRadius: BorderRadius.circular(14),
-      color: Colors.white,
+      color: isDark ? AppTheme.darkCard : Colors.white,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
@@ -126,10 +129,10 @@ class _ClassSessionTile extends StatelessWidget {
                     session.subjectName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: cs.onSurface,
                     ),
                   ),
 
@@ -140,7 +143,7 @@ class _ClassSessionTile extends StatelessWidget {
                     '${session.groupName} • $timeRange',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.grey),
+                    style: TextStyle(fontSize: 13, color: cs.onSurface.withValues(alpha: 0.5)),
                   ),
 
                   if (showTeacherName) ...[
@@ -149,9 +152,9 @@ class _ClassSessionTile extends StatelessWidget {
                       session.teacherName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.grey,
+                        color: cs.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -168,17 +171,17 @@ class _ClassSessionTile extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.meeting_room_outlined,
                       size: 16,
-                      color: AppTheme.grey,
+                      color: cs.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       session.room,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.grey,
+                        color: cs.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],

@@ -63,6 +63,13 @@ class AuthApiRepository {
     return Map<String, dynamic>.from(response.data['user'] as Map);
   }
 
+  /// PUT /api/auth/me — any logged-in user updates their own profile.
+  /// Only sends the fields provided; backend uses COALESCE so missing
+  /// fields keep their existing values.
+  Future<void> updateMe(Map<String, dynamic> data) async {
+    await _dio.put('/api/auth/me', data: data);
+  }
+
   /// Clear the stored JWT on logout.
   Future<void> logout() => _tokenStorage.delete();
 }

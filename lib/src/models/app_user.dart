@@ -11,6 +11,15 @@ class AppUser {
   final String? schoolId;
   final String? photoUrl;
 
+  /// The school's default shift type — comes from the schools table via API.
+  /// Controls which shift options are shown in the UI.
+  /// Values: 'morning' | 'afternoon' | 'whole_day' | null
+  final String? defaultShiftType;
+
+  /// Whether the school operates on a shift system.
+  /// If false, only 'whole_day' is relevant.
+  final bool isShiftSchool;
+
   /// Student's current shift assignment for attendance:
   /// - 'morning'
   /// - 'afternoon'
@@ -51,6 +60,8 @@ class AppUser {
     required this.role,
     this.schoolId,
     this.photoUrl,
+    this.defaultShiftType,
+    this.isShiftSchool = false,
     this.currentShift,
     this.gender,
     this.sex,
@@ -234,7 +245,9 @@ class AppUser {
     String? role,
     String? schoolId,
     String? photoUrl,
-    String? currentShift,// new shift field
+    String? defaultShiftType,
+    bool? isShiftSchool,
+    String? currentShift,
     String? gender,
     String? sex,
     String? bio,
@@ -265,6 +278,8 @@ class AppUser {
       role: role ?? this.role,
       schoolId: schoolId ?? this.schoolId,
       photoUrl: photoUrl ?? this.photoUrl,
+      defaultShiftType: defaultShiftType ?? this.defaultShiftType,
+      isShiftSchool: isShiftSchool ?? this.isShiftSchool,
       currentShift: currentShift ?? this.currentShift,
       gender: gender ?? this.gender,
       sex: sex ?? this.sex,

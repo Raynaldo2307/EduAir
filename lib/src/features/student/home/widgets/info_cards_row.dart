@@ -65,8 +65,7 @@ class _InfoCardsRowState extends State<InfoCardsRow> {
       padding: const EdgeInsets.only(bottom: 10),
 
       child: Container(
-        color: AppTheme.heroStripBackground,
-        padding: const EdgeInsets.symmetric(horizontal: 12), //debug
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         height: cardHeight,
         child: PageView.builder(
           controller: _pageController,
@@ -130,7 +129,7 @@ class _InfoCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         width: double.infinity, // fill the page viewportion
-        height: 155, // fixed height to avoid overflow
+        height: 160, // fixed height to avoid overflow
         decoration: BoxDecoration(
           color: card.backgroundColor,
           borderRadius: BorderRadius.circular(20),

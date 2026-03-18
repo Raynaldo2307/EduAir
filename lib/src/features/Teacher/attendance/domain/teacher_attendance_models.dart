@@ -85,6 +85,21 @@ class TeacherAttendanceStudent {
       sex: user.sex ?? user.gender,
     );
   }
+
+  /// Build from a Node API JSON response (GET /api/students).
+  /// Uses [student_id] as the uid so it matches attendance records from the API.
+  factory TeacherAttendanceStudent.fromApiJson(Map<String, dynamic> json) {
+    final firstName = (json['first_name'] ?? '').toString();
+    final lastName  = (json['last_name']  ?? '').toString();
+    final name = '$firstName $lastName'.trim();
+    return TeacherAttendanceStudent(
+      uid:         (json['student_id'] ?? '').toString(),
+      displayName: name.isNotEmpty ? name : 'Unknown',
+      classId:     json['homeroom_class_id']?.toString(),
+      className:   json['class_name']    as String?,
+      sex:         json['sex']           as String?,
+    );
+  }
 }
 
 /// One row in the teacher's roll for a single student on a specific day.

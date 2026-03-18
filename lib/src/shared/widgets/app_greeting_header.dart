@@ -2,29 +2,49 @@ import 'package:flutter/material.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/student/home/widgets/search_box.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 
-class GreetingHeader extends StatelessWidget {
-  const GreetingHeader({
+/// Shared greeting header used across all roles (student, teacher, admin,
+/// principal, parent). Design stays consistent — only the context changes.
+class AppGreetingHeader extends StatelessWidget {
+  const AppGreetingHeader({
     super.key,
     required this.name,
-    required this.teacherId,
-    required this.teacherDepartment,
+    required this.id,
+    required this.initials,
+    this.subtitle,
     this.avatarUrl,
     this.onBellTap,
   });
 
+  /// Display name of the logged-in user.
   final String name;
-  final String teacherId;
-  final String teacherDepartment;
+
+  /// Role-specific ID shown above the greeting (student ID, staff ID, etc.).
+  final String id;
+
+  /// Optional second line under the greeting (department, school name, etc.).
+  final String? subtitle;
+
   final String? avatarUrl;
+  final String initials;
   final VoidCallback? onBellTap;
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: isDark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -40,42 +60,41 @@ class GreetingHeader extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // LEFT: ID + Greeting + Department
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ID: $teacherId',
-                      style: const TextStyle(
-                        color: AppTheme.grey,
+                      'ID: $id',
+                      style: TextStyle(
+                        color: cs.onSurface.withValues(alpha: 0.5),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Good Morning, $name',
-                      style: const TextStyle(
+                      '$_greeting, $name',
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      teacherDepartment,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.grey,
-                        fontWeight: FontWeight.w500,
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-
-              // RIGHT: bell + avatar
               Row(
                 children: [
                   _IconCircle(
@@ -83,7 +102,11 @@ class GreetingHeader extends StatelessWidget {
                     child: const Icon(Icons.notifications_outlined),
                   ),
                   const SizedBox(width: 12),
-                  _AvatarCircle(avatarUrl: avatarUrl),
+                  UserAvatar(
+                    initials: initials,
+                    photoUrl: avatarUrl,
+                    radius: 21,
+                  ),
                 ],
               ),
             ],
@@ -109,55 +132,18 @@ class _IconCircle extends StatelessWidget {
       shape: const CircleBorder(),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        height: 36,
-        width: 36,
-        decoration: BoxDecoration(
-          color: AppTheme.secondaryColor.withValues(alpha: 0.35),
-          shape: BoxShape.circle,
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          width: 36,
+          decoration: BoxDecoration(
+            color: AppTheme.secondaryColor.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: child),
         ),
-        child: Center(child: child),
-      ),
       ),
     );
   }
 }
 
-class _AvatarCircle extends StatelessWidget {
-  const _AvatarCircle({this.avatarUrl});
-
-  final String? avatarUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 42,
-      width: 42,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: avatarUrl != null
-          ? Image.network(
-              avatarUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const _DefaultAvatar(),
-            )
-          : const _DefaultAvatar(),
-    );
-  }
-}
-
-class _DefaultAvatar extends StatelessWidget {
-  const _DefaultAvatar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppTheme.primaryColor.withValues(alpha: 0.12),
-      child: const Icon(Icons.person_outline, color: AppTheme.primaryColor),
-    );
-  }
-}

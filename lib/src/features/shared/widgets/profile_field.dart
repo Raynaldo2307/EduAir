@@ -22,7 +22,7 @@ class ProfileDetailsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -46,7 +46,7 @@ class ProfileDetailsCard extends StatelessWidget {
               Divider(
                 height: 0,
                 thickness: 0.6,
-                color: AppTheme.grey.withValues(alpha: 0.15),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               ),
           ],
         ],
@@ -67,14 +67,14 @@ class _ProfileRow extends StatelessWidget {
 
     final labelStyle = theme.textTheme.bodyMedium?.copyWith(
       fontSize: 15,
-      color: AppTheme.grey,
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
       height: 1.3,
     );
 
     final valueStyle = theme.textTheme.bodyMedium?.copyWith(
       fontSize: 14,
       fontWeight: FontWeight.w500,
-      color: AppTheme.textPrimary,
+      color: theme.colorScheme.onSurface,
       height: 1.3,
     );
 

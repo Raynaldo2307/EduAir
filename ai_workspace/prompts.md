@@ -126,3 +126,104 @@ Output Style
 	•	Assume I’m running this from the project root in VS Code.
 
 When you’re ready, start with the EXPLAIN phase.
+
+
+
+feb 24 registing a school. here
+Here’s a prompt you can copy-paste straight into Claude so it understands exactly what you’re doing and how EduAir auth should work:
+
+⸻
+
+You are helping me build the Node.js + Express + MySQL backend for EduAir, a multi-tenant Jamaican school attendance system.
+
+High-level context
+	•	Flutter + Firebase (Auth + Firestore) frontend already exists.
+	•	New backend: Node.js + Express + MySQL (eduAir_api).
+	•	MySQL schema is already created and seeded (10+ tables: schools, users, students, teachers, classes, student_classes, teacher_classes, parent_students, attendance, attendance_history).
+	•	Core focus for this capstone:
+	•	Multi-tenant attendance tracking (school_id)
+	•	Role-based access (student, teacher, admin/principal)
+	•	Audit trail of attendance changes (attendance_history)
+	•	NO LMS / homework / fees right now
+	•	GPS/device anti-fraud is for later – not in this capstone
+
+Critical auth / account rules
+
+This is not a public app like Instagram. No one should be “signing up” freely.
+
+Roles & who creates them:
+	•	There is a super-admin (me or HQ) who seeds the very first principal/admin for each school directly in the database.
+	•	That principal/admin logs in via /api/auth/login.
+	•	Inside the app, that principal/admin can create:
+	•	students
+	•	teachers
+	•	parents
+	•	Normal users DO NOT self-register.
+
+So for this capstone we are using:
+	•	Option A: No public registration route.
+	•	We do NOT expose /api/auth/register to the public.
+	•	Users are created via admin-only endpoints (e.g. /api/students, /api/teachers, etc.), not by public sign-up.
+
+JWT & auth middleware contract
+	•	We already have an authMiddleware file started.
+	•	Token is sent as Authorization: Bearer <token>.
+	•	After verification, req.user must contain at least:
+	•	id        → users.id
+	•	role      → users.role (student, teacher, principal, admin, parent)
+	•	schoolId  → users.school_id
+	•	school_id must NEVER be trusted from the request body.
+Always take it from the decoded JWT.
+
+Expected JWT payload example:
+
+{
+  "id": 5,
+  "email": "principal@school.com",
+  "role": "principal",
+  "schoolId": 1
+}
+
+Database facts you must respect
+	•	Multi-tenant: every query is scoped by school_id (from JWT).
+	•	attendance table has UNIQUE constraint on
+(school_id, student_id, attendance_date, shift_type) → one record per student per shift per day.
+	•	attendance_history is append-only (insert only, no update/delete):
+	•	attendance_id
+	•	previous_status
+	•	new_status
+	•	changed_by_user_id
+	•	source
+	•	created_at
+	•	attendance_date = DATE, clock_in / clock_out = TIME.
+When returning to Flutter, we’ll combine them as:
+new Date(\${attendance_date}T${clock_in}`)`.
+
+What I want you to do next
+	1.	Review my current backend structure (folders & files) and the existing authMiddleware so you fully understand what’s there.
+	2.	Help me design and implement the auth layer step-by-step, in this order:
+	1.	Clean up / finalize config/db.js using a MySQL connection pool (mysql2).
+	2.	Make sure authMiddleware:
+	•	reads Authorization: Bearer <token>
+	•	verifies the token with JWT_SECRET
+	•	loads the user from DB
+	•	ensures is_active (if we have that) and attaches req.user = { id, role, schoolId }
+	3.	Create a small requireRole(...roles) middleware that checks req.user.role.
+	4.	Implement only:
+	•	POST /api/auth/login
+	•	Input: email, password
+	•	Output: JWT with { id, role, schoolId }
+	•	Use bcrypt to compare password hashes.
+	5.	Do not add public registration. New accounts will be created later via admin-only endpoints.
+	3.	As we go, explain each step in simple language (no heavy jargon) so I understand:
+	•	what the code is doing
+	•	how it protects multi-tenant data via school_id
+	•	how it sets us up for the attendance endpoints later.
+
+Treat this as a production-grade but scope-controlled backend: secure, multi-tenant, attendance-first, no extra LMS features.
+
+Start by confirming my current authMiddleware implementation and then guide me to build login and role-based protection correctly, following these rules.
+
+⸻
+
+You can paste that into Claude and it will have a very clear picture of what EduAir is and what to do next.

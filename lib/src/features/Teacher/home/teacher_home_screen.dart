@@ -27,7 +27,7 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
 // Teacher-specific widgets
-import 'package:edu_air/src/features/teacher/home/widgets/greeting.dart';
+import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/info_card.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_grid.dart';
 
@@ -183,6 +183,8 @@ class TeacherHomeScreen extends ConsumerWidget {
     ];
 
     // ----- 6. Build the page --------------------------------------------------
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -191,10 +193,11 @@ class TeacherHomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header (name, ID, avatar)
-              GreetingHeader(
+              AppGreetingHeader(
                 name: name,
-                teacherId: teacherId,
-                teacherDepartment: department,
+                id: teacherId,
+                initials: user?.initials ?? 'U',
+                subtitle: department,
                 avatarUrl: user?.photoUrl,
               ),
 
@@ -203,7 +206,7 @@ class TeacherHomeScreen extends ConsumerWidget {
               // Hero cards (no green strip for teacher, matches your FlutterFlow UI)
               Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.heroStripBackground,
+                  color: isDark ? AppTheme.darkCard : AppTheme.heroStripBackground,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -218,9 +221,7 @@ class TeacherHomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   'Dashboard',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onSurface),
                 ),
               ),
 

@@ -34,8 +34,6 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
     final isAdminOrPrincipal =
         user?.role == 'admin' || user?.role == 'principal';
 
-    // Admin/Principal get a dedicated home + staff tab (5 tabs).
-    // Teacher gets the standard 4-tab layout.
     final pages = isAdminOrPrincipal
         ? <Widget>[
             AdminHomeScreen(onSelectTab: _onSelectTab),
@@ -51,33 +49,63 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
             const SettingsPage(),
           ];
 
-    final adminNavItems = const [
-      BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-      BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Students'),
-      BottomNavigationBarItem(icon: Icon(Icons.badge_outlined), label: 'Staff'),
-      BottomNavigationBarItem(icon: Icon(Icons.fact_check_outlined), label: 'Attendance'),
-      BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-    ];
+    final navItems = isAdminOrPrincipal
+        ? const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline),
+              label: 'Students',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.badge_outlined),
+              label: 'Staff',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.fact_check_outlined),
+              label: 'Attendance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: 'Settings',
+            ),
+          ]
+        : const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline),
+              label: 'Students',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.fact_check_outlined),
+              label: 'Attendance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: 'Settings',
+            ),
+          ];
 
-    final teacherNavItems = const [
-      BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-      BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Students'),
-      BottomNavigationBarItem(icon: Icon(Icons.fact_check_outlined), label: 'Attendance'),
-      BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-    ];
+    // Clamp index synchronously so the assertion never fires, regardless of
+    // when userProvider changes relative to this build frame.
+    final safeIndex = _currentIndex < navItems.length ? _currentIndex : 0;
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: pages),
+      body: IndexedStack(index: safeIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: safeIndex,
         selectedItemColor: AppTheme.primaryColor,
-        unselectedItemColor: AppTheme.grey,
-        backgroundColor: AppTheme.white,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBackground : AppTheme.white,
         type: BottomNavigationBarType.fixed,
         onTap: (index) => setState(() => _currentIndex = index),
-        items: isAdminOrPrincipal ? adminNavItems : teacherNavItems,
+        items: navItems,
       ),
     );
   }
 }
-

@@ -7,6 +7,10 @@ import 'package:edu_air/src/services/token_storage_service.dart';
 /// - Automatically attaches the JWT token to every request.
 /// - Base URL is platform-aware (emulator vs simulator vs device).
 /// - All feature repositories receive this client via Riverpod.
+/// 
+/// /Key thing to say: "The interceptor runs automatically on every request. Repositories don't need       to think    about tokens
+ // — the interceptor handles it. That's separation of concerns."
+
 class ApiClient {
   final Dio _dio;
 
@@ -35,6 +39,7 @@ class ApiClient {
     );
   }
 
+  
   Dio get dio => _dio;
 
   /// Android emulator → 10.0.2.2 maps to host machine localhost.

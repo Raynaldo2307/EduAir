@@ -21,14 +21,14 @@
 // - Personalize hero cards based on the student's current timetable and assignments.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/features/student/home/widgets/greeting_header.dart';
+import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/student/home/widgets/info_cards_row.dart';
 import 'package:edu_air/src/features/student/home/widgets/quick_links_grid.dart';
-import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart';
 
 class StudentHomePage extends ConsumerWidget {
   const StudentHomePage({super.key, required this.onTapAttendance});
@@ -43,16 +43,23 @@ class StudentHomePage extends ConsumerWidget {
 
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName
-        : 'Dev Cooper';
+        : 'Student';
 
     final studentId = (user?.studentId?.isNotEmpty ?? false)
         ? user!.studentId!
-        : 'S8745';
+        : '—';
 
-    final heroCards = _buildHeroCards();
-    final quickLinks = _buildQuickLinks(onTapAttendance: onTapAttendance);
+    final heroCards = _buildHeroCards(onTapAttendance: onTapAttendance);
+    final quickLinks = _buildQuickLinks(
+      context: context,
+      onTapAttendance: onTapAttendance,
+    );
 
-    return Scaffold(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -60,18 +67,19 @@ class StudentHomePage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header (name, ID, avatar)
-              GreetingHeader(
+              AppGreetingHeader(
                 name: name,
-                studentId: studentId,
+                id: studentId,
+                initials: user?.initials ?? 'U',
                 avatarUrl: user?.photoUrl,
               ),
 
               const SizedBox(height: 18),
 
-              // ✅ Green strip behind hero cards only
+              // Hero strip — adapts to dark mode
               Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.heroStripBackground,
+                  color: isDark ? AppTheme.darkCard : AppTheme.heroStripBackground,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -85,9 +93,9 @@ class StudentHomePage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   'Dashboard',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
 
@@ -102,42 +110,74 @@ class StudentHomePage extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // Upcoming events
-              UpcomingEventsSection(
-                events: _demoUpcomingEvents,
-                onViewAll: () {
-                  // TODO: hook up "View all" navigation when ready.
-                },
+              Text(
+                'Upcoming Events',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkCard : const Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.event_outlined, size: 40, color: Color(0xFFB0BEC5)),
+                    SizedBox(height: 8),
+                    Text(
+                      'No upcoming events',
+                      style: TextStyle(color: Color(0xFF90A4AE), fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
+    )); // AnnotatedRegion + Scaffold
   }
 }
 
 /// --- Static / helper data builders ---------------------------------------
 
-List<InfoCardData> _buildHeroCards() {
-  return const [
+List<InfoCardData> _buildHeroCards({required VoidCallback onTapAttendance}) {
+  return [
     InfoCardData(
-      title: 'Check updated homework',
-      subtitle: 'New work for you.',
+      title: 'Mark your attendance',
+      subtitle: "Don't forget to clock in today.",
       imageUrl: 'assets/images/home_hero_homework.png',
-      ctaLabel: 'Check Now',
-      backgroundColor: Color(0xFFFDE1E9),
+      ctaLabel: 'Clock In',
+      backgroundColor: const Color(0xFFE1F5FE),
+      onTap: onTapAttendance,
     ),
     InfoCardData(
-      title: 'Join live class at 2:30 PM',
-      subtitle: 'Don\'t miss today\'s session.',
+      title: 'View attendance history',
+      subtitle: 'Track your present and absent days.',
       imageUrl: 'assets/images/home_hero_live.png',
-      ctaLabel: 'Join Now',
-      backgroundColor: Color(0xFFE1F5FE),
+      ctaLabel: 'View Now',
+      backgroundColor: const Color(0xFFFDE1E9),
+      onTap: onTapAttendance,
     ),
   ];
 }
 
-List<QuickLinkItem> _buildQuickLinks({required VoidCallback onTapAttendance}) {
+void _comingSoon(BuildContext context, String label) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('$label — coming soon')),
+  );
+}
+
+List<QuickLinkItem> _buildQuickLinks({
+  required BuildContext context,
+  required VoidCallback onTapAttendance,
+}) {
   return [
     QuickLinkItem(
       icon: Icons.event_available_outlined,
@@ -146,69 +186,55 @@ List<QuickLinkItem> _buildQuickLinks({required VoidCallback onTapAttendance}) {
       iconColor: const Color(0xFF4A7CFF),
       onTap: onTapAttendance,
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.description_outlined,
       label: 'Exam',
-      backgroundColor: Color(0xFFF5EBFF),
-      iconColor: Color(0xFF9B51E0),
+      backgroundColor: const Color(0xFFF5EBFF),
+      iconColor: const Color(0xFF9B51E0),
+      onTap: () => _comingSoon(context, 'Exam'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.assignment_turned_in_outlined,
       label: 'Leave',
-      backgroundColor: Color(0xFFE6F6F3),
-      iconColor: Color(0xFF2D9CDB),
+      backgroundColor: const Color(0xFFE6F6F3),
+      iconColor: const Color(0xFF2D9CDB),
+      onTap: () => _comingSoon(context, 'Leave'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.account_balance_outlined,
       label: 'Fees',
-      backgroundColor: Color(0xFFEFF4FF),
-      iconColor: Color(0xFF4A5568),
+      backgroundColor: const Color(0xFFEFF4FF),
+      iconColor: const Color(0xFF4A5568),
+      onTap: () => _comingSoon(context, 'Fees'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.edit_note_outlined,
       label: 'Homework',
-      backgroundColor: Color(0xFFF8F2DC),
-      iconColor: Color(0xFFB7791F),
+      backgroundColor: const Color(0xFFF8F2DC),
+      iconColor: const Color(0xFFB7791F),
+      onTap: () => _comingSoon(context, 'Homework'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.groups_outlined,
       label: 'Community',
-      backgroundColor: Color(0xFFFDE9EC),
-      iconColor: Color(0xFFE65D7B),
+      backgroundColor: const Color(0xFFFDE9EC),
+      iconColor: const Color(0xFFE65D7B),
+      onTap: () => _comingSoon(context, 'Community'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.chat_bubble_outline,
       label: 'Message',
-      backgroundColor: Color(0xFFF6EAFE),
-      iconColor: Color(0xFFAA7AE0),
+      backgroundColor: const Color(0xFFF6EAFE),
+      iconColor: const Color(0xFFAA7AE0),
+      onTap: () => _comingSoon(context, 'Message'),
     ),
-    const QuickLinkItem(
+    QuickLinkItem(
       icon: Icons.campaign_outlined,
       label: 'Notice',
-      backgroundColor: Color(0xFFE7F7EC),
-      iconColor: Color(0xFF2F9E44),
+      backgroundColor: const Color(0xFFE7F7EC),
+      iconColor: const Color(0xFF2F9E44),
+      onTap: () => _comingSoon(context, 'Notice'),
     ),
   ];
 }
 
-// Hard-coded demo events for now.
-const List<UpcomingEvent> _demoUpcomingEvents = [
-  UpcomingEvent(
-    title: 'Inter-school football match',
-    dateLabel: 'Nov 22, 2024',
-    imageUrl: 'assets/images/event_football.png',
-    fallbackColor: Color(0xFFE1F5FE),
-  ),
-  UpcomingEvent(
-    title: 'Science project fair',
-    dateLabel: 'Dec 1, 2024',
-    imageUrl: 'assets/images/event_science_fair.png',
-    fallbackColor: Color(0xFFE1F5FE),
-  ),
-  UpcomingEvent(
-    title: 'Parent teacher meeting',
-    dateLabel: 'Dec 5, 2024',
-    imageUrl: 'assets/images/event_parent_meeting.png',
-    fallbackColor: Color(0xFFE1F5FE),
-  ),
-];

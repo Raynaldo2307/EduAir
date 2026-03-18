@@ -30,7 +30,24 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   TeacherClassOption? _selectedClass;
   final Map<String, AttendanceStatus?> _selectedStatuses = {};
   bool _isSaving = false;
-  final String _shiftType = 'whole_day';
+  /// Resolved from the school's config stored on the logged-in user.
+  /// Defaults to 'whole_day' — correct for most Jamaican schools.
+  /// Teachers and admins never select this manually; it is locked to
+  /// whatever the school admin configured when the school was registered.
+  String get _shiftType =>
+      ref.read(userProvider)?.defaultShiftType ?? 'whole_day';
+
+  /// Human-readable label for the locked shift type.
+  String get _shiftLabel {
+    switch (_shiftType) {
+      case 'morning':
+        return 'Morning Shift';
+      case 'afternoon':
+        return 'Afternoon Shift';
+      default:
+        return 'Whole Day';
+    }
+  }
 
   late DateTime _focusedMonth;
   DateTime? _selectedTeacherDay;
@@ -266,18 +283,19 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             schoolId: schoolId,
             classOption: selectedClass,
             dateKey: AttendanceDay.dateKeyFor(_selectedDate),
-            shiftType: null,
+            shiftType: _shiftType,
           ),
         ),
       );
     }
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Attendance'),
         centerTitle: true,
-        backgroundColor: AppTheme.surface,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: cs.surface,
+        foregroundColor: cs.onSurface,
         elevation: 0,
       ),
       bottomNavigationBar: _selectedTab == 0
@@ -360,7 +378,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildTopTabs() {
-    final inactiveTabColor = AppTheme.textPrimary.withValues(alpha: 0.6);
+    final cs = Theme.of(context).colorScheme;
+    final inactiveTabColor = cs.onSurface.withValues(alpha: 0.6);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -412,7 +431,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildTabUnderline() {
-    final inactiveUnderlineColor = AppTheme.outline.withValues(alpha: 0.2);
+    final cs = Theme.of(context).colorScheme;
+    final inactiveUnderlineColor = cs.outline.withValues(alpha: 0.2);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -504,7 +524,9 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       child: Column(
         children: [
           _buildFiltersRow(classOptions, selectedClass),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          _buildShiftBadge(),
+          const SizedBox(height: 8),
           _buildTableHeader(),
           const SizedBox(height: 8),
           Expanded(
@@ -521,6 +543,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     List<TeacherClassOption> classOptions,
     TeacherClassOption selectedClass,
   ) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Expanded(
@@ -553,10 +577,10 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               decoration: BoxDecoration(
-                color: AppTheme.white,
+                color: isDark ? AppTheme.darkCard : AppTheme.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppTheme.outline.withValues(alpha: 0.4),
+                  color: cs.outline.withValues(alpha: 0.4),
                 ),
               ),
               child: Row(
@@ -565,7 +589,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                     child: Text(
                       _formatDate(_selectedDate),
                       style: TextStyle(
-                        color: AppTheme.textPrimary.withValues(alpha: 0.85),
+                        color: cs.onSurface.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -573,7 +597,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                   Icon(
                     Icons.calendar_today_outlined,
                     size: 18,
-                    color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                    color: cs.onSurface.withValues(alpha: 0.7),
                   ),
                 ],
               ),
@@ -585,21 +609,23 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   InputDecoration _inputDecoration(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: AppTheme.white,
+      fillColor: isDark ? AppTheme.darkCard : AppTheme.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppTheme.outline.withValues(alpha: 0.4),
+          color: cs.outline.withValues(alpha: 0.4),
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppTheme.outline.withValues(alpha: 0.4),
+          color: cs.outline.withValues(alpha: 0.4),
         ),
       ),
       focusedBorder: OutlineInputBorder(
@@ -611,17 +637,53 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     );
   }
 
+  Widget _buildShiftBadge() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lock_outline,
+              size: 13,
+              color: AppTheme.primaryColor,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              _shiftLabel,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTableHeader() {
+    final cs = Theme.of(context).colorScheme;
     TextStyle headerStyle = TextStyle(
       fontSize: 11,
-      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+      color: cs.onSurface.withValues(alpha: 0.7),
       fontWeight: FontWeight.w600,
     );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.outline.withValues(alpha: 0.12),
+        color: cs.outline.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -686,12 +748,14 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildCalendarCard(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: isDark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -705,6 +769,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildCalendar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final daysInMonth = _daysInMonth(_focusedMonth);
     final firstWeekday =
         DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday;
@@ -722,17 +787,17 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                 children: [
                   Text(
                     _formatMonthYear(_focusedMonth),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: cs.onSurface,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.calendar_month_outlined,
                     size: 18,
-                    color: AppTheme.textPrimary.withValues(alpha: 0.6),
+                    color: cs.onSurface.withValues(alpha: 0.6),
                   ),
                 ],
               ),
@@ -786,7 +851,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                     : null;
 
             final textColor =
-                isSelected ? AppTheme.white : AppTheme.textPrimary;
+                isSelected ? AppTheme.white : cs.onSurface;
 
             return GestureDetector(
               onTap: () => setState(() => _selectedTeacherDay = date),
@@ -815,6 +880,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildWeekdayRow() {
+    final cs = Theme.of(context).colorScheme;
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return Row(
       children: weekdays
@@ -826,7 +892,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary.withValues(alpha: 0.6),
+                  color: cs.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -836,8 +902,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   Widget _buildSummaryRow() {
-    return Row(
-      children: const [
+    return const Row(
+      children: [
         Expanded(
           child: _SummaryCard(
             label: 'Present',
@@ -887,6 +953,8 @@ class _StudentAttendanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatar = student.photoUrl != null && student.photoUrl!.isNotEmpty
         ? CircleAvatar(
             radius: 20,
@@ -897,9 +965,9 @@ class _StudentAttendanceRow extends StatelessWidget {
             backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.4),
             child: Text(
               student.initials,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: cs.onSurface,
               ),
             ),
           );
@@ -907,9 +975,9 @@ class _StudentAttendanceRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: isDark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -918,10 +986,10 @@ class _StudentAttendanceRow extends StatelessWidget {
           Expanded(
             child: Text(
               student.displayName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: cs.onSurface,
               ),
             ),
           ),
@@ -1004,12 +1072,13 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFE9E9),
+          color: isDark ? AppTheme.darkCard : const Color(0xFFFFE9E9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: const Color(0xFFE25563).withValues(alpha: 0.3),
@@ -1026,8 +1095,8 @@ class _ErrorCard extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: Color(0xFFB91C1C),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFFE25563) : const Color(0xFFB91C1C),
                   fontSize: 14,
                 ),
               ),
@@ -1056,10 +1125,12 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: isDark ? iconColor.withValues(alpha: 0.2) : backgroundColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -1068,7 +1139,9 @@ class _SummaryCard extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: AppTheme.white.withValues(alpha: 0.7),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.7),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 16, color: iconColor),
@@ -1083,16 +1156,16 @@ class _SummaryCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                    color: cs.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: cs.onSurface,
                   ),
                 ),
               ],

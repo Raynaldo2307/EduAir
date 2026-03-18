@@ -370,6 +370,72 @@ class AttendanceDay {
     );
   }
 
+  /// Create an [AttendanceDay] from a Node API attendance record map.
+  ///
+  /// Node API fields: id, shift_type, attendance_date, clock_in, clock_out,
+  /// status, is_early_leave, late_reason_code, source, clock_in_lat/lng, etc.
+  ///
+  /// [studentUid] — pass the logged-in user's uid so the model is complete.
+  factory AttendanceDay.fromApiMap(
+    Map<String, dynamic> map, {
+    String studentUid = '',
+  }) {
+    AttendanceStatus parseStatus(String? s) {
+      for (final v in AttendanceStatus.values) {
+        if (v.name == s) return v;
+      }
+      return AttendanceStatus.absent;
+    }
+
+    AttendanceSource parseSource(String? s) {
+      for (final v in AttendanceSource.values) {
+        if (v.name == s) return v;
+      }
+      return AttendanceSource.studentSelf;
+    }
+
+    DateTime? parseDateTime(dynamic raw) {
+      if (raw == null) return null;
+      try {
+        return DateTime.parse(raw.toString());
+      } catch (_) {
+        return null;
+      }
+    }
+
+    double? parseDouble(dynamic v) =>
+        v == null ? null : double.tryParse(v.toString());
+
+    final status  = parseStatus(map['status'] as String?);
+    final dateKey = (map['attendance_date'] ?? '').toString();
+    final clockIn = parseDateTime(map['clock_in']);
+    final clockOut = parseDateTime(map['clock_out']);
+
+    final clockInLat  = parseDouble(map['clock_in_lat']);
+    final clockInLng  = parseDouble(map['clock_in_lng']);
+    final clockOutLat = parseDouble(map['clock_out_lat']);
+    final clockOutLng = parseDouble(map['clock_out_lng']);
+
+    return AttendanceDay(
+      dateKey:    dateKey,
+      studentUid: studentUid,
+      status:     status,
+      schoolId:   map['school_id']?.toString(),
+      shiftType:  map['shift_type'] as String?,
+      clockInAt:  clockIn,
+      clockOutAt: clockOut,
+      clockInLocation: (clockInLat != null && clockInLng != null)
+          ? AttendanceLocation(lat: clockInLat, lng: clockInLng)
+          : null,
+      clockOutLocation: (clockOutLat != null && clockOutLng != null)
+          ? AttendanceLocation(lat: clockOutLat, lng: clockOutLng)
+          : null,
+      lateReason:   map['late_reason_code'] as String?,
+      isEarlyLeave: map['is_early_leave'] == 1 || map['is_early_leave'] == true,
+      source:       parseSource(map['source'] as String?),
+    );
+  }
+
   /// Simple helper: is this day tagged as late?
   ///
   /// (Uses the stored status; the decision should come from [resolveStatusFromClockIn].)

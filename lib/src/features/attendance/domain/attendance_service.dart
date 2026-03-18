@@ -138,6 +138,7 @@ class AttendanceService {
   /// - Morning shift overtime after 12:30 PM
   /// - Afternoon shift overtime after 5:30 PM
   /// - Whole-day overtime after 4:30 PM (legacy default)
+  
   DateTime _overtimeCutoffFor(DateTime day, String shiftType) {
     final normalized = AttendanceDay.normalizeShiftType(shiftType);
 

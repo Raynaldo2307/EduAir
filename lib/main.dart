@@ -7,6 +7,7 @@ import 'package:edu_air/src/shared/app_router.dart';
 
 // Theme + Router
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/core/app_providers.dart';
 //import 'package:edu_air/src/features/shell/teacher_shell.dart';
 //import 'src/dev/dev_seed_schools.dart';
 
@@ -16,19 +17,23 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+// ConsumerWidget so we can watch themeModeProvider
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Rebuilds whenever the user toggles dark/light mode
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'EduAIR',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      // ✅ Routing Starts Here
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,           // ← this is what makes the switch work
       initialRoute: '/teacher',
       onGenerateRoute: AppRouter.generateRoute,
-      // home: const StudentShell(),
     );
   }
 }

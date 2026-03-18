@@ -59,6 +59,7 @@ class _InfoCardsRowState extends State<InfoCardsRow> {
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenHeight = MediaQuery.of(context).size.height;
     final cardHeight = (screenHeight * 0.20).clamp(150.0, 185.0).toDouble();
 
@@ -67,7 +68,7 @@ class _InfoCardsRowState extends State<InfoCardsRow> {
       child: Container(
         height: cardHeight,
         decoration: BoxDecoration(
-          color: AppTheme.heroStripBackground,
+          color: isDark ? AppTheme.darkCard : AppTheme.heroStripBackground,
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -125,6 +126,8 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(18),
@@ -132,7 +135,7 @@ class _InfoCard extends StatelessWidget {
         width: double.infinity, // fills the PageView viewport
         //height: 155,
         decoration: BoxDecoration(
-          color: card.backgroundColor,
+          color: isDark ? AppTheme.darkCard : card.backgroundColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
@@ -158,7 +161,7 @@ class _InfoCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: cs.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -167,7 +170,7 @@ class _InfoCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      color: cs.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                   //const Spacer(),

@@ -171,11 +171,12 @@ class AttendanceStatusStrip extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
+        color: isDark ? AppTheme.darkCard : AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -199,7 +200,7 @@ class AttendanceStatusStrip extends StatelessWidget {
                 Text(
                   title, // "Today"
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -209,7 +210,7 @@ class AttendanceStatusStrip extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -228,19 +229,17 @@ class AttendanceStatusStrip extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: theme.colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: AppTheme.outline.withValues(alpha: 0.4),
+                                color: theme.colorScheme.outline.withValues(alpha: 0.4),
                               ),
                             ),
                             child: Text(
                               t,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 11,
-                                color: AppTheme.textPrimary.withValues(
-                                  alpha: 0.8,
-                                ),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                               ),
                             ),
                           ),

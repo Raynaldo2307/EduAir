@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/features/teacher/home/widgets/greeting.dart';
+import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key, required this.onSelectTab});
@@ -35,8 +35,9 @@ class AdminHomeScreen extends ConsumerWidget {
     final schoolName = _schoolName(user?.schoolId);
     final adminId = user?.uid ?? '—';
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -44,10 +45,11 @@ class AdminHomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ──────────────────────────────────────────
-              GreetingHeader(
+              AppGreetingHeader(
                 name: name,
-                teacherId: adminId,
-                teacherDepartment: schoolName,
+                id: adminId,
+                initials: user?.initials ?? 'U',
+                subtitle: schoolName,
                 avatarUrl: user?.photoUrl,
               ),
 
@@ -88,7 +90,7 @@ class AdminHomeScreen extends ConsumerWidget {
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.textPrimary,
+                      color: cs.onSurface,
                     ),
               ),
 
@@ -143,7 +145,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   Text(
                     'Recent Students',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: cs.onSurface,
                         ),
                   ),
                   TextButton(
@@ -189,11 +191,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         decoration: BoxDecoration(
-          color: color,
+          color: isDark ? iconColor.withValues(alpha: 0.2) : color,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         child: Column(
@@ -203,19 +207,19 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.grey,
+                color: cs.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -244,12 +248,13 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color,
+          color: isDark ? iconColor.withValues(alpha: 0.2) : color,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         child: Row(
@@ -309,12 +314,14 @@ class _StudentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final idx = initials.codeUnitAt(0) % _colors.length;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: isDark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         boxShadow: [
           BoxShadow(
@@ -345,21 +352,21 @@ class _StudentRow extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: AppTheme.textPrimary,
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.grey),
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppTheme.grey),
+          Icon(Icons.chevron_right, color: cs.onSurface.withValues(alpha: 0.5)),
         ],
       ),
     );

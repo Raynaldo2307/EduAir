@@ -64,6 +64,8 @@ class QuickLinkItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -82,7 +84,7 @@ class QuickLinkItemWidget extends StatelessWidget {
           Material(
             elevation: 3,
             borderRadius: BorderRadius.circular(16),
-            color: item.backgroundColor,
+            color: isDark ? item.iconColor.withValues(alpha: 0.2) : item.backgroundColor,
             shadowColor: Colors.black.withValues(alpha: 0.1),
             child: Container(
               height: 64,
@@ -102,10 +104,10 @@ class QuickLinkItemWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: cs.onSurface,
             ),
           ),
         ],

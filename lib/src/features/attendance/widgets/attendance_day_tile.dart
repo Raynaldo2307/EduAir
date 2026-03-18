@@ -35,7 +35,7 @@ class AttendanceDayTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: theme.brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -66,7 +66,7 @@ class AttendanceDayTile extends StatelessWidget {
                 Text(
                   dateLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -75,7 +75,7 @@ class AttendanceDayTile extends StatelessWidget {
                   Text(
                     'Clock-in: $timeText',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],

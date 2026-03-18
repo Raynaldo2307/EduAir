@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:developer' as dev;
 
@@ -15,6 +16,7 @@ import 'package:edu_air/src/services/token_storage_service.dart';
 import 'package:edu_air/src/features/auth/data/auth_api_repository.dart';
 import 'package:edu_air/src/features/attendance/data/attendance_api_repository.dart';
 import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
+import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 
 // 🔹 Attendance: repo + service
 import 'package:edu_air/src/features/attendance/data/attendance_repository.dart';
@@ -39,6 +41,10 @@ import 'package:edu_air/src/services/device_id_service.dart';
 final deviceIdProvider = FutureProvider<String?>((ref) async {
   return DeviceIdService.instance.getDeviceId();
 });
+
+/// Controls light / dark mode app-wide.
+/// Toggle by writing: ref.read(themeModeProvider.notifier).state = ThemeMode.dark
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 
 /// Global provider holding the currently authenticated [AppUser].
 final userProvider = StateProvider<AppUser?>((ref) => null);
@@ -82,13 +88,17 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     final userData = await authRepo.getMe();
 
     final profile = AppUser(
-      uid: userData['id'].toString(),
-      firstName: userData['firstName'] ?? '',
-      lastName: userData['lastName'] ?? '',
-      email: userData['email'] ?? '',
-      phone: '',
-      role: userData['role'] ?? '',
-      schoolId: userData['schoolId']?.toString(),
+      uid:               userData['id'].toString(),
+      firstName:         userData['firstName']        ?? '',
+      lastName:          userData['lastName']         ?? '',
+      email:             userData['email']            ?? '',
+      phone:             '',
+      role:              userData['role']             ?? '',
+      schoolId:          userData['schoolId']?.toString(),
+      defaultShiftType:  userData['defaultShiftType']  as String?,
+      isShiftSchool:     userData['isShiftSchool']   as bool? ?? false,
+      homeroomClassId:   userData['homeroomClassId']   as String?,
+      homeroomClassName: userData['homeroomClassName'] as String?,
     );
 
     userNotifier.state = profile;
@@ -170,6 +180,11 @@ final attendanceApiRepositoryProvider = Provider<AttendanceApiRepository>((ref) 
 /// Students API — full CRUD for admin student management via Node backend.
 final studentsApiRepositoryProvider = Provider<StudentsApiRepository>((ref) {
   return StudentsApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// Staff API — full CRUD for admin staff management via Node backend.
+final staffApiRepositoryProvider = Provider<StaffApiRepository>((ref) {
+  return StaffApiRepository(client: ref.read(apiClientProvider));
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

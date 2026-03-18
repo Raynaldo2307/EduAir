@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/data/teacher_attendance_repository.dart';
 import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
@@ -8,8 +9,9 @@ import 'package:edu_air/src/features/teacher/attendance/data/teacher_attendance_
 /// Repository provider – central access point for teacher attendance data.
 final teacherAttendanceRepositoryProvider =
     Provider<TeacherAttendanceRepository>((ref) {
-      // Explicitly construct the data source so we can swap it in tests later.
-      final remote = TeacherAttendanceDataSource();
+      final remote = TeacherAttendanceDataSource(
+        client: ref.read(apiClientProvider),
+      );
       return TeacherAttendanceRepository(remote: remote);
     });
 
@@ -74,7 +76,7 @@ final teacherClassStudentsProvider = FutureProvider.family
 /// Loads the attendance status map for a given (school, class, date, shift).
 ///
 /// Returns:
-///   Map<studentUid, AttendanceStatus>
+///   `Map<studentUid, AttendanceStatus>`
 final teacherAttendanceForDateProvider = FutureProvider.family
     .autoDispose<Map<String, AttendanceStatus>, TeacherAttendanceQuery>((
       ref,
