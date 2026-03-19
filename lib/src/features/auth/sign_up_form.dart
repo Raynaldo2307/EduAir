@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/core/app_providers.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -18,7 +17,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isSubmitting = false; // prevents double-taps / multiple requests
+  final bool _isSubmitting = false; // prevents double-taps / multiple requests
   bool _termsAccepted = false;
   bool _obscurePassword = true;
 
@@ -44,32 +43,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     _showSnack('Contact your school admin to create your account.');
   }
 
-  Future<void> _handleGoogleSignUp() async {
-    // Same UX pattern as email sign-up
-    setState(() => _isSubmitting = true);
-
-    final authService = ref.read(authServiceProvider);
-    final userNotifier = ref.read(userProvider.notifier);
-    final navigator = Navigator.of(context);
-
-    try {
-      final user = await authService.signInWithGoogle();
-
-      // null = user cancelled — reset silently, no snackbar
-      if (user == null) return;
-
-      userNotifier.state = user;
-      if (!mounted) return;
-      _showSnack('Google sign-in successful!');
-      navigator.pushReplacementNamed('/selectRole');
-    } catch (e) {
-      // Only reaches here on a real error (network, Firebase config, etc.)
-      if (!mounted) return;
-      _showSnack('Google sign-in is not available right now. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
 
   InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
     return InputDecoration(
@@ -278,41 +251,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // Divider
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('or'),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Google sign-up
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _isSubmitting ? null : _handleGoogleSignUp,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: Colors.grey),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Image.asset(
-                    'assets/images/google.png',
-                    height: 24,
-                    semanticLabel: 'Continue with Google',
-                  ),
-                ),
-              ),
             ],
           ),
         ),

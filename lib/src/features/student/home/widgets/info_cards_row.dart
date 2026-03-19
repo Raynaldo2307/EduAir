@@ -124,20 +124,30 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // In dark mode: darken the pastel so it fits the dark surface
+    final cardColor = isDark
+        ? Color.lerp(card.backgroundColor, Colors.black, 0.55)!
+        : card.backgroundColor;
+
+    // Text color: white on dark, textPrimary on light
+    final textColor = isDark ? Colors.white : AppTheme.textPrimary;
+
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        width: double.infinity, // fill the page viewportion
-        height: 160, // fixed height to avoid overflow
+        width: double.infinity,
+        height: 160,
         decoration: BoxDecoration(
-          color: card.backgroundColor,
+          color: cardColor,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Colors.black12,
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
               blurRadius: 4,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -156,7 +166,7 @@ class _InfoCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -165,7 +175,7 @@ class _InfoCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      color: textColor.withValues(alpha: 0.7),
                     ),
                   ),
                   const Spacer(),

@@ -406,10 +406,19 @@ class AttendanceDay {
     double? parseDouble(dynamic v) =>
         v == null ? null : double.tryParse(v.toString());
 
-    final status  = parseStatus(map['status'] as String?);
-    final dateKey = (map['attendance_date'] ?? '').toString();
-    final clockIn = parseDateTime(map['clock_in']);
-    final clockOut = parseDateTime(map['clock_out']);
+    final rawStatus = parseStatus(map['status'] as String?);
+    final dateKey   = (map['attendance_date'] ?? '').toString();
+    final clockIn   = parseDateTime(map['clock_in']);
+    final clockOut  = parseDateTime(map['clock_out']);
+
+    // Defensive: early/late MUST have clockIn. Downgrade bad/legacy records
+    // to present instead of crashing. See BUG-021.
+    final status =
+        (rawStatus == AttendanceStatus.early ||
+                rawStatus == AttendanceStatus.late) &&
+                clockIn == null
+            ? AttendanceStatus.present
+            : rawStatus;
 
     final clockInLat  = parseDouble(map['clock_in_lat']);
     final clockInLng  = parseDouble(map['clock_in_lng']);

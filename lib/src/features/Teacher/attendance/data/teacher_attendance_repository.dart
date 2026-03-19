@@ -13,7 +13,7 @@ import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendanc
 ///   - saveAttendanceBatch (with a rich result for offline / flaky network)
 ///   - getMonthlyClassSummary (SF4-friendly aggregation)
 ///
-/// It delegates all Firestore details to [TeacherAttendanceDataSource].
+/// It delegates all HTTP details to [TeacherAttendanceDataSource].
 class TeacherAttendanceRepository {
   TeacherAttendanceRepository({required TeacherAttendanceDataSource remote})
       : _remote = remote;
@@ -51,7 +51,7 @@ class TeacherAttendanceRepository {
     );
   }
 
-  /// Save a teacher's roll-call for a class as a Firestore batch.
+  /// Save a teacher's roll-call for a class via a Node API batch request.
   ///
   /// Returns [AttendanceBatchResult], so the UI can:
   /// - detect full success vs total failure in low-connectivity scenarios.

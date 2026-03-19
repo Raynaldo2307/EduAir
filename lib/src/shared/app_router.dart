@@ -7,7 +7,7 @@ import '../features/auth/sign_up_form.dart';
 import '../features/shell/select_role.dart';
 import '../features/shell/student_shell.dart';
 import '../features/shell/teacher_shell.dart';
-import '../features/shell/select_school.dart';
+import '../features/shell/select_school.dart'; // exports NoSchoolPage
 
 // 👇 NEW: teacher feature screens
 import '../features/teacher/attendance/teacher_attendance_page.dart';
@@ -35,9 +35,9 @@ class AppRouter {
       case '/selectRole':
         return MaterialPageRoute(builder: (_) => const SelectRolePage());
 
-      // After role is set but before school is chosen
-      case '/selectSchool':
-        return MaterialPageRoute(builder: (_) => const SelectSchoolPage());
+      // Account exists but no school assigned — admin must link the account.
+      case '/noSchool':
+        return MaterialPageRoute(builder: (_) => const NoSchoolPage());
 
       // Main shells
       case '/studentHome':
@@ -56,6 +56,20 @@ class AppRouter {
       // 👇 Admin/Principal student management
       case '/adminStudents':
         return MaterialPageRoute(builder: (_) => const AdminStudentListPage());
+
+      // 👇 Parent portal — role is known, UI not built yet
+      case '/parentHome':
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('EduAir')),
+            body: const Center(
+              child: Text(
+                'Parent portal coming soon.',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        );
     }
 
     // 🔁 Fallback for unknown routes

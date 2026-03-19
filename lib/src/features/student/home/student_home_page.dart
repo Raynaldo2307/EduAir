@@ -29,6 +29,7 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/student/home/widgets/info_cards_row.dart';
 import 'package:edu_air/src/features/student/home/widgets/quick_links_grid.dart';
+import 'package:edu_air/src/features/attendance/application/student_attendance_controller.dart';
 
 class StudentHomePage extends ConsumerWidget {
   const StudentHomePage({super.key, required this.onTapAttendance});
@@ -49,7 +50,12 @@ class StudentHomePage extends ConsumerWidget {
         ? user!.studentId!
         : '—';
 
-    final heroCards = _buildHeroCards(onTapAttendance: onTapAttendance);
+    final attendanceState = ref.watch(studentAttendanceControllerProvider);
+    final heroCards = _buildHeroCards(
+      attendanceState: attendanceState,
+      currentShift: user?.currentShift,
+      onTapAttendance: onTapAttendance,
+    );
     final quickLinks = _buildQuickLinks(
       context: context,
       onTapAttendance: onTapAttendance,
@@ -147,22 +153,81 @@ class StudentHomePage extends ConsumerWidget {
 
 /// --- Static / helper data builders ---------------------------------------
 
-List<InfoCardData> _buildHeroCards({required VoidCallback onTapAttendance}) {
-  return [
-    InfoCardData(
+/// Returns the clock-out window string based on the student's shift.
+String _clockOutWindow(String? shift) {
+  switch (shift) {
+    case 'morning':
+      return '12:00 PM – 12:30 PM';
+    case 'afternoon':
+      return '5:00 PM – 5:30 PM';
+    case 'whole_day':
+    default:
+      return '4:00 PM – 4:30 PM';
+  }
+}
+
+List<InfoCardData> _buildHeroCards({
+  required StudentAttendanceState attendanceState,
+  required String? currentShift,
+  required VoidCallback onTapAttendance,
+}) {
+  // ── First card: live attendance status ──────────────────────────────────
+  final InfoCardData statusCard;
+
+  if (attendanceState.isLoading) {
+    statusCard = InfoCardData(
+      title: 'Checking attendance...',
+      subtitle: 'Loading today\'s record.',
+      backgroundColor: const Color(0xFFE1F5FE),
+      imageUrl: 'assets/images/home_hero_live.png',
+      onTap: onTapAttendance,
+    );
+  } else if (attendanceState.hasClockedOut) {
+    // Done: self clock-out OR teacher-marked (no clock-out expected)
+    statusCard = InfoCardData(
+      title: 'All done for today ✓',
+      subtitle: 'Attendance complete. See you tomorrow!',
+      ctaLabel: 'View History',
+      backgroundColor: const Color(0xFFD3F9D8),
+      imageUrl: 'assets/images/home_hero_live.png',
+      onTap: onTapAttendance,
+    );
+  } else if (attendanceState.hasClockedIn) {
+    // Clocked in — remind them of their shift's clock-out window
+    final clockIn = attendanceState.todayRecord?.clockInAt;
+    final timeStr = clockIn != null
+        ? '${clockIn.hour.toString().padLeft(2, '0')}:${clockIn.minute.toString().padLeft(2, '0')}'
+        : '';
+    final shift = attendanceState.todayRecord?.shiftType ?? currentShift;
+    final window = _clockOutWindow(shift);
+    statusCard = InfoCardData(
+      title: 'Checked in${timeStr.isNotEmpty ? ' at $timeStr' : ''} ✓',
+      subtitle: 'Clock out between $window to complete attendance.',
+      ctaLabel: 'Clock Out',
+      backgroundColor: const Color(0xFFD3F9D8),
+      imageUrl: 'assets/images/home_hero_live.png',
+      onTap: onTapAttendance,
+    );
+  } else {
+    statusCard = InfoCardData(
       title: 'Mark your attendance',
       subtitle: "Don't forget to clock in today.",
-      imageUrl: 'assets/images/home_hero_homework.png',
       ctaLabel: 'Clock In',
       backgroundColor: const Color(0xFFE1F5FE),
+      imageUrl: 'assets/images/home_hero_live.png',
       onTap: onTapAttendance,
-    ),
+    );
+  }
+
+  // ── Second card: always static ───────────────────────────────────────────
+  return [
+    statusCard,
     InfoCardData(
       title: 'View attendance history',
       subtitle: 'Track your present and absent days.',
-      imageUrl: 'assets/images/home_hero_live.png',
       ctaLabel: 'View Now',
       backgroundColor: const Color(0xFFFDE1E9),
+      imageUrl: 'assets/images/home_hero_homework.png',
       onTap: onTapAttendance,
     ),
   ];

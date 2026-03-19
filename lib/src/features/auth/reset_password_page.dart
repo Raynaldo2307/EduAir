@@ -1,134 +1,144 @@
+// lib/src/features/auth/reset_password_page.dart
+//
+// Password reset is handled by the school administrator.
+// EduAir accounts are created and managed by admins — users do not
+// self-manage passwords. Contact your admin to reset.
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/core/app_providers.dart';
 
-class ResetPasswordPage extends ConsumerStatefulWidget {
+class ResetPasswordPage extends StatelessWidget {
   const ResetPasswordPage({super.key});
 
   @override
-  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
-}
-
-class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  bool _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    final authService = ref.read(authServiceProvider);
-    final email = _emailController.text.trim();
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      await authService.resetPassword(email);
-
-      if (!mounted) return;
-
-      messenger.showSnackBar(
-        SnackBar(content: Text('Reset link sent to $email')),
-      );
-
-      // Go back to the sign-in screen
-      navigator.pop();
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: AppTheme.accent.withValues(alpha: 0.2),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final cs     = Theme.of(context).colorScheme;
+    final txt    = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: cs.surface,
       appBar: AppBar(
-        title: const Text(
-          'Reset password',
-          style: TextStyle(color: AppTheme.textPrimary),
+        title: Text(
+          'Reset Password',
+          style: txt.titleLarge?.copyWith(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        backgroundColor: AppTheme.white,
+        backgroundColor: cs.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+        iconTheme: IconThemeData(color: cs.onSurface),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Enter the email you used to create your account. "
-                "We'll send you a password reset link.",
-                style: TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: _inputDecoration('Email'),
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) {
-                    return 'Email is required';
-                  }
-                  if (!text.contains('@')) {
-                    return 'Enter a valid email';
-                  }
-                  return null;
-                },
+              child: Icon(
+                Icons.lock_reset_rounded,
+                size: 32,
+                color: cs.primary,
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Send reset link',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Text(
+              'Need to reset your password?',
+              style: txt.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              'EduAir accounts are managed by your school administrator. '
+              'To reset your password, please contact them directly.',
+              style: txt.bodyMedium?.copyWith(
+                color: cs.onSurface.withValues(alpha: 0.6),
+                height: 1.6,
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // Info card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? cs.surfaceContainerHighest
+                    : AppTheme.primaryColor.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
                 ),
               ),
-            ],
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings_rounded,
+                        size: 18,
+                        color: cs.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Contact your administrator',
+                        style: txt.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Ask your school admin or principal to reset '
+                    'your password from the admin panel.',
+                    style: txt.bodySmall?.copyWith(
+                      color: cs.onSurface.withValues(alpha: 0.6),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Back to Sign In',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

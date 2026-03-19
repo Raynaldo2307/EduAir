@@ -4,9 +4,9 @@ import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/core/app_error_handler.dart';
+import 'package:edu_air/src/features/attendance/data/attendance_api_repository.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
-import 'package:edu_air/src/features/attendance/domain/attendance_service.dart';
-import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 
 /// State for today's attendance record.
 ///
@@ -36,42 +36,35 @@ class StudentAttendanceState {
   bool get isLoading => today.isLoading;
   bool get hasError => today.hasError || lastErrorMessage != null;
   AttendanceDay? get todayRecord => today.valueOrNull;
-  bool get hasClockedIn => todayRecord?.clockInAt != null;
-  bool get hasClockedOut => todayRecord?.clockOutAt != null;
+
+  /// True when a teacher manually marked this student present (no self clock-in).
+  bool get isTeacherMarked =>
+      (todayRecord?.status.isPresentLike ?? false) &&
+      todayRecord?.clockInAt == null;
+
+  /// Clocked in by self OR marked present by teacher.
+  bool get hasClockedIn => todayRecord?.clockInAt != null || isTeacherMarked;
+
+  /// Clocked out OR teacher-marked (no clock-out expected for manual records).
+  bool get hasClockedOut => todayRecord?.clockOutAt != null || isTeacherMarked;
 }
 
 /// Controller for student attendance operations (clock in/out, load today).
 ///
-/// This controller:
-/// - Exposes today's attendance for the logged-in student
-/// - Handles clock in (with late reason validation)
-/// - Handles clock out
-/// - Maps domain exceptions to user-friendly messages
-///
-/// Usage in UI:
-/// ```dart
-/// final state = ref.watch(studentAttendanceControllerProvider);
-/// final controller = ref.read(studentAttendanceControllerProvider.notifier);
-///
-/// // Clock in with late reason
-/// await controller.clockIn(location: loc, lateReasonCode: 'transportation');
-/// ```
+/// Uses the Node API via [AttendanceApiRepository] — no Firestore access.
 class StudentAttendanceController extends StateNotifier<StudentAttendanceState> {
-  final AttendanceService _service;
+  final AttendanceApiRepository _repo;
   final Ref _ref;
 
-  StudentAttendanceController(this._ref, this._service)
+  StudentAttendanceController(this._ref, this._repo)
       : super(const StudentAttendanceState(today: AsyncValue.loading())) {
-    // Load today's record on init
     refreshToday();
   }
 
-  /// Reload today's attendance record.
-  ///
-  /// Call this after clock-in/out or when returning to the attendance screen.
+  /// Reload today's attendance record from the Node API.
   Future<void> refreshToday() async {
     final user = _ref.read(userProvider);
-    if (user == null || user.schoolId == null) {
+    if (user == null) {
       state = const StudentAttendanceState(
         today: AsyncValue.data(null),
         lastErrorMessage: null,
@@ -82,22 +75,13 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
     state = state.copyWith(today: const AsyncValue.loading(), clearError: true);
 
     try {
-      final day = await _service.getToday(
-        schoolId: user.schoolId!,
-        studentUid: user.uid,
-        // shiftType is derived from user profile in the service
-      );
-
+      final raw = await _repo.getMyToday();
+      final day = raw != null
+          ? AttendanceDay.fromApiMap(raw, studentUid: user.uid)
+          : null;
       state = state.copyWith(today: AsyncValue.data(day));
     } catch (e, st) {
-      dev.log(
-        'StudentAttendanceController.refreshToday failed: $e',
-        name: 'StudentAttendanceController',
-        error: e,
-        stackTrace: st,
-      );
-
-      final message = mapAttendanceErrorToMessage(e);
+      final message = _mapError(e, st);
       state = state.copyWith(
         today: AsyncValue.error(e, st),
         lastErrorMessage: message,
@@ -105,114 +89,85 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
     }
   }
 
-  /// Clock in the current student.
+  /// Clock in the current student via Node API.
   ///
-  /// [location] - The student's current GPS location.
-  /// [lateReasonCode] - Required if the student is late. Must be a valid MoEYI code.
-  ///
-  /// Returns the error message if something went wrong, or null on success.
-  /// The UI should show a SnackBar with the returned message.
+  /// Returns an error message on failure, or null on success.
   Future<String?> clockIn({
     required AttendanceLocation location,
     String? lateReasonCode,
   }) async {
     final user = _ref.read(userProvider);
-    if (user == null || user.schoolId == null) {
-      return 'Please sign in to clock in.';
-    }
+    if (user == null) return 'Please sign in to clock in.';
 
     state = state.copyWith(today: const AsyncValue.loading(), clearError: true);
 
     try {
+      final shiftType = AttendanceDay.normalizeShiftType(user.currentShift);
       final deviceId = _ref.read(deviceIdProvider).value;
 
-      final day = await _service.clockIn(
-        schoolId: user.schoolId!,
-        studentUid: user.uid,
-        location: location,
-        classId: user.classId,
-        className: user.className,
-        gradeLevel: user.gradeLevelNumber,
-        lateReason: lateReasonCode,
+      await _repo.clockIn(
+        shiftType: shiftType,
+        lat: location.lat,
+        lng: location.lng,
+        lateReasonCode: lateReasonCode,
         deviceId: deviceId,
       );
 
-      state = state.copyWith(today: AsyncValue.data(day));
+      dev.log('Clock-in success', name: 'StudentAttendanceController');
 
-      dev.log(
-        'Clock-in success | dateKey=${day.dateKey}, status=${day.status.name}',
-        name: 'StudentAttendanceController',
-      );
-
-      return null; // Success - no error message
+      // Reload to get the full record with timestamps from the server.
+      await refreshToday();
+      return null;
     } catch (e, st) {
-      dev.log(
-        'StudentAttendanceController.clockIn failed: $e',
-        name: 'StudentAttendanceController',
-        error: e,
-        stackTrace: st,
-      );
-
-      final message = mapAttendanceErrorToMessage(e);
+      final message = _mapError(e, st);
       state = state.copyWith(
         today: AsyncValue.error(e, st),
         lastErrorMessage: message,
       );
-
       return message;
     }
   }
 
-  /// Clock out the current student.
+  /// Clock out the current student via Node API.
   ///
-  /// [location] - The student's current GPS location.
-  ///
-  /// Returns the error message if something went wrong, or null on success.
+  /// Returns an error message on failure, or null on success.
   Future<String?> clockOut({
     required AttendanceLocation location,
   }) async {
     final user = _ref.read(userProvider);
-    if (user == null || user.schoolId == null) {
-      return 'Please sign in to clock out.';
-    }
+    if (user == null) return 'Please sign in to clock out.';
 
     state = state.copyWith(today: const AsyncValue.loading(), clearError: true);
 
     try {
-      final deviceId = _ref.read(deviceIdProvider).value;
+      // Fetch today's record to get the MySQL row ID required by the PUT endpoint.
+      final todayRaw = await _repo.getMyToday();
+      final attendanceId = todayRaw?['id'] as int?;
 
-      final day = await _service.clockOut(
-        schoolId: user.schoolId!,
-        studentUid: user.uid,
-        location: location,
-        classId: user.classId,
-        className: user.className,
-        gradeLevel: user.gradeLevelNumber,
-        deviceId: deviceId,
+      if (attendanceId == null) {
+        state = state.copyWith(
+          today: const AsyncValue.data(null),
+          lastErrorMessage: 'No clock-in found for today.',
+        );
+        return 'No clock-in found for today. Please clock in first.';
+      }
+
+      await _repo.clockOut(
+        attendanceId: attendanceId,
+        lat: location.lat,
+        lng: location.lng,
       );
 
-      state = state.copyWith(today: AsyncValue.data(day));
+      dev.log('Clock-out success', name: 'StudentAttendanceController');
 
-      dev.log(
-        'Clock-out success | dateKey=${day.dateKey}, clockOutAt=${day.clockOutAt}',
-        name: 'StudentAttendanceController',
-      );
-
-      return null; // Success
+      await refreshToday();
+      return null;
     } catch (e, st) {
-      dev.log(
-        'StudentAttendanceController.clockOut failed: $e',
-        name: 'StudentAttendanceController',
-        error: e,
-        stackTrace: st,
-      );
-
-      final message = mapAttendanceErrorToMessage(e);
+      final message = _mapError(e, st);
       state = state.copyWith(
         today: AsyncValue.error(e, st),
         lastErrorMessage: message,
       );
-
       return message;
     }
   }
@@ -221,15 +176,18 @@ class StudentAttendanceController extends StateNotifier<StudentAttendanceState> 
   void clearError() {
     state = state.copyWith(clearError: true);
   }
+
+  String _mapError(Object e, [StackTrace? st]) =>
+      AppErrorHandler.message(e, context: 'Attendance', stackTrace: st);
 }
 
 /// Provider for the student attendance controller.
 ///
-/// This is the main entry point for UI to interact with attendance.
+/// Uses the Node API — no Firestore access required.
 final studentAttendanceControllerProvider =
     StateNotifierProvider<StudentAttendanceController, StudentAttendanceState>(
   (ref) {
-    final service = ref.watch(attendanceServiceProvider);
-    return StudentAttendanceController(ref, service);
+    final repo = ref.watch(attendanceApiRepositoryProvider);
+    return StudentAttendanceController(ref, repo);
   },
 );

@@ -4,11 +4,6 @@ import 'dart:developer' as dev;
 
 import 'package:edu_air/src/models/app_user.dart';
 
-// Auth services
-import 'package:edu_air/src/features/auth/services/auth_services.dart';
-
-// User service
-import 'package:edu_air/src/services/user_services.dart';
 
 // Node API services
 import 'package:edu_air/src/services/api_client.dart';
@@ -18,12 +13,6 @@ import 'package:edu_air/src/features/attendance/data/attendance_api_repository.d
 import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 
-// 🔹 Attendance: repo + service
-import 'package:edu_air/src/features/attendance/data/attendance_repository.dart';
-import 'package:edu_air/src/features/attendance/domain/attendance_service.dart';
-
-// 🔹 NEW: attendance config (holidays)
-import 'package:edu_air/src/features/attendance/domain/attendance_config.dart';
 
 // Schoool + Geofencing
 
@@ -49,26 +38,8 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
 /// Global provider holding the currently authenticated [AppUser].
 final userProvider = StateProvider<AppUser?>((ref) => null);
 
-/// Exposes a singleton [AuthService] instance through Riverpod.
-final authServiceProvider = Provider<AuthService>((ref) => AuthService());
-
-/// Helper provider to access [UserService] wherever needed.
-final userServiceProvider = Provider<UserService>((ref) => UserService());
-
-/// Stream provider for real-time user profile updates.
-final userProfileStreamProvider = StreamProvider<AppUser?>((ref) {
-  final baseUser = ref.watch(userProvider);
-  final userService = ref.watch(userServiceProvider);
-
-  if (baseUser == null) {
-    return const Stream.empty();
-  }
-
-  return userService.watchUser(baseUser.uid);
-});
-
 /// Determines the initial route to navigate to after splash.
-/// Auth is now Node JWT-based. Firebase is only used for Google Sign In.
+/// Auth is Node JWT-based. Validates stored JWT via /api/auth/me on startup.
 final startupRouteProvider = FutureProvider<String>((ref) async {
   final tokenStorage = ref.read(tokenStorageProvider);
   final authRepo = ref.read(authApiRepositoryProvider);
@@ -109,11 +80,12 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     final schoolId = profile.schoolId;
 
     if (role.isEmpty) return '/selectRole';
-    if (schoolId == null || schoolId.isEmpty) return '/selectSchool';
+    if (schoolId == null || schoolId.isEmpty) return '/noSchool';
     if (role == 'student') return '/studentHome';
     if (role == 'teacher' || role == 'admin' || role == 'principal') {
       return '/teacherHome';
     }
+    if (role == 'parent') return '/parentHome';
     return targetRoute;
   } catch (e) {
     // Token expired or invalid — clear it and send to onboarding.
@@ -121,29 +93,6 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     await tokenStorage.delete();
     return targetRoute;
   }
-});
-
-/// 🔹 Attendance repository – wraps Firestore source behind a clean API.
-final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
-  return AttendanceRepository();
-});
-
-/// 🔹 Attendance service – business logic used by UI (student/admin screens).
-///
-/// Injects:
-/// - [AttendanceRepository] for data access
-/// - [UserService] for fetching student shift information
-/// - [schoolHolidayDateKeysProvider] as the single source of truth for holidays
-final attendanceServiceProvider = Provider<AttendanceService>((ref) {
-  final repo = ref.read(attendanceRepositoryProvider);
-  final userService = ref.read(userServiceProvider);
-  final holidayKeys = ref.read(schoolHolidayDateKeysProvider);
-
-  return AttendanceService(
-    repo: repo,
-    userService: userService,
-    schoolHolidayDateKeys: holidayKeys,
-  );
 });
 
 /// 🔹 Geo service – wraps Geolocator and geofence logic.

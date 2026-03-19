@@ -32,7 +32,14 @@ class ApiClient {
           }
           handler.next(options);
         },
-        onError: (DioException error, handler) {
+        onError: (DioException error, handler) async {
+          if (error.response?.statusCode == 401) {
+            // Token is invalid or expired — clear it so the next app
+            // startup sends the user to onboarding instead of crashing.
+            // The UI layer is responsible for navigation (ApiClient has
+            // no BuildContext). See debugging playbook BUG-020.
+            await tokenStorage.delete();
+          }
           handler.next(error);
         },
       ),

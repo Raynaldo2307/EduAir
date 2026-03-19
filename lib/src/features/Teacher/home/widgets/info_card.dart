@@ -98,8 +98,8 @@ class _InfoCardsRowState extends State<InfoCardsRow> {
                   curve: Curves.easeOutCubic,
                 )
                 .scale(
-                  begin: const Offset(0, 0.2),
-                  end: Offset.zero,
+                  begin: const Offset(0.95, 0.95),
+                  end: const Offset(1, 1),
                   duration: 600.ms,
                   curve: Curves.easeOutBack,
                 );

@@ -10,6 +10,7 @@ import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
 import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
+import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_page.dart';
 
 class TeacherShell extends ConsumerStatefulWidget {
   const TeacherShell({super.key});
@@ -31,8 +32,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
-    final isAdminOrPrincipal =
-        user?.role == 'admin' || user?.role == 'principal';
+    final isAdminOrPrincipal = user?.isAdminOrPrincipal ?? false;
 
     final pages = isAdminOrPrincipal
         ? <Widget>[
@@ -45,7 +45,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
         : <Widget>[
             TeacherHomeScreen(onSelectTab: _onSelectTab),
             StudentInfoPage(onBackToHome: () => _onSelectTab(0)),
-            AdminAttendancePage(onBackToHome: () => _onSelectTab(0)),
+            const TeacherAttendancePage(),
             const SettingsPage(),
           ];
 

@@ -2,84 +2,104 @@
 // ----------------
 // Role:
 // - Main dashboard for a logged-in teacher inside the TeacherShell.
-// - Greets the teacher and shows what’s important today.
+// - Greets the teacher and shows what's important today.
 //
 // Responsibilities:
 // - Display basic identity info (name, staff ID, avatar) from [userProvider].
-// - Highlight key actions via "hero" cards (e.g. new student entry, homework to review).
-// - Expose quick links to core teacher features (Attendance, Time Table, Student Info, etc.).
-// - Show today's classes / lectures.
-// - Show upcoming school events.
+// - Card 1: Attendance-batch-aware roll status for the teacher's homeroom class.
+//   Watches [teacherAttendanceForDateProvider] and reacts to loading/empty/done states.
+// - Card 2: Static quick-action (homework review placeholder).
+// - Quick links grid, today's classes, upcoming events.
 //
-// Current state:
-// - Uses hard-coded demo data for hero cards, quick links, today classes, and upcoming events.
-// - Uses fallback values for name / teacherId when user data is missing.
-//
-// Future improvements:
-// - Replace hard-coded lists with dynamic data from Firestore / backend.
-// - Make quick links tappable and navigate to real feature pages.
-// - Personalize hero cards and today classes from the teacher’s timetable.
+// Dark-mode: all colours route through Theme.of(context).colorScheme.
+// The InfoCard widget handles its own dark-mode background swap.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/core/app_theme.dart';
-
-// Teacher-specific widgets
 import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/info_card.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_grid.dart';
-
-// Shared widgets / models
 import 'package:edu_air/src/features/shared/widgets/today_classes_section.dart';
 import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart';
 import 'package:edu_air/src/models/class_session.dart';
 
+// Attendance awareness
+import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
+import 'package:edu_air/src/features/Teacher/attendance/teacher_attendance_providers.dart';
+import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
+
 class TeacherHomeScreen extends ConsumerWidget {
   const TeacherHomeScreen({super.key, required this.onSelectTab});
 
-  /// Callback from the shell to switch bottom nav tab (0 = Home, 1 = Student Info, ...)
+  /// Callback from the shell to switch bottom nav tab.
+  /// Teacher: 0=Home  1=Students  2=Attendance  3=Settings
   final void Function(int index) onSelectTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ----- 1. Who is logged in? ------------------------------------------------
+    // ── 1. Identity ──────────────────────────────────────────────────────────
     final user = ref.watch(userProvider);
 
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName
-        : 'Dev';
+        : 'Teacher';
 
-    // For now we reuse studentId as a generic ID until you have a staffId field.
     final teacherId = (user?.studentId?.isNotEmpty ?? false)
         ? user!.studentId!
-        : 'S8745';
+        : '—';
 
     final department = (user?.teacherDepartment?.trim().isNotEmpty ?? false)
         ? user!.teacherDepartment!
-        : 'Mathematics Department';
+        : 'EduAir School';
 
-    // ----- 2. Hero info cards (teacher focused) --------------------------------
-    final heroCards = [
-      const InfoCardData(
-        title: 'Check new student entry in your class',
-        subtitle: 'New students waiting for review.',
-        imageUrl: 'assets/images/teacher_hero_new_student.png',
-        ctaLabel: 'Check Now',
-        backgroundColor: Color(0xFFFDE3D0), // soft peach
-      ),
-      const InfoCardData(
-        title: 'Review homework submissions',
-        subtitle: '5 assignments submitted today.',
-        imageUrl: 'assets/images/teacher_hero_homework.png',
-        ctaLabel: 'Review',
-        backgroundColor: Color(0xFFE1F5FE), // light blue
-      ),
-    ];
+    // ── 2. Attendance-batch-aware roll status hook ────────────────────────────
+    //
+    // We query [teacherAttendanceForDateProvider] for the teacher's homeroom
+    // class today.  The provider is a FutureProvider.family.autoDispose, so it:
+    //   • reacts automatically when the query key changes
+    //   • disposes itself when this widget leaves the tree
+    //   • returns Map<studentUid, AttendanceStatus> — empty = no roll yet
+    //
+    final homeroomClassId = user?.homeroomClassId;
+    final homeroomClassName = user?.homeroomClassName;
+    final schoolId = user?.schoolId;
+    final todayKey = AttendanceDay.dateKeyFor(DateTime.now());
 
-    // ----- 3. Quick links (teacher tools) -------------------------------------
-    final quickLinks = const [
+    AsyncValue<Map<String, AttendanceStatus>>? rollAsync;
+
+    final hasHomeroom = homeroomClassId != null &&
+        homeroomClassId.isNotEmpty &&
+        homeroomClassName != null &&
+        homeroomClassName.isNotEmpty &&
+        schoolId != null &&
+        schoolId.isNotEmpty;
+
+    if (hasHomeroom) {
+      rollAsync = ref.watch(
+        teacherAttendanceForDateProvider(
+          TeacherAttendanceQuery(
+            schoolId: schoolId,
+            classOption: TeacherClassOption(
+              classId: homeroomClassId,
+              className: homeroomClassName,
+            ),
+            dateKey: todayKey,
+          ),
+        ),
+      );
+    }
+
+    // ── 3. Hero cards (dynamic roll status + static second card) ─────────────
+    final heroCards = _buildTeacherHeroCards(
+      rollAsync: rollAsync,
+      homeroomClassName: homeroomClassName,
+      onGoToAttendance: () => onSelectTab(2),
+    );
+
+    // ── 4. Quick links ───────────────────────────────────────────────────────
+    const quickLinks = [
       QuickLinkItem(
         icon: Icons.event_available_outlined,
         label: 'Attendance',
@@ -116,7 +136,6 @@ class TeacherHomeScreen extends ConsumerWidget {
         label: 'Student Info',
         backgroundColor: Color(0xFFFDE9EC),
         iconColor: Color(0xFFE65D7B),
-        // routeName: '/teacherStudentInfo',
       ),
       QuickLinkItem(
         icon: Icons.chat_bubble_outline,
@@ -132,11 +151,11 @@ class TeacherHomeScreen extends ConsumerWidget {
       ),
     ];
 
+    // ── 5. Today's classes (still demo data) ─────────────────────────────────
     final now = DateTime.now();
     DateTime todayAt(int hour, int minute) =>
         DateTime(now.year, now.month, now.day, hour, minute);
 
-    // ----- 4. Today’s classes / lectures --------------------------------------
     final todayClasses = [
       ClassSession(
         id: 'class-1',
@@ -160,8 +179,8 @@ class TeacherHomeScreen extends ConsumerWidget {
       ),
     ];
 
-    // ----- 5. Upcoming events (shared widget) ---------------------------------
-    final upcomingEvents = const [
+    // ── 6. Upcoming events (shared widget, still demo) ────────────────────────
+    const upcomingEvents = [
       UpcomingEvent(
         title: 'Staff meeting',
         dateLabel: 'Nov 22, 2024',
@@ -182,9 +201,9 @@ class TeacherHomeScreen extends ConsumerWidget {
       ),
     ];
 
-    // ----- 6. Build the page --------------------------------------------------
+    // ── 7. Build the page ─────────────────────────────────────────────────────
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -192,7 +211,7 @@ class TeacherHomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header (name, ID, avatar)
+              // Header
               AppGreetingHeader(
                 name: name,
                 id: teacherId,
@@ -203,25 +222,19 @@ class TeacherHomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 18),
 
-              // Hero cards (no green strip for teacher, matches your FlutterFlow UI)
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkCard : AppTheme.heroStripBackground,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: InfoCardsRow(cards: heroCards),
-              ),
+              // InfoCardsRow handles its own background + dark mode internally
+              InfoCardsRow(cards: heroCards),
 
-              //InfoCardsRow(cards: heroCards),
               const SizedBox(height: 24),
 
-              // Quick links title
+              // Dashboard title
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   'Dashboard',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onSurface),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: cs.onSurface,
+                      ),
                 ),
               ),
 
@@ -233,37 +246,29 @@ class TeacherHomeScreen extends ConsumerWidget {
                 child: QuickLinksGrid(
                   links: quickLinks,
                   onItemTap: (context, item) {
-                    // Attendance → push to attendance page
                     if (item.label == 'Attendance') {
                       Navigator.of(context).pushNamed('/teacherAttendance');
-                    }
-                    // Student Info → switch bottom tab to index 1
-                    else if (item.label == 'Student Info') {
+                    } else if (item.label == 'Student Info') {
                       onSelectTab(1);
                     }
-
-                    // other links can stay empty for now or get routes later
                   },
                 ),
               ),
+
               const SizedBox(height: 24),
 
-              // Today lectures / classes
+              // Today's classes
               TodayClassesSection(
                 sessions: todayClasses,
-                onViewAll: () {
-                  // TODO: navigate to full timetable screen
-                },
+                onViewAll: () {},
               ),
 
               const SizedBox(height: 24),
 
-              // Upcoming events (shared between student + teacher)
+              // Upcoming events
               UpcomingEventsSection(
                 events: upcomingEvents,
-                onViewAll: () {
-                  // TODO: navigate to full events screen
-                },
+                onViewAll: () {},
               ),
             ],
           ),
@@ -271,4 +276,96 @@ class TeacherHomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ── Hero card builder ──────────────────────────────────────────────────────────
+//
+// Four states for Card 1 (batch-aware):
+//   • rollAsync == null   → no homeroom class assigned
+//   • isLoading           → querying the API
+//   • hasError            → network / server problem
+//   • map.isEmpty         → roll not yet taken today
+//   • map.isNotEmpty      → roll submitted — shows present count
+//
+// Card 2 is always static (homework placeholder).
+
+List<InfoCardData> _buildTeacherHeroCards({
+  required AsyncValue<Map<String, AttendanceStatus>>? rollAsync,
+  required String? homeroomClassName,
+  required VoidCallback onGoToAttendance,
+}) {
+  final className =
+      (homeroomClassName?.isNotEmpty ?? false) ? homeroomClassName! : 'your class';
+
+  final InfoCardData rollCard;
+
+  if (rollAsync == null) {
+    // No homeroom class set — still give the teacher a useful CTA
+    rollCard = InfoCardData(
+      title: 'Take today\'s attendance',
+      subtitle: 'Mark your class as present or absent.',
+      ctaLabel: 'Mark Now',
+      backgroundColor: const Color(0xFFFFF8E8), // warm cream
+      imageUrl: 'assets/images/teacher_hero_new_student.png',
+      onTap: onGoToAttendance,
+    );
+  } else if (rollAsync.isLoading) {
+    rollCard = InfoCardData(
+      title: 'Checking today\'s roll...',
+      subtitle: 'Loading attendance for $className.',
+      backgroundColor: const Color(0xFFE8F2FF), // soft blue
+      imageUrl: 'assets/images/teacher_hero_new_student.png',
+      onTap: onGoToAttendance,
+    );
+  } else if (rollAsync.hasError) {
+    rollCard = InfoCardData(
+      title: 'Could not load roll',
+      subtitle: 'Tap to open attendance and try again.',
+      ctaLabel: 'Open',
+      backgroundColor: const Color(0xFFFFF3CD), // soft amber — warning
+      imageUrl: 'assets/images/teacher_hero_new_student.png',
+      onTap: onGoToAttendance,
+    );
+  } else {
+    final rollMap = rollAsync.valueOrNull ?? {};
+
+    if (rollMap.isEmpty) {
+      // Roll not taken yet
+      rollCard = InfoCardData(
+        title: 'Take today\'s roll',
+        subtitle: 'Mark attendance for $className.',
+        ctaLabel: 'Mark Now',
+        backgroundColor: const Color(0xFFFFF8E8), // warm cream — action needed
+        imageUrl: 'assets/images/teacher_hero_new_student.png',
+        onTap: onGoToAttendance,
+      );
+    } else {
+      // Roll submitted — count present-like vs total
+      final presentCount =
+          rollMap.values.where((s) => s.isPresentLike).length;
+      final totalCount = rollMap.length;
+
+      rollCard = InfoCardData(
+        title: 'Roll done ✓',
+        subtitle:
+            '$presentCount / $totalCount present in $className.',
+        ctaLabel: 'View Report',
+        backgroundColor: const Color(0xFFE8F8EE), // soft green — done
+        imageUrl: 'assets/images/teacher_hero_new_student.png',
+        onTap: onGoToAttendance,
+      );
+    }
+  }
+
+  return [
+    rollCard,
+    // Card 2: static quick-action
+    InfoCardData(
+      title: 'Review homework submissions',
+      subtitle: 'Check and grade student work.',
+      ctaLabel: 'Review',
+      backgroundColor: const Color(0xFFF0EAFF), // soft lavender
+      imageUrl: 'assets/images/teacher_hero_homework.png',
+    ),
+  ];
 }

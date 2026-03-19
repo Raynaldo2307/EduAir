@@ -1,5 +1,4 @@
 // lib/src/models/app_user.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppUser {
   final String uid;
@@ -102,20 +101,30 @@ class AppUser {
     return int.tryParse(raw);
   }
 
-  /// ✅ Convert Firestore to Dart model
+  // ─── Role Helpers ────────────────────────────────────────────────────────
+  // Node JWT is the security layer. These are UI/UX guards only.
+  // Use these everywhere instead of raw role string comparisons.
+  bool get isStudent          => role == 'student';
+  bool get isTeacher          => role == 'teacher';
+  bool get isAdmin            => role == 'admin';
+  bool get isPrincipal        => role == 'principal';
+  bool get isParent           => role == 'parent';
+  bool get isAdminOrPrincipal => isAdmin || isPrincipal;
+  bool get isStaff            => isTeacher || isAdmin || isPrincipal;
+
+  /// Convert a plain map (Node API or Firestore-free) to AppUser.
   factory AppUser.fromMap(String uid, Map<String, dynamic>? data) {
     final map = data ?? <String, dynamic>{};
 
-    final Timestamp? cts = map['createdAt'] is Timestamp
-        ? map['createdAt'] as Timestamp
-        : null;
-    final Timestamp? uts = map['updatedAt'] is Timestamp
-        ? map['updatedAt'] as Timestamp
-        : null;
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      if (v is String) return DateTime.tryParse(v);
+      return null;
+    }
 
-    final Timestamp? dobTs = map['dateOfBirth'] is Timestamp
-        ? map['dateOfBirth'] as Timestamp
-        : null;
+    final cts   = parseDate(map['createdAt']);
+    final uts   = parseDate(map['updatedAt']);
+    final dobTs = parseDate(map['dateOfBirth']);
 
     final rawGradeLevel = map['gradeLevel'];
     final String? gradeLevel = rawGradeLevel?.toString();
@@ -170,22 +179,18 @@ class AppUser {
       childrenIds: map['childrenIds'] != null
           ? List<String>.from(map['childrenIds'])
           : null,
-      createdAt: cts?.toDate(),
-      updatedAt: uts?.toDate(),
+      createdAt: cts,
+      updatedAt: uts,
 
       // NEW: hydrate profile fields
       parentGuardianName: map['parentGuardianName'] as String?,
       parentGuardianPhone: map['parentGuardianPhone'] as String?,
       address: map['address'] as String?,
-      dateOfBirth: dobTs?.toDate(),
+      dateOfBirth: dobTs,
     );
   }
 
-  factory AppUser.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> snap) {
-    return AppUser.fromMap(snap.id, snap.data());
-  }
-
-  /// ✅ Convert Dart back to Firestore
+  /// Convert AppUser to a plain map (for Node API or in-memory use).
   Map<String, dynamic> toMap({bool includeTimestampsWhenMissing = true}) {
     return {
       'uid': uid,
@@ -221,19 +226,10 @@ class AppUser {
       'parentGuardianName': parentGuardianName,
       'parentGuardianPhone': parentGuardianPhone,
       'address': address,
-      'dateOfBirth': dateOfBirth != null
-          ? Timestamp.fromDate(dateOfBirth!)
-          : null,
-
-      /// ✅ Timestamp strategy
-      'createdAt': createdAt != null
-          ? Timestamp.fromDate(createdAt!)
-          : (includeTimestampsWhenMissing
-                ? FieldValue.serverTimestamp()
-                : null),
-      'updatedAt': updatedAt != null
-          ? Timestamp.fromDate(updatedAt!)
-          : FieldValue.serverTimestamp(),
+      'dateOfBirth': dateOfBirth?.toIso8601String(),
+      'createdAt':   createdAt?.toIso8601String(),
+      'updatedAt':   updatedAt?.toIso8601String()
+                     ?? DateTime.now().toIso8601String(),
     };
   }
 

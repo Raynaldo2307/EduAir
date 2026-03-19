@@ -1,12 +1,12 @@
 // lib/src/features/attendance/application/student_attendance_history_controller.dart
 
 import 'dart:developer' as dev;
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/features/attendance/data/attendance_api_repository.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
-import 'package:edu_air/src/features/attendance/domain/attendance_service.dart';
-import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 
 /// State for student attendance history.
 class StudentAttendanceHistoryState {
@@ -37,39 +37,25 @@ class StudentAttendanceHistoryState {
 
 /// Controller for student attendance history.
 ///
-/// This controller:
-/// - Loads recent attendance days for the logged-in student
-/// - Provides summary statistics (present/absent counts)
-/// - Maps domain exceptions to user-friendly messages
-///
-/// Usage:
-/// ```dart
-/// final state = ref.watch(studentAttendanceHistoryControllerProvider);
-/// final controller = ref.read(studentAttendanceHistoryControllerProvider.notifier);
-///
-/// // Reload history
-/// await controller.loadRecent(limit: 14);
-/// ```
+/// Uses the Node API via [AttendanceApiRepository] — no Firestore access.
 class StudentAttendanceHistoryController
     extends StateNotifier<StudentAttendanceHistoryState> {
-  final AttendanceService _service;
+  final AttendanceApiRepository _repo;
   final Ref _ref;
 
-  StudentAttendanceHistoryController(this._ref, this._service)
+  StudentAttendanceHistoryController(this._ref, this._repo)
       : super(const StudentAttendanceHistoryState(
             days: AsyncValue.loading())) {
-    // Load recent days on init
     loadRecent();
   }
 
-  /// Load recent attendance days.
+  /// Load recent attendance days from the Node API.
   ///
   /// [limit] - Number of days to load (default: 14).
-  /// [shiftType] - Optional shift filter. If null, uses student's currentShift
-  ///               from their profile, or defaults to 'whole_day'.
+  /// [shiftType] - Optional shift filter.
   Future<void> loadRecent({int limit = 14, String? shiftType}) async {
     final user = _ref.read(userProvider);
-    if (user == null || user.schoolId == null) {
+    if (user == null) {
       state = const StudentAttendanceHistoryState(
         days: AsyncValue.data([]),
         lastErrorMessage: null,
@@ -80,15 +66,15 @@ class StudentAttendanceHistoryController
     state = state.copyWith(days: const AsyncValue.loading(), clearError: true);
 
     try {
-      // If no shiftType provided, let the service derive from user profile
       final effectiveShift = shiftType ?? user.currentShift;
-
-      final days = await _service.getRecentDays(
-        schoolId: user.schoolId!,
-        studentUid: user.uid,
+      final records = await _repo.getMyHistory(
         limit: limit,
         shiftType: effectiveShift,
       );
+
+      final days = records
+          .map((r) => AttendanceDay.fromApiMap(r, studentUid: user.uid))
+          .toList();
 
       state = state.copyWith(days: AsyncValue.data(days));
 
@@ -104,7 +90,7 @@ class StudentAttendanceHistoryController
         stackTrace: st,
       );
 
-      final message = mapAttendanceErrorToMessage(e);
+      final message = _mapError(e);
       state = state.copyWith(
         days: AsyncValue.error(e, st),
         lastErrorMessage: message,
@@ -119,14 +105,26 @@ class StudentAttendanceHistoryController
   void clearError() {
     state = state.copyWith(clearError: true);
   }
+
+  String _mapError(Object e) {
+    if (e is DioException) {
+      final status = e.response?.statusCode;
+      if (status == 401) return 'Session expired. Please sign in again.';
+      if (status == 403) return 'Permission denied.';
+      return 'Network error. Please check your connection and try again.';
+    }
+    return 'Something went wrong while loading attendance. Please try again.';
+  }
 }
 
 /// Provider for the student attendance history controller.
+///
+/// Uses the Node API — no Firestore access required.
 final studentAttendanceHistoryControllerProvider = StateNotifierProvider<
     StudentAttendanceHistoryController, StudentAttendanceHistoryState>(
   (ref) {
-    final service = ref.watch(attendanceServiceProvider);
-    return StudentAttendanceHistoryController(ref, service);
+    final repo = ref.watch(attendanceApiRepositoryProvider);
+    return StudentAttendanceHistoryController(ref, repo);
   },
 );
 

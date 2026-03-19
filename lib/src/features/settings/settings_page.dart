@@ -66,7 +66,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
     final role = user?.role ?? '';
-    final isAdminOrPrincipal = role == 'admin' || role == 'principal';
+    final isAdminOrPrincipal = user?.isAdminOrPrincipal ?? false;
     final name = user?.displayName ?? 'User';
     final email = user?.email ?? '—';
     final school = _schoolName(user?.schoolId);
@@ -499,6 +499,7 @@ class _RoleBadge extends StatelessWidget {
       'teacher'   => ('TEACHER',   const Color(0xFFD3F9D8), const Color(0xFF2F9E44)),
       'admin'     => ('ADMIN',     const Color(0xFFF8F2DC), const Color(0xFFB7791F)),
       'principal' => ('PRINCIPAL', const Color(0xFFEDEDFF), const Color(0xFF5C5FC6)),
+      'parent'    => ('PARENT',    const Color(0xFFFFECF0), const Color(0xFFD6336C)),
       _           => ('USER',      const Color(0xFFF1F3F5), const Color(0xFF495057)),
     };
     return Container(

@@ -1,19 +1,12 @@
-//import 'package:edu_air/src/features/shell/student_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:edu_air/src/shared/app_router.dart';
 
-// Theme + Router
+import 'package:edu_air/src/shared/app_router.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
-//import 'package:edu_air/src/features/shell/teacher_shell.dart';
-//import 'src/dev/dev_seed_schools.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -23,7 +16,6 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Rebuilds whenever the user toggles dark/light mode
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
@@ -31,8 +23,8 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,           // ← this is what makes the switch work
-      initialRoute: '/teacher',
+      themeMode: themeMode,
+      initialRoute: '/',
       onGenerateRoute: AppRouter.generateRoute,
     );
   }
