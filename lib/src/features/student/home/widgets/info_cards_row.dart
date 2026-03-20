@@ -172,7 +172,7 @@ class _InfoCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     card.subtitle,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: textColor.withValues(alpha: 0.7),

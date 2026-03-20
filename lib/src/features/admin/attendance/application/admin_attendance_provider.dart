@@ -12,9 +12,9 @@ final attendanceDateProvider = StateProvider<DateTime>(
 // ─── Shift filter ─────────────────────────────────────────────────────────────
 
 /// Shift is locked to the school's configured default shift type.
-/// Reads from the logged-in user's profile — never a manual selection.
-final attendanceShiftProvider = StateProvider<String>(
-  (ref) => ref.read(userProvider)?.defaultShiftType ?? 'whole_day',
+/// Uses watch (not read) so it stays in sync after login/logout.
+final attendanceShiftProvider = Provider<String>(
+  (ref) => ref.watch(userProvider)?.defaultShiftType ?? 'whole_day',
 );
 
 // ─── Results ──────────────────────────────────────────────────────────────────

@@ -153,6 +153,56 @@ class StudentHomePage extends ConsumerWidget {
 
 /// --- Static / helper data builders ---------------------------------------
 
+/// Clock-in window start/end hours per shift (24h).
+({int startH, int startM, int endH, int endM}) _clockInRange(String? shift) {
+  switch (shift) {
+    case 'morning':   return (startH: 7,  startM: 0, endH: 7,  endM: 30);
+    case 'afternoon': return (startH: 12, startM: 0, endH: 12, endM: 30);
+    case 'whole_day':
+    default:          return (startH: 8,  startM: 0, endH: 8,  endM: 30);
+  }
+}
+
+/// Returns the clock-in window string based on the student's shift.
+String _clockInWindow(String? shift) {
+  switch (shift) {
+    case 'morning':
+      return '7:00 AM – 7:30 AM';
+    case 'afternoon':
+      return '12:00 PM – 12:30 PM';
+    case 'whole_day':
+    default:
+      return '8:00 AM – 8:30 AM';
+  }
+}
+
+/// Smart not-clocked-in subtitle: changes based on current time vs window.
+String _clockInSubtitle(String? shift) {
+  final now  = DateTime.now();
+  final r    = _clockInRange(shift);
+  final open  = DateTime(now.year, now.month, now.day, r.startH, r.startM);
+  final close = DateTime(now.year, now.month, now.day, r.endH,   r.endM);
+
+  if (now.isBefore(open)) {
+    // Before the window — tell them when it opens
+    return 'Clock-in opens at ${_fmt(open)}. Be ready!';
+  } else if (now.isAfter(close)) {
+    // Missed today — let them know
+    return 'Clock-in window has closed for today. See your teacher if this is an error.';
+  } else {
+    // Inside the window right now — urgent
+    final mins = close.difference(now).inMinutes;
+    return 'Clock in NOW — window closes in $mins min (${_fmt(close)}).';
+  }
+}
+
+String _fmt(DateTime dt) {
+  final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+  final m = dt.minute.toString().padLeft(2, '0');
+  final period = dt.hour >= 12 ? 'PM' : 'AM';
+  return '$h:$m $period';
+}
+
 /// Returns the clock-out window string based on the student's shift.
 String _clockOutWindow(String? shift) {
   switch (shift) {
@@ -183,10 +233,11 @@ List<InfoCardData> _buildHeroCards({
       onTap: onTapAttendance,
     );
   } else if (attendanceState.hasClockedOut) {
-    // Done: self clock-out OR teacher-marked (no clock-out expected)
+    // All done — tell them the exact window to come back tomorrow
+    final inWindow = _clockInWindow(currentShift);
     statusCard = InfoCardData(
-      title: 'All done for today ✓',
-      subtitle: 'Attendance complete. See you tomorrow!',
+      title: 'You\'re all set for today ✓',
+      subtitle: 'All done! Clock in tomorrow between $inWindow.',
       ctaLabel: 'View History',
       backgroundColor: const Color(0xFFD3F9D8),
       imageUrl: 'assets/images/home_hero_live.png',
@@ -199,19 +250,20 @@ List<InfoCardData> _buildHeroCards({
         ? '${clockIn.hour.toString().padLeft(2, '0')}:${clockIn.minute.toString().padLeft(2, '0')}'
         : '';
     final shift = attendanceState.todayRecord?.shiftType ?? currentShift;
-    final window = _clockOutWindow(shift);
+    final outWindow = _clockOutWindow(shift);
     statusCard = InfoCardData(
       title: 'Checked in${timeStr.isNotEmpty ? ' at $timeStr' : ''} ✓',
-      subtitle: 'Clock out between $window to complete attendance.',
+      subtitle: 'Remember to clock out between $outWindow to complete your attendance.',
       ctaLabel: 'Clock Out',
       backgroundColor: const Color(0xFFD3F9D8),
       imageUrl: 'assets/images/home_hero_live.png',
       onTap: onTapAttendance,
     );
   } else {
+    // Not clocked in — time-aware message (before / during / after window)
     statusCard = InfoCardData(
       title: 'Mark your attendance',
-      subtitle: "Don't forget to clock in today.",
+      subtitle: _clockInSubtitle(currentShift),
       ctaLabel: 'Clock In',
       backgroundColor: const Color(0xFFE1F5FE),
       imageUrl: 'assets/images/home_hero_live.png',

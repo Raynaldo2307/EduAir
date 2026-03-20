@@ -197,6 +197,15 @@
 
 ---
 
+### BUG-025 — Admin Attendance Shows Wrong Shift After DB Fix / Re-Login
+**Symptom:** Admin attendance report shows "Morning Shift" even after DB was corrected and user logged out and back in.
+**Root Cause:** Two problems combined. (1) `StateProvider` with `ref.read` initializes once at first access and caches the value forever — never updates on login/logout. (2) Live attendance records in DB had `shift_type = 'morning'` from early testing when the student's `current_shift_type` was incorrectly set.
+**Fix:** Change `StateProvider(ref.read(...))` → `Provider(ref.watch(...))` for any provider derived from user/school config. Fix DB: `UPDATE schools SET default_shift_type = 'whole_day' WHERE id = ?` + `UPDATE students SET current_shift_type = 'whole_day'` + `UPDATE attendance SET shift_type = 'whole_day' WHERE shift_type = 'morning'`. Then **hot restart** (capital R) — hot reload alone won't swap a provider type.
+**Rule:** Any provider derived from logged-in user data must use `Provider` + `ref.watch`, not `StateProvider` + `ref.read`. `ref.read` in a provider body = stale forever.
+**Verify:** App shows correct school shift after hot restart + login. Attendance records visible under correct filter.
+
+---
+
 ### BUG-022 — `ProviderScope(parent:)` Deprecation Warning in Bottom Sheet
 **Symptom:** `'parent' is deprecated and shouldn't be used. Will be removed in 3.0.0` warning on `showModalBottomSheet`.
 **Root Cause:** `ProviderScope(parent: ProviderScope.containerOf(context))` was the old way to attach a bottom sheet to the parent container. Removed in Riverpod 3.0.
@@ -238,3 +247,5 @@
 | Tile invisible in light mode | `Material(elevation:1)` on white bg | Use `Container` + explicit `boxShadow` |
 | `ProviderScope parent deprecated` | Old Riverpod API in bottom sheet | Use `UncontrolledProviderScope(container: ...)` |
 | Inconsistent avatar colours | Inline palette per widget | Use shared `UserAvatar` widget from `shared/widgets/` |
+| Provider shows stale value after re-login | `StateProvider` + `ref.read` caches once | Use `Provider` + `ref.watch` for user-derived data |
+| Wrong shift after DB fix | `ref.read` never re-runs + stale DB records | Fix DB, change to `ref.watch`, hot **restart** not reload |
