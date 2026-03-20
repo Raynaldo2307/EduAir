@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/core/app_error_handler.dart';
-import 'package:edu_air/src/models/app_user.dart';
 import 'package:edu_air/src/features/auth/sign_up_form.dart';
-import 'package:edu_air/src/features/auth/reset_password_page.dart'; //
+import 'package:edu_air/src/features/auth/reset_password_page.dart';
+import 'package:edu_air/src/features/auth/application/auth_notifier.dart';
 
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
@@ -16,13 +13,11 @@ class SignInPage extends ConsumerStatefulWidget {
 }
 
 class _SignInPageState extends ConsumerState<SignInPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _formKey          = GlobalKey<FormState>();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _isSubmitting = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -31,119 +26,75 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     super.dispose();
   }
 
-  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
+  InputDecoration _inputDecoration(
+    BuildContext context, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
+    final cs     = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
-      filled: true,
-      fillColor: AppTheme.accent.withValues(alpha: 0.2),
-      hintText: hintText,
-
+      filled:    true,
+      fillColor: isDark
+          ? cs.surfaceContainerHighest
+          : cs.primary.withValues(alpha: 0.06),
+      hintText:  hintText,
+      hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
+        borderSide: BorderSide(color: cs.primary, width: 1.2),
       ),
-
-      // When the field is enabled but Not focused
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
+        borderSide: BorderSide(color: cs.primary, width: 1.2),
       ),
-
-      //When the field is focused (typing)
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+        borderSide: BorderSide(color: cs.primary, width: 1.8),
       ),
-
-      // red border when there's a validation
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.red, width: 1.8),
       ),
-
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 1.8),
+      ),
       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       suffixIcon: suffixIcon,
     );
   }
 
-  String _routeForRole(String role, String? schoolId) {
-    if (role.isEmpty) return '/selectRole';
-    if (schoolId == null || schoolId.isEmpty) return '/noSchool';
-    if (role == 'student') return '/studentHome';
-    if (role == 'teacher' || role == 'admin' || role == 'principal') {
-      return '/teacherHome';
-    }
-    return '/onboarding';
-  }
-
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-
     FocusScope.of(context).unfocus();
 
     final navigator = Navigator.of(context);
-    final authRepo = ref.read(authApiRepositoryProvider);
-    final userNotifier = ref.read(userProvider.notifier);
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
+    // All logic lives in AuthNotifier — service layer, not the UI.
+    final route = await ref.read(authNotifierProvider.notifier).login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
 
-    try {
-      // Call Node API — saves JWT automatically inside the repository.
-      final data = await authRepo.login(email: email, password: password);
-      final userData = data['user'] as Map<String, dynamic>;
-
-      final role = userData['role'] ?? '';
-      final schoolId = userData['schoolId']?.toString();
-
-      userNotifier.state = AppUser(
-        uid: userData['id'].toString(),
-        firstName: userData['firstName'] ?? '',
-        lastName: userData['lastName'] ?? '',
-        email: userData['email'] ?? '',
-        phone: '',
-        role: role,
-        schoolId: schoolId,
-        defaultShiftType:  userData['defaultShiftType']  as String?,
-        isShiftSchool:     userData['isShiftSchool']  as bool? ?? false,
-        studentId:         userData['studentId']         as String?,
-        currentShift:      userData['currentShift']      as String?,
-        sex:               userData['sex']               as String?,
-        classId:           userData['classId']           as String?,
-        className:         userData['className']         as String?,
-        gradeLevel:        userData['gradeLevel']        as String?,
-        homeroomClassId:   userData['homeroomClassId']   as String?,
-        homeroomClassName: userData['homeroomClassName'] as String?,
-      );
-
-      if (!mounted) return;
-
-      final targetRoute = _routeForRole(role, schoolId);
-      // Clear the entire navigation stack — prevents stale shells (e.g.
-      // TeacherShell) from staying mounted when a different role logs in.
-      // If we only pushReplacementNamed, the old shell stays in memory,
-      // its providers re-fire with the new JWT, and role-gated endpoints
-      // return 401. See debugging playbook BUG-020.
-      navigator.pushNamedAndRemoveUntil(targetRoute, (route) => false);
-    } catch (e, st) {
-      final message = AppErrorHandler.message(e, context: 'SignIn', stackTrace: st);
-      if (!mounted) return;
-      setState(() => _errorMessage = message);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    // Navigate on success. Error is already set in notifier state.
+    if (route != null && mounted) {
+      // Clear the entire stack — prevents stale shells staying mounted
+      // when a different role logs in. See debugging playbook BUG-020.
+      navigator.pushNamedAndRemoveUntil(route, (r) => false);
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs           = Theme.of(context).colorScheme;
+    final txt          = Theme.of(context).textTheme;
+    final authState    = ref.watch(authNotifierProvider);
+    final isSubmitting = authState.isLoading;
+    final errorMessage = authState.errorMessage;
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -164,16 +115,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 const SizedBox(height: 32),
                 Text(
                   'Log in',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: AppTheme.textPrimary,
+                  style: txt.titleLarge?.copyWith(
+                    color: cs.onSurface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Hello, welcome back to your account.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+                  style: txt.bodyMedium?.copyWith(
+                    color: cs.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -182,7 +133,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   child: Column(
                     children: [
                       // Inline error banner — shown when login fails
-                      if (_errorMessage != null) ...[
+                      if (errorMessage != null) ...[
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
@@ -206,7 +157,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _errorMessage!,
+                                  errorMessage,
                                   style: const TextStyle(
                                     color: Color(0xFFB91C1C),
                                     fontSize: 13.5,
@@ -223,12 +174,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(color: cs.onSurface),
                         onChanged: (_) {
-                          if (_errorMessage != null) {
-                            setState(() => _errorMessage = null);
+                          if (authState.errorMessage != null) {
+                            ref.read(authNotifierProvider.notifier).clearError();
                           }
                         },
                         decoration: _inputDecoration(
+                          context,
                           hintText: 'Enter your email',
                         ),
                         validator: (value) {
@@ -247,25 +200,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        style: TextStyle(color: cs.onSurface),
                         onChanged: (_) {
-                          if (_errorMessage != null) {
-                            setState(() => _errorMessage = null);
+                          if (authState.errorMessage != null) {
+                            ref.read(authNotifierProvider.notifier).clearError();
                           }
                         },
                         decoration: _inputDecoration(
+                          context,
                           hintText: 'Enter your password',
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: AppTheme.textPrimary,
+                              color: cs.onSurface.withValues(alpha: 0.6),
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                            onPressed: () =>
+                                setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
                         validator: (value) {
@@ -276,57 +228,56 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         },
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Forgot password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ResetPasswordPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ResetPasswordPage(),
+                            ),
+                          ),
+                          child: Text(
                             'Forgot password?',
                             style: TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.primaryColor,
+                              fontSize: 14,
+                              color: cs.primary,
                             ),
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
 
-                      // Email login button
+                      // Log in button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _handleLogin,
+                          onPressed: isSubmitting ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: _isSubmitting
-                              ? const SizedBox(
+                          child: isSubmitting
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: cs.onPrimary,
                                   ),
                                 )
                               : const Text(
                                   'Log in',
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                         ),
@@ -338,23 +289,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             "Don't have an account?",
-                            style: TextStyle(fontSize: 15),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: cs.onSurface.withValues(alpha: 0.7),
+                            ),
                           ),
                           TextButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const SignUpPage(),
-                                ),
-                              );
-                            },
-                            child: const Text(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SignUpPage(),
+                              ),
+                            ),
+                            child: Text(
                               'Sign up',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
+                                color: cs.primary,
                                 fontSize: 15,
                               ),
                             ),

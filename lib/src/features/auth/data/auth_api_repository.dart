@@ -70,6 +70,25 @@ class AuthApiRepository {
     await _dio.put('/api/auth/me', data: data);
   }
 
+  // POST /api/auth/forgot-password — public, no token needed
+  Future<void> forgotPassword({required String email}) async {
+    await _dio.post('/api/auth/forgot-password', data: {'email': email});
+  }
+
+  // POST /api/auth/reset-password — public, no token needed
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _dio.post('/api/auth/reset-password', data: {
+      'email': email,
+      'code': code,
+      'newPassword': newPassword,
+    });
+  }
+
+
   /// Clear the stored JWT on logout.
   Future<void> logout() => _tokenStorage.delete();
 }

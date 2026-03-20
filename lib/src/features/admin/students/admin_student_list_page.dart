@@ -1,34 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/features/admin/students/application/admin_students_provider.dart';
 import 'admin_student_edit_page.dart';
-
-/// Maps a raw Node API student record to [AppUser].
-AppUser _nodeStudentToAppUser(Map<String, dynamic> d) {
-  return AppUser(
-    uid: d['student_id'].toString(),
-    firstName: d['first_name'] ?? '',
-    lastName: d['last_name'] ?? '',
-    email: d['email'] ?? '',
-    phone: d['phone_number'] ?? '',
-    role: 'student',
-    studentId: d['student_code'],
-    currentShift: d['current_shift_type'],
-    sex: d['sex'],
-    className: d['class_name'],
-    gradeLevel: d['grade_level']?.toString(),
-  );
-}
-
-/// Fetches all active students for the admin's school via the Node API.
-final schoolStudentsProvider = FutureProvider<List<AppUser>>((ref) async {
-  final studentsRepo = ref.read(studentsApiRepositoryProvider);
-  final raw = await studentsRepo.getAll();
-  return raw.map(_nodeStudentToAppUser).toList();
-});
 
 /// Admin/Principal page to view and manage students in their school.
 class AdminStudentListPage extends ConsumerWidget {
@@ -55,6 +32,20 @@ class AdminStudentListPage extends ConsumerWidget {
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
         elevation: 0,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final added = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => const AdminStudentEditPage(),
+            ),
+          );
+          if (added == true) ref.invalidate(schoolStudentsProvider);
+        },
+        icon: const Icon(Icons.person_add_outlined),
+        label: const Text('Add Student'),
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
       ),
       body: studentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -124,29 +115,28 @@ class _StudentTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final shiftLabel = _shiftDisplayLabel(student.currentShift);
 
-    return Material(
-      color: isDark ? AppTheme.darkCard : AppTheme.white,
-      borderRadius: BorderRadius.circular(12),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.08),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.35),
-                child: Text(
-                  student.initials,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCard : AppTheme.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            UserAvatar(
+              initials: student.initials,
+              photoUrl: student.photoUrl,
+              radius: 22,
+            ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -162,7 +152,7 @@ class _StudentTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${student.className ?? 'No class'} • $shiftLabel',
+                      '${student.className ?? (student.gradeLevel != null ? 'Grade ${student.gradeLevel}' : '—')} • $shiftLabel',
                       style: TextStyle(
                         fontSize: 12,
                         color: cs.onSurface.withValues(alpha: 0.6),
@@ -179,8 +169,7 @@ class _StudentTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   String _shiftDisplayLabel(String? shift) {

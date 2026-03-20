@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:edu_air/src/core/app_theme.dart';
-
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
 
@@ -11,14 +9,13 @@ class SignUpPage extends ConsumerStatefulWidget {
 }
 
 class _SignUpPageState extends ConsumerState<SignUpPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final _formKey            = GlobalKey<FormState>();
+  final _nameController     = TextEditingController();
+  final _emailController    = TextEditingController();
+  final _phoneController    = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final bool _isSubmitting = false; // prevents double-taps / multiple requests
-  bool _termsAccepted = false;
+  bool _termsAccepted  = false;
   bool _obscurePassword = true;
 
   @override
@@ -32,9 +29,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submitForm() async {
@@ -43,36 +39,40 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     _showSnack('Contact your school admin to create your account.');
   }
 
-
-  InputDecoration _inputDecoration({String? hintText, Widget? suffixIcon}) {
+  InputDecoration _inputDecoration(
+    BuildContext context, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
+    final cs     = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
-      filled: true,
-      fillColor: AppTheme.accent.withValues(alpha: 0.2),
-      hintText: hintText,
-
+      filled:    true,
+      fillColor: isDark
+          ? cs.surfaceContainerHighest
+          : cs.primary.withValues(alpha: 0.06),
+      hintText:  hintText,
+      hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
+        borderSide: BorderSide(color: cs.primary, width: 1.2),
       ),
-
-      // When the field is enabled but Not focused
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.2),
+        borderSide: BorderSide(color: cs.primary, width: 1.2),
       ),
-
-      //When the field is focused (typing)
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+        borderSide: BorderSide(color: cs.primary, width: 1.8),
       ),
-
-      // red border when there's a validation
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.red, width: 1.8),
       ),
-
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 1.8),
+      ),
       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       suffixIcon: suffixIcon,
     );
@@ -80,21 +80,22 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs  = Theme.of(context).colorScheme;
+    final txt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: AppTheme.white,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: Text(
           'Sign Up',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: txt.titleLarge?.copyWith(
+            color: cs.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppTheme.white,
+        backgroundColor: cs.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+        iconTheme: IconThemeData(color: cs.onSurface),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -104,88 +105,76 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Full name
-              Text('Full Name', style: theme.textTheme.labelLarge),
+              Text('Full Name', style: txt.labelLarge?.copyWith(color: cs.onSurface)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nameController,
-                decoration: _inputDecoration(hintText: 'Enter your full name'),
+                style: TextStyle(color: cs.onSurface),
+                decoration: _inputDecoration(context, hintText: 'Enter your full name'),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Name is required';
-                  }
+                  if (value == null || value.isEmpty) return 'Name is required';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
               // Email
-              Text('Email', style: theme.textTheme.labelLarge),
+              Text('Email', style: txt.labelLarge?.copyWith(color: cs.onSurface)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _emailController,
-                decoration: _inputDecoration(hintText: 'Enter your email'),
+                style: TextStyle(color: cs.onSurface),
+                decoration: _inputDecoration(context, hintText: 'Enter your email'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Email is required';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Enter a valid email';
-                  }
+                  if (value == null || value.isEmpty) return 'Email is required';
+                  if (!value.contains('@')) return 'Enter a valid email';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
               // Phone number
-              Text('Phone Number', style: theme.textTheme.labelLarge),
+              Text('Phone Number', style: txt.labelLarge?.copyWith(color: cs.onSurface)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _phoneController,
+                style: TextStyle(color: cs.onSurface),
                 decoration: _inputDecoration(
+                  context,
                   hintText: 'Enter your phone number',
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Phone number is required';
-                  }
-                  if (value.length < 10) {
-                    return 'Enter a valid phone number';
-                  }
+                  if (value == null || value.isEmpty) return 'Phone number is required';
+                  if (value.length < 10) return 'Enter a valid phone number';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
               // Password
-              Text('Password', style: theme.textTheme.labelLarge),
+              Text('Password', style: txt.labelLarge?.copyWith(color: cs.onSurface)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passwordController,
+                style: TextStyle(color: cs.onSurface),
                 decoration: _inputDecoration(
+                  context,
                   hintText: 'Enter your password',
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: cs.onSurface.withValues(alpha: 0.6),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 obscureText: _obscurePassword,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Password is required';
-                  }
-                  if (value.length < 6) {
-                    return 'Min 6 characters';
-                  }
+                  if (value == null || value.isEmpty) return 'Password is required';
+                  if (value.length < 6) return 'Min 6 characters';
                   return null;
                 },
               ),
@@ -196,25 +185,17 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 children: [
                   Checkbox(
                     value: _termsAccepted,
-                    onChanged: (val) {
-                      setState(() {
-                        _termsAccepted = val ?? false;
-                      });
-                    },
-                    activeColor: AppTheme.primaryColor,
+                    onChanged: (val) =>
+                        setState(() => _termsAccepted = val ?? false),
+                    activeColor: cs.primary,
                   ),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO: Navigate to Terms and Conditions page
-                      },
-                      child: const Text(
-                        'I agree to the Terms & Conditions',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textPrimary,
-                          decoration: TextDecoration.underline,
-                        ),
+                    child: Text(
+                      'I agree to the Terms & Conditions',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurface,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
@@ -228,29 +209,20 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _isSubmitting ? null : _submitForm,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.white,
-                          ),
-                        )
-                      : const Text(
-                          'Create Account',
-                          style: TextStyle(fontSize: 16, color: AppTheme.white),
-                        ),
+                  onPressed: _submitForm,
+                  child: const Text(
+                    'Create Account',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-
             ],
           ),
         ),

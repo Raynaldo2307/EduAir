@@ -197,6 +197,30 @@
 
 ---
 
+### BUG-022 — `ProviderScope(parent:)` Deprecation Warning in Bottom Sheet
+**Symptom:** `'parent' is deprecated and shouldn't be used. Will be removed in 3.0.0` warning on `showModalBottomSheet`.
+**Root Cause:** `ProviderScope(parent: ProviderScope.containerOf(context))` was the old way to attach a bottom sheet to the parent container. Removed in Riverpod 3.0.
+**Fix:** Replace with `UncontrolledProviderScope(container: ProviderScope.containerOf(context), child: ...)`.
+**Rule:** Any `showModalBottomSheet` that needs providers from the parent scope must use `UncontrolledProviderScope`, not `ProviderScope(parent:)`.
+
+---
+
+### BUG-023 — Card Tiles Invisible Against Page Background in Light Mode
+**Symptom:** List tiles look like plain text rows — no card shape, no depth, no separation.
+**Root Cause:** `Material(elevation: 1)` barely renders a shadow at low elevation on a white background. The tile colour and the page background are identical (`AppTheme.white`).
+**Fix:** Replaced `Material(elevation: 1)` with `Container(decoration: BoxDecoration(color: ..., borderRadius: ..., boxShadow: [BoxShadow(color: black.06, blurRadius: 8, offset: Offset(0, 2))]))`.
+**Rule:** For card tiles, always use explicit `BoxDecoration` + `boxShadow`. Never rely on `Material(elevation:)` — it is unreliable at low values. Adjust `alpha` for dark mode (`0.06` light / `0.2` dark).
+
+---
+
+### BUG-024 — Duplicate Avatar Palette Across Every Tile Widget
+**Symptom:** Staff tile, student tile, attendance tile, and home screen each had their own copy of `static const _bgColors` / `_iconColors` with slightly different values — colour inconsistency across screens.
+**Root Cause:** No shared avatar widget. Each developer copy-pasted the palette.
+**Fix:** Replaced all inline `CircleAvatar` + palette logic with the shared `UserAvatar` widget (`lib/src/shared/widgets/user_avatar.dart`). It uses a deterministic hash (not just first letter) so the same person always gets the same colour.
+**Rule:** Never write `CircleAvatar` + a colour palette inline. Always use `UserAvatar(initials: ..., photoUrl: ..., radius: ...)`. It handles photo fallback, dark mode, and consistent colour hashing in one place.
+
+---
+
 ## Common Error Quick-Reference
 
 | Error | Most Likely Cause | Fix |
@@ -211,3 +235,6 @@
 | Cascading undefined errors | Bracket mismatch after refactor | Read upward from first error line |
 | Dark mode looks broken | Hardcoded `Colors.white` / `AppTheme.X` | Use `colorScheme.surface` / `onSurface` |
 | API list returns empty | Parsing `response.data` not `response.data['data']` | Use `response.data['data']` for all list endpoints |
+| Tile invisible in light mode | `Material(elevation:1)` on white bg | Use `Container` + explicit `boxShadow` |
+| `ProviderScope parent deprecated` | Old Riverpod API in bottom sheet | Use `UncontrolledProviderScope(container: ...)` |
+| Inconsistent avatar colours | Inline palette per widget | Use shared `UserAvatar` widget from `shared/widgets/` |

@@ -21,8 +21,8 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/info_card.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_grid.dart';
-import 'package:edu_air/src/features/shared/widgets/today_classes_section.dart';
-import 'package:edu_air/src/features/shared/widgets/upcoming_events_section.dart';
+import 'package:edu_air/src/features/common/widgets/today_classes_section.dart';
+import 'package:edu_air/src/features/common/widgets/upcoming_events_section.dart';
 import 'package:edu_air/src/models/class_session.dart';
 
 // Attendance awareness

@@ -1,36 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/features/admin/staff/application/admin_staff_provider.dart';
 import 'admin_staff_edit_page.dart';
-
-// ─── Data mapper ─────────────────────────────────────────────────────────────
-
-/// Maps a raw Node API teacher record to [AppUser].
-AppUser _nodeStaffToAppUser(Map<String, dynamic> d) {
-  return AppUser(
-    uid: d['teacher_id'].toString(),
-    firstName: d['first_name'] ?? '',
-    lastName: d['last_name'] ?? '',
-    email: d['email'] ?? '',
-    phone: '',
-    role: 'teacher',
-    teacherDepartment: d['department'],
-    currentShift: d['current_shift_type'],
-    homeroomClassName: d['homeroom_class_name'],
-  );
-}
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
-/// Fetches all active staff for the admin's school via the Node API.
-final schoolStaffProvider = FutureProvider<List<AppUser>>((ref) async {
-  final staffRepo = ref.read(staffApiRepositoryProvider);
-  final raw = await staffRepo.getAll();
-  return raw.map(_nodeStaffToAppUser).toList();
-});
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -110,8 +85,8 @@ class AdminStaffListPage extends ConsumerWidget {
                     icon: const Icon(Icons.person_add_outlined),
                     label: const Text('Add First Staff Member'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ],
@@ -161,27 +136,10 @@ class _StaffTile extends StatelessWidget {
   final AppUser member;
   final VoidCallback onEdit;
 
-  static const _bgColors = [
-    Color(0xFFE8F2FF),
-    Color(0xFFF5EBFF),
-    Color(0xFFE6F6F3),
-    Color(0xFFF8F2DC),
-    Color(0xFFFDE9EC),
-  ];
-
-  static const _iconColors = [
-    Color(0xFF4A7CFF),
-    Color(0xFF9B51E0),
-    Color(0xFF2D9CDB),
-    Color(0xFFB7791F),
-    Color(0xFFE65D7B),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final idx = member.initials.codeUnitAt(0) % _bgColors.length;
     final dept = member.teacherDepartment;
     final shift = _shiftLabel(member.currentShift);
 
@@ -200,18 +158,7 @@ class _StaffTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: _bgColors[idx],
-            child: Text(
-              member.initials,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: _iconColors[idx],
-              ),
-            ),
-          ),
+          UserAvatar(initials: member.initials, photoUrl: member.photoUrl, radius: 24),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -233,9 +180,9 @@ class _StaffTile extends StatelessWidget {
                 const SizedBox(height: 1),
                 Text(
                   '$shift · ${member.email}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.primaryColor,
+                    color: cs.primary,
                   ),
                 ),
               ],

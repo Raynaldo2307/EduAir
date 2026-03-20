@@ -6,8 +6,8 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/models/app_user.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
-import 'package:edu_air/src/features/shared/pages/shared_profile_edit_page.dart';
-import 'package:edu_air/src/features/shared/widgets/profile_field.dart';
+import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart';
+import 'package:edu_air/src/features/common/widgets/profile_field.dart';
 
 /// Role-aware profile view page.
 ///

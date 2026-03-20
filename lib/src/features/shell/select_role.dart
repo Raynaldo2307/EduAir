@@ -15,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/core/app_theme.dart';
 
 class SelectRolePage extends ConsumerStatefulWidget {
   const SelectRolePage({super.key});
@@ -191,9 +190,9 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                 child: ElevatedButton(
                   onPressed: _selectedRole != null ? _continueWithRole : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    disabledBackgroundColor:
-                        AppTheme.primaryColor.withValues(alpha: 0.4),
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    disabledBackgroundColor: cs.primary.withValues(alpha: 0.4),
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -201,7 +200,7 @@ class _SelectRolePageState extends ConsumerState<SelectRolePage> {
                   ),
                   child: const Text(
                     'Continue',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(fontSize: 16),
                   ),
                 ),
               ),

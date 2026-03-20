@@ -99,7 +99,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
       body: IndexedStack(index: safeIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: safeIndex,
-        selectedItemColor: AppTheme.primaryColor,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
         backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBackground : AppTheme.white,
         type: BottomNavigationBarType.fixed,

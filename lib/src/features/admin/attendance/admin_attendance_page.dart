@@ -1,34 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/features/admin/attendance/application/admin_attendance_provider.dart';
 
-// ─── Providers ───────────────────────────────────────────────────────────────
-
-/// Holds the currently selected filter date (YYYY-MM-DD).
-final _attendanceDateProvider = StateProvider<DateTime>(
-  (ref) => DateTime.now(),
-);
-
-/// Shift is locked to the school's configured shift type.
-/// Reads from the logged-in user's profile — never a manual selection.
-final _attendanceShiftProvider = StateProvider<String>(
-  (ref) => ref.read(userProvider)?.defaultShiftType ?? 'whole_day',
-);
-
-/// Fetches school-wide attendance from Node API for the selected date + shift.
-final adminAttendanceResultProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final date = ref.watch(_attendanceDateProvider);
-  final shift = ref.watch(_attendanceShiftProvider);
-  final repo = ref.read(attendanceApiRepositoryProvider);
-
-  final dateKey =
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  return repo.getByDateAndShift(date: dateKey, shiftType: shift);
-});
+// Valid statuses the admin can set
+const _kStatuses = ['early', 'present', 'late', 'excused', 'absent'];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -42,8 +20,8 @@ class AdminAttendancePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedDate = ref.watch(_attendanceDateProvider);
-    final selectedShift = ref.watch(_attendanceShiftProvider);
+    final selectedDate = ref.watch(attendanceDateProvider);
+    final selectedShift = ref.watch(attendanceShiftProvider);
     final attendanceAsync = ref.watch(adminAttendanceResultProvider);
 
     final cs = Theme.of(context).colorScheme;
@@ -66,7 +44,7 @@ class AdminAttendancePage extends ConsumerWidget {
             selectedDate: selectedDate,
             selectedShift: selectedShift,
             onDateChanged: (d) =>
-                ref.read(_attendanceDateProvider.notifier).state = d,
+                ref.read(attendanceDateProvider.notifier).state = d,
             onRefresh: () => ref.invalidate(adminAttendanceResultProvider),
           ),
           const Divider(height: 1),
@@ -128,7 +106,7 @@ class _FilterBar extends StatelessWidget {
               label: Text(_formattedDate),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.onSurface,
-                side: const BorderSide(color: AppTheme.primaryColor),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -150,27 +128,27 @@ class _FilterBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.lock_outline,
                   size: 14,
-                  color: AppTheme.primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   _shiftLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -182,7 +160,7 @@ class _FilterBar extends StatelessWidget {
           IconButton(
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh),
-            color: AppTheme.primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             tooltip: 'Reload',
           ),
         ],
@@ -193,26 +171,47 @@ class _FilterBar extends StatelessWidget {
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
-class _AttendanceList extends StatelessWidget {
+class _AttendanceList extends ConsumerWidget {
   const _AttendanceList({required this.records});
 
   final List<Map<String, dynamic>> records;
 
+  void _showEditSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> record,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UncontrolledProviderScope(
+        container: ProviderScope.containerOf(context),
+        child: _AttendanceEditSheet(record: record),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: records.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _AttendanceTile(record: records[i]),
+      itemBuilder: (_, i) => _AttendanceTile(
+        record: records[i],
+        onEdit: () => _showEditSheet(context, ref, records[i]),
+      ),
     );
   }
 }
 
 class _AttendanceTile extends StatelessWidget {
-  const _AttendanceTile({required this.record});
+  const _AttendanceTile({required this.record, required this.onEdit});
 
   final Map<String, dynamic> record;
+  final VoidCallback onEdit;
+
 
   String get _studentName =>
       '${record['student_first_name'] ?? ''} ${record['student_last_name'] ?? ''}'
@@ -225,15 +224,18 @@ class _AttendanceTile extends StatelessWidget {
         .toUpperCase();
   }
 
-  String get _clockIn {
-    final t = record['clock_in'];
-    return t != null ? t.toString().substring(0, 5) : '--:--';
+  String _formatTime(dynamic t) {
+    if (t == null) return '--:--';
+    try {
+      final dt = DateTime.parse(t.toString()).toLocal();
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '--:--';
+    }
   }
 
-  String get _clockOut {
-    final t = record['clock_out'];
-    return t != null ? t.toString().substring(0, 5) : '--:--';
-  }
+  String get _clockIn  => _formatTime(record['clock_in']);
+  String get _clockOut => _formatTime(record['clock_out']);
 
   @override
   Widget build(BuildContext context) {
@@ -241,60 +243,71 @@ class _AttendanceTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final status = record['status'] as String? ?? 'absent';
 
-    return Material(
-      color: isDark ? AppTheme.darkCard : AppTheme.white,
-      borderRadius: BorderRadius.circular(12),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.07),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 20,
-              backgroundColor:
-                  AppTheme.secondaryColor.withValues(alpha: 0.3),
-              child: Text(
-                _initials,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: cs.onSurface,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkCard : AppTheme.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar — shared UserAvatar widget (deterministic colour from initials)
+          UserAvatar(initials: _initials, radius: 20),
+          const SizedBox(width: 12),
+
+          // Name + times
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _studentName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
                 ),
+                const SizedBox(height: 3),
+                Text(
+                  'In: $_clockIn   Out: $_clockOut',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: cs.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Status chip
+          _StatusChip(status: status),
+          const SizedBox(width: 14),
+
+          // Edit button — pushed clear of the chip
+          GestureDetector(
+            onTap: onEdit,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: isDark ? 0.12 : 0.06),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: cs.onSurface.withValues(alpha: 0.55),
               ),
             ),
-            const SizedBox(width: 12),
-
-            // Name + times
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _studentName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'In: $_clockIn   Out: $_clockOut',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: cs.onSurface.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Status chip
-            _StatusChip(status: status),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -375,3 +388,236 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
+
+// ─── Edit Sheet ───────────────────────────────────────────────────────────────
+
+/// Bottom sheet that lets admin/principal change a student's attendance status.
+/// Architecture: UI → AdminAttendanceNotifier → AttendanceApiRepository → Node API
+class _AttendanceEditSheet extends ConsumerStatefulWidget {
+  const _AttendanceEditSheet({required this.record});
+
+  final Map<String, dynamic> record;
+
+  @override
+  ConsumerState<_AttendanceEditSheet> createState() =>
+      _AttendanceEditSheetState();
+}
+
+class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
+  late String _selectedStatus;
+  final _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedStatus = widget.record['status'] as String? ?? 'absent';
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  String get _studentName =>
+      '${widget.record['student_first_name'] ?? ''} ${widget.record['student_last_name'] ?? ''}'
+          .trim();
+
+  int get _recordId => widget.record['id'] as int;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs         = Theme.of(context).colorScheme;
+    final isDark     = Theme.of(context).brightness == Brightness.dark;
+    final notifier   = ref.watch(adminAttendanceNotifierProvider);
+    final isLoading  = notifier is AsyncLoading;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkCard : cs.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        24, 16, 24,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Student name
+          Text(
+            _studentName,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Edit attendance record',
+            style: TextStyle(
+              fontSize: 13,
+              color: cs.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Status selector
+          Text(
+            'Status',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _kStatuses.map((s) {
+              final isSelected = s == _selectedStatus;
+              final (_, bg, fg) = _statusColors(s);
+              return GestureDetector(
+                onTap: () => setState(() => _selectedStatus = s),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? (isDark ? fg.withValues(alpha: 0.25) : bg)
+                        : cs.onSurface.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? fg : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    s[0].toUpperCase() + s.substring(1),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? fg
+                          : cs.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Note field
+          Text(
+            'Note (optional)',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _noteController,
+            style: TextStyle(color: cs.onSurface),
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'e.g. Parent called — medical excuse',
+              hintStyle: TextStyle(
+                color: cs.onSurface.withValues(alpha: 0.35),
+                fontSize: 13,
+              ),
+              filled: true,
+              fillColor: isDark
+                  ? cs.surfaceContainerHighest
+                  : cs.primary.withValues(alpha: 0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: cs.outline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: cs.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: cs.primary, width: 1.8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Save button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final note = _noteController.text.trim();
+                      final navigator = Navigator.of(context);
+                      final success = await ref
+                          .read(adminAttendanceNotifierProvider.notifier)
+                          .updateRecord(
+                            _recordId,
+                            _selectedStatus,
+                            note: note.isEmpty ? null : note,
+                          );
+                      if (success && mounted) navigator.pop();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isLoading
+                  ? SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, color: cs.onPrimary,
+                      ),
+                    )
+                  : const Text(
+                      'Save Changes',
+                      style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+(String, Color, Color) _statusColors(String status) => switch (status) {
+      'early'   => ('Early',   const Color(0xFFD3F9D8), const Color(0xFF2F9E44)),
+      'late'    => ('Late',    const Color(0xFFFFE8CC), const Color(0xFFE8590C)),
+      'present' => ('Present', const Color(0xFFD0EBFF), const Color(0xFF1971C2)),
+      'excused' => ('Excused', const Color(0xFFEDEDFF), const Color(0xFF5C5FC6)),
+      _         => ('Absent',  const Color(0xFFFFE3E3), const Color(0xFFC92A2A)),
+    };

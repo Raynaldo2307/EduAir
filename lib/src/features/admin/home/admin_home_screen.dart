@@ -4,36 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key, required this.onSelectTab});
 
   final void Function(int index) onSelectTab;
 
-  // Simple schoolId → display name map (replace with API call later)
-  String _schoolName(String? schoolId) {
-    switch (schoolId) {
-      case '1':
-        return 'Papine High School';
-      case '2':
-        return 'Maggotty High School';
-      case '3':
-        return 'St. Catherine High School';
-      default:
-        return 'EduAir School';
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProvider);
+    final user      = ref.watch(userProvider);
+    final homeAsync = ref.watch(adminHomeProvider);
 
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName
         : 'Admin';
 
-    final schoolName = _schoolName(user?.schoolId);
-    final adminId = user?.uid ?? '—';
+    // School name comes from the user profile (set during login).
+    // TODO: replace with GET /api/schools/me for full school details.
+    final schoolName = user?.schoolId != null ? 'School #${user!.schoolId}' : 'EduAir School';
+    final adminId    = user?.uid ?? '—';
 
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
@@ -61,7 +52,11 @@ class AdminHomeScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.people_outline,
                     label: 'Total Students',
-                    value: '4',
+                    value: homeAsync.when(
+                      data: (d) => d.totalStudents.toString(),
+                      loading: () => '—',
+                      error: (_, __) => '?',
+                    ),
                     color: const Color(0xFFE8F2FF),
                     iconColor: const Color(0xFF4A7CFF),
                   ),
@@ -69,7 +64,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.person_outline,
                     label: 'Today Present',
-                    value: '22',
+                    value: '—', // TODO: GET /api/attendance/stats?date=today
                     color: const Color(0xFFE6F6F3),
                     iconColor: const Color(0xFF2D9CDB),
                   ),
@@ -77,7 +72,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.person_off_outlined,
                     label: 'Absent Today',
-                    value: '3',
+                    value: '—', // TODO: GET /api/attendance/stats?date=today
                     color: const Color(0xFFFDE9EC),
                     iconColor: const Color(0xFFE65D7B),
                   ),
@@ -150,9 +145,9 @@ class AdminHomeScreen extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => onSelectTab(1),
-                    child: const Text(
+                    child: Text(
                       'View all',
-                      style: TextStyle(color: AppTheme.primaryColor),
+                      style: TextStyle(color: cs.primary),
                     ),
                   ),
                 ],
@@ -161,9 +156,26 @@ class AdminHomeScreen extends ConsumerWidget {
               const SizedBox(height: 8),
 
               // ── Recent Students list ─────────────────────────────
-              _StudentRow(initials: 'MB', name: 'Marcus Brown', subtitle: 'Grade 10 · Whole Day'),
-              _StudentRow(initials: 'TC', name: 'Tia Clarke', subtitle: 'Grade 9 · Morning'),
-              _StudentRow(initials: 'SD', name: 'Shanice Davis', subtitle: 'Grade 9 · Whole Day'),
+              homeAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Text('Could not load students',
+                    style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5))),
+                data: (d) => d.recentStudents.isEmpty
+                    ? Text('No students yet',
+                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5)))
+                    : Column(
+                        children: d.recentStudents
+                            .map((s) => _StudentRow(
+                                  initials: s.initials,
+                                  name: s.displayName,
+                                  subtitle: [
+                                    if (s.gradeLevel != null) 'Grade ${s.gradeLevel}',
+                                    if (s.currentShift != null) s.currentShift!,
+                                  ].join(' · '),
+                                ))
+                            .toList(),
+                      ),
+              ),
             ],
           ),
         ),
@@ -262,10 +274,10 @@ class _ActionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.15),
+                color: iconColor.withValues(alpha: isDark ? 0.3 : 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+              child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 22),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -274,7 +286,7 @@ class _ActionCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: iconColor,
+                  color: isDark ? Colors.white : iconColor,
                 ),
               ),
             ),
@@ -298,25 +310,10 @@ class _StudentRow extends StatelessWidget {
   final String name;
   final String subtitle;
 
-  static const _colors = [
-    Color(0xFFE8F2FF),
-    Color(0xFFF5EBFF),
-    Color(0xFFE6F6F3),
-    Color(0xFFFDE9EC),
-  ];
-
-  static const _iconColors = [
-    Color(0xFF4A7CFF),
-    Color(0xFF9B51E0),
-    Color(0xFF2D9CDB),
-    Color(0xFFE65D7B),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final idx = initials.codeUnitAt(0) % _colors.length;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -333,18 +330,7 @@ class _StudentRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: _colors[idx],
-            child: Text(
-              initials,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: _iconColors[idx],
-              ),
-            ),
-          ),
+          UserAvatar(initials: initials, radius: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

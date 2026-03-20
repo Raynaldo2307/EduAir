@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
-import 'package:edu_air/src/features/shared/pages/shared_profile_edit_page.dart';
-import 'package:edu_air/src/features/shared/pages/shared_profile_page.dart';
+import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart';
+import 'package:edu_air/src/features/common/pages/shared_profile_page.dart';
+import 'package:edu_air/src/features/auth/reset_password_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -208,7 +209,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     iconBg: const Color(0xFFF5EBFF),
                     iconColor: const Color(0xFF9B51E0),
                     label: 'Change Password',
-                    onTap: () => _showComingSoon(context, 'Change Password'),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ResetPasswordPage(),
+                      ),
+                    ),
                   ),
                 ],
               ),

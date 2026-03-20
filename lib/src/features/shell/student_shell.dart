@@ -63,7 +63,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BottomNavigationBar(
       currentIndex: _tabIndex,
-      selectedItemColor: AppTheme.primaryColor,
+      selectedItemColor: Theme.of(context).colorScheme.primary,
       unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.white,
       type: BottomNavigationBarType.fixed,
