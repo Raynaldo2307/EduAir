@@ -16,7 +16,10 @@ AppUser nodeStaffToAppUser(Map<String, dynamic> d) {
     phone:            '',
     role:             'teacher',
     teacherDepartment:  d['department'],
+    employmentType:     d['employment_type'],
     currentShift:       d['current_shift_type'],
+    studentId:          d['staff_code'],
+    homeroomClassId:    d['homeroom_class_id']?.toString(),
     homeroomClassName:  d['homeroom_class_name'],
   );
 }

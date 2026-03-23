@@ -12,6 +12,7 @@ import 'package:edu_air/src/features/auth/data/auth_api_repository.dart';
 import 'package:edu_air/src/features/attendance/data/attendance_api_repository.dart';
 import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
+import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
 
 
 // Schoool + Geofencing
@@ -134,6 +135,16 @@ final studentsApiRepositoryProvider = Provider<StudentsApiRepository>((ref) {
 /// Staff API — full CRUD for admin staff management via Node backend.
 final staffApiRepositoryProvider = Provider<StaffApiRepository>((ref) {
   return StaffApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// Classes API — returns all classes for the school (used in admin dropdowns).
+final classesApiRepositoryProvider = Provider<ClassesApiRepository>((ref) {
+  return ClassesApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// School classes list — loaded once per admin session for class dropdowns.
+final schoolClassesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.read(classesApiRepositoryProvider).getAll();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

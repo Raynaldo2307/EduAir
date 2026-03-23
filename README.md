@@ -17,10 +17,13 @@ this reality.
 
 - **Admin** registers students and staff. The system auto-generates login
   credentials (email + ID code) so the admin never sets passwords manually.
+
 - **Teachers** take batch attendance for their homeroom class — mark each
   student present, absent, late, or excused in one session.
+
 - **Students** see their own attendance record updated in real time — including
   clock-in time, status, and history.
+
 - **Late arrivals** must select a MoEYI-approved reason category
   (transportation, economic, illness, emergency, family) for Form SF4
   government compliance. Free-text is not permitted.
@@ -30,6 +33,7 @@ this reality.
 ## Tech Stack
 
 | Layer | Technology |
+|-------|------------|
 |-------|-----------|
 | Mobile client | Flutter 3.9.2+ / Dart |
 | State management | Riverpod |

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 import 'package:edu_air/src/features/admin/attendance/application/admin_attendance_provider.dart';
+import 'package:edu_air/src/features/attendance/application/late_reason_provider.dart';
 
 // Valid statuses the admin can set
 const _kStatuses = ['early', 'present', 'late', 'excused', 'absent'];
@@ -140,7 +141,7 @@ class _FilterBar extends StatelessWidget {
                 Icon(
                   Icons.lock_outline,
                   size: 14,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -148,7 +149,7 @@ class _FilterBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -405,12 +406,18 @@ class _AttendanceEditSheet extends ConsumerStatefulWidget {
 
 class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
   late String _selectedStatus;
+  String? _selectedLateReason;
   final _noteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _selectedStatus = widget.record['status'] as String? ?? 'absent';
+    // Pre-fill late reason if the record already has one
+    final existing = widget.record['late_reason_code'] as String?;
+    if (existing != null && existing.isNotEmpty) {
+      _selectedLateReason = existing;
+    }
   }
 
   @override
@@ -493,7 +500,11 @@ class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
               final isSelected = s == _selectedStatus;
               final (_, bg, fg) = _statusColors(s);
               return GestureDetector(
-                onTap: () => setState(() => _selectedStatus = s),
+                onTap: () => setState(() {
+                  _selectedStatus = s;
+                  // Clear late reason when switching away from late
+                  if (s != 'late') _selectedLateReason = null;
+                }),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8,
@@ -522,6 +533,51 @@ class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
               );
             }).toList(),
           ),
+          // Late reason — only shown when status is 'late'
+          if (_selectedStatus == 'late') ...[
+            const SizedBox(height: 20),
+            Text(
+              'Late Reason (required)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? cs.surfaceContainerHighest
+                    : cs.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: cs.outline),
+              ),
+              child: DropdownButton<String>(
+                value: _selectedLateReason,
+                isExpanded: true,
+                underline: const SizedBox.shrink(),
+                dropdownColor: isDark ? AppTheme.darkCard : cs.surface,
+                style: TextStyle(fontSize: 13, color: cs.onSurface),
+                hint: Text(
+                  'Select a reason',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+                items: ref.read(lateReasonOptionsProvider).map((opt) {
+                  return DropdownMenuItem<String>(
+                    value: opt.code,
+                    child: Text(opt.label),
+                  );
+                }).toList(),
+                onChanged: (val) => setState(() => _selectedLateReason = val),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 20),
 
           // Note field
@@ -575,6 +631,18 @@ class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
               onPressed: isLoading
                   ? null
                   : () async {
+                      // Guard: late requires a reason
+                      if (_selectedStatus == 'late' &&
+                          (_selectedLateReason == null ||
+                              _selectedLateReason!.isEmpty)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a late reason.'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
                       final note = _noteController.text.trim();
                       final navigator = Navigator.of(context);
                       final success = await ref
@@ -582,6 +650,9 @@ class _AttendanceEditSheetState extends ConsumerState<_AttendanceEditSheet> {
                           .updateRecord(
                             _recordId,
                             _selectedStatus,
+                            lateReasonCode: _selectedStatus == 'late'
+                                ? _selectedLateReason
+                                : null,
                             note: note.isEmpty ? null : note,
                           );
                       if (success && mounted) navigator.pop();

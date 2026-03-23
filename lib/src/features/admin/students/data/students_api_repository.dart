@@ -12,8 +12,19 @@ class StudentsApiRepository {
 
   /// GET /api/students
   /// Returns all students for the school (JWT-scoped).
-  Future<List<Map<String, dynamic>>> getAll() async {
-    final response = await _dio.get('/api/students');
+  /// Pass [order] = 'newest' to sort by most recently enrolled first.
+  /// Pass [limit] to cap the number of results.
+  Future<List<Map<String, dynamic>>> getAll({
+    String? order,
+    int? limit,
+  }) async {
+    final response = await _dio.get(
+      '/api/students',
+      queryParameters: {
+        if (order != null) 'order': order,
+        if (limit != null) 'limit': limit,
+      },
+    );
     return List<Map<String, dynamic>>.from(response.data['data'] as List);
   }
 

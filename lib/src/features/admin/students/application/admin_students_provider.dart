@@ -18,6 +18,7 @@ AppUser nodeStudentToAppUser(Map<String, dynamic> d) {
     studentId:    d['student_code'],
     currentShift: d['current_shift_type'],
     sex:          d['sex'],
+    classId:      d['homeroom_class_id']?.toString(),
     className:    d['class_name'],
     gradeLevel:   d['grade_level']?.toString(),
   );

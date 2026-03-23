@@ -45,12 +45,18 @@ class AdminAttendanceNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> updateRecord(
     int id,
     String status, {
+    String? lateReasonCode,
     String? note,
   }) async {
     state = const AsyncValue.loading();
     try {
       final repo = _ref.read(attendanceApiRepositoryProvider);
-      await repo.updateRecord(attendanceId: id, status: status, note: note);
+      await repo.updateRecord(
+        attendanceId: id,
+        status: status,
+        lateReasonCode: lateReasonCode,
+        note: note,
+      );
       _ref.invalidate(adminAttendanceResultProvider);
       state = const AsyncValue.data(null);
       return true;
@@ -61,7 +67,7 @@ class AdminAttendanceNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final adminAttendanceNotifierProvider = StateNotifierProvider.autoDispose<
-    AdminAttendanceNotifier, AsyncValue<void>>(
+final adminAttendanceNotifierProvider =
+    StateNotifierProvider<AdminAttendanceNotifier, AsyncValue<void>>(
   (ref) => AdminAttendanceNotifier(ref),
 );

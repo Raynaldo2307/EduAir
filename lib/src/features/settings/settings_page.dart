@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
@@ -261,8 +262,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     iconColor: const Color(0xFF4A5568),
                     label: 'Dark Mode',
                     value: ref.watch(themeModeProvider) == ThemeMode.dark,
-                    onChanged: (v) => ref.read(themeModeProvider.notifier).state =
-                        v ? ThemeMode.dark : ThemeMode.light,
+                    onChanged: (v) => _onDarkModeChanged(v),
                   ),
                 ],
               ),
@@ -320,6 +320,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _onDarkModeChanged(bool isDark) async {
+    ref.read(themeModeProvider.notifier).state =
+        isDark ? ThemeMode.dark : ThemeMode.light;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', isDark);
   }
 
   void _showComingSoon(BuildContext context, String feature) {

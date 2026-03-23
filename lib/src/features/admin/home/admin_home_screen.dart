@@ -169,8 +169,12 @@ class AdminHomeScreen extends ConsumerWidget {
                                   initials: s.initials,
                                   name: s.displayName,
                                   subtitle: [
-                                    if (s.gradeLevel != null) 'Grade ${s.gradeLevel}',
-                                    if (s.currentShift != null) s.currentShift!,
+                                    if (s.className?.isNotEmpty == true)
+                                      s.className!
+                                    else if (s.gradeLevel?.isNotEmpty == true)
+                                      s.gradeLevel!,
+                                    if (s.currentShift != null)
+                                      _formatShift(s.currentShift!),
                                   ].join(' · '),
                                 ))
                             .toList(),
@@ -181,6 +185,19 @@ class AdminHomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+String _formatShift(String shift) {
+  switch (shift) {
+    case 'morning':
+      return 'Morning';
+    case 'afternoon':
+      return 'Afternoon';
+    case 'whole_day':
+      return 'Whole Day';
+    default:
+      return shift;
   }
 }
 

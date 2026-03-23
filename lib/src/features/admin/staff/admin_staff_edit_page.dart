@@ -18,9 +18,28 @@ const Map<String, String> _employmentTypes = {
   'Contract': 'contract',
 };
 
+/// Common Jamaican school departments — used for staff_code generation.
+const List<String> _departments = [
+  'Mathematics',
+  'English',
+  'Sciences',
+  'Social Studies',
+  'Physical Education',
+  'Art & Craft',
+  'Music',
+  'Information Technology',
+  'Business Studies',
+  'Languages',
+  'Administration',
+];
+
 /// Admin/Principal page to add or edit a staff member.
 ///
 /// [staff] = null → Create mode (POST /api/staff)
+///   - Backend auto-generates: email, staff_code, password (= staff_code)
+///   - Department is required — it determines the code prefix (e.g. PAP-MATH-001)
+///   - After save: credentials dialog shows email + staff_code
+///
 /// [staff] = AppUser → Edit mode (PUT /api/staff/:id)
 class AdminStaffEditPage extends ConsumerStatefulWidget {
   const AdminStaffEditPage({super.key, this.staff});
@@ -36,13 +55,11 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
-  late TextEditingController _emailController;
-  late TextEditingController _passwordController;
-  late TextEditingController _staffCodeController;
-  late TextEditingController _departmentController;
 
   late String _selectedShift;
   late String _selectedEmploymentType;
+  String? _selectedDepartment;
+  int? _selectedClassId;
 
   bool _saving = false;
   bool get _isCreateMode => widget.staff == null;
@@ -53,34 +70,32 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
     final s = widget.staff;
 
     _firstNameController = TextEditingController(text: s?.firstName ?? '');
-    _lastNameController = TextEditingController(text: s?.lastName ?? '');
-    _emailController = TextEditingController(text: s?.email ?? '');
-    _passwordController = TextEditingController();
-    _staffCodeController = TextEditingController();
-    _departmentController = TextEditingController(
-      text: s?.teacherDepartment ?? '',
-    );
+    _lastNameController  = TextEditingController(text: s?.lastName  ?? '');
 
     _selectedShift = s?.currentShift ?? 'whole_day';
-    if (!_shiftOptions.containsValue(_selectedShift)) {
-      _selectedShift = 'whole_day';
+    if (!_shiftOptions.containsValue(_selectedShift)) _selectedShift = 'whole_day';
+
+    _selectedEmploymentType = (_employmentTypes.containsValue(s?.employmentType ?? ''))
+        ? s!.employmentType!
+        : 'full_time';
+
+    // Pre-fill department if editing
+    if (s?.teacherDepartment != null &&
+        _departments.contains(s!.teacherDepartment)) {
+      _selectedDepartment = s.teacherDepartment;
     }
 
-    _selectedEmploymentType = 'full_time';
+    // Pre-select homeroom class in edit mode — validated against list in build()
+    _selectedClassId = int.tryParse(s?.homeroomClassId ?? '');
   }
 
   @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _staffCodeController.dispose();
-    _departmentController.dispose();
     super.dispose();
   }
 
-  // Matches shared_profile_edit_page: cs.surface fill, cs.outline / cs.primary borders.
   InputDecoration _decoration(String label) {
     final cs = Theme.of(context).colorScheme;
     return InputDecoration(
@@ -121,57 +136,43 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
     if (!isValid) return;
 
     final staffRepo = ref.read(staffApiRepositoryProvider);
-    String? clean(TextEditingController c) =>
-        c.text.trim().isEmpty ? null : c.text.trim();
-
     setState(() => _saving = true);
 
     try {
       if (_isCreateMode) {
-        // ── Create ──
         final payload = <String, dynamic>{
-          'first_name': _firstNameController.text.trim(),
-          'last_name': _lastNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-          'employment_type': _selectedEmploymentType,
+          'first_name':         _firstNameController.text.trim(),
+          'last_name':          _lastNameController.text.trim(),
+          'employment_type':    _selectedEmploymentType,
           'current_shift_type': _selectedShift,
-          if (clean(_staffCodeController) != null)
-            'staff_code': clean(_staffCodeController),
-          if (clean(_departmentController) != null)
-            'department': clean(_departmentController),
+          if (_selectedDepartment != null) 'department': _selectedDepartment,
+          if (_selectedClassId != null)    'homeroom_class_id': _selectedClassId,
         };
 
-        await staffRepo.create(payload);
+        final response = await staffRepo.create(payload);
+        if (!mounted) return;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Staff member added successfully')),
-          );
-          Navigator.of(context).pop<bool>(true);
-        }
+        // Staff repo already unwraps response.data['data'] — read directly
+        final email     = response['email']      as String? ?? '—';
+        final staffCode = response['staff_code'] as String? ?? '—';
+
+        await _showCredentialsDialog(email: email, code: staffCode);
+        if (mounted) Navigator.of(context).pop<bool>(true);
       } else {
-        // ── Edit ──
         final teacherId = int.parse(widget.staff!.uid);
         final payload = <String, dynamic>{
-          'first_name': _firstNameController.text.trim(),
-          'last_name': _lastNameController.text.trim(),
+          'first_name':         _firstNameController.text.trim(),
+          'last_name':          _lastNameController.text.trim(),
           'current_shift_type': _selectedShift,
-          'employment_type': _selectedEmploymentType,
-          if (clean(_departmentController) != null)
-            'department': clean(_departmentController),
-          if (clean(_staffCodeController) != null)
-            'staff_code': clean(_staffCodeController),
+          'employment_type':    _selectedEmploymentType,
+          if (_selectedDepartment != null) 'department': _selectedDepartment,
+          if (_selectedClassId != null)    'homeroom_class_id': _selectedClassId,
         };
 
         await staffRepo.update(teacherId, payload);
+        if (!mounted) return;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Staff member updated successfully')),
-          );
-          Navigator.of(context).pop<bool>(true);
-        }
+        Navigator.of(context).pop<bool>(true);
       }
     } catch (e) {
       if (mounted) {
@@ -182,6 +183,46 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _showCredentialsDialog({
+    required String email,
+    required String code,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Staff Member Added'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Share these login credentials with the staff member:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            _CredentialRow(label: 'Email', value: email),
+            const SizedBox(height: 8),
+            _CredentialRow(label: 'Staff Code', value: code),
+            const SizedBox(height: 8),
+            _CredentialRow(label: 'Password', value: code),
+            const SizedBox(height: 12),
+            const Text(
+              'Password = Staff Code. They should change it on first login.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmDelete() async {
@@ -201,10 +242,8 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Deactivate',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Deactivate',
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -220,9 +259,6 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
       await staffRepo.delete(teacherId);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Staff member deactivated')),
-        );
         Navigator.of(context).pop<bool>(true);
       }
     } catch (e) {
@@ -238,9 +274,11 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme  = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
+    final cs     = theme.colorScheme;
+
+    final classesAsync = ref.watch(schoolClassesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -257,7 +295,8 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
             ),
         ],
       ),
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.surfaceVariant,
+      backgroundColor:
+          isDark ? AppTheme.darkBackground : AppTheme.surfaceVariant,
       body: SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -272,7 +311,6 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                   _SectionHeader(title: 'Staff Information'),
                   const SizedBox(height: 12),
 
-                  // First / Last name
                   Row(
                     children: [
                       Expanded(
@@ -281,8 +319,7 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                           decoration: _decoration('First Name'),
                           textInputAction: TextInputAction.next,
                           textCapitalization: TextCapitalization.words,
-                          validator: (v) =>
-                              _required(v, label: 'First name'),
+                          validator: (v) => _required(v, label: 'First name'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -292,61 +329,70 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                           decoration: _decoration('Last Name'),
                           textInputAction: TextInputAction.next,
                           textCapitalization: TextCapitalization.words,
-                          validator: (v) =>
-                              _required(v, label: 'Last name'),
+                          validator: (v) => _required(v, label: 'Last name'),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
 
-                  // Email + Password (create mode only)
-                  if (_isCreateMode) ...[
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: _decoration('Email'),
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Email is required';
-                        }
-                        if (!v.contains('@')) return 'Enter a valid email';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: _decoration('Password'),
-                      obscureText: true,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Password is required';
-                        }
-                        if (v.length < 8) {
-                          return 'Password must be at least 8 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-
-                  // Department
-                  TextFormField(
-                    controller: _departmentController,
-                    decoration: _decoration('Department (optional)'),
-                    textInputAction: TextInputAction.next,
+                  // Department dropdown — drives staff_code generation on backend
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedDepartment,
+                    decoration: _decoration('Department'),
+                    dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: cs.onSurface),
+                    hint: Text('Select department',
+                        style: TextStyle(
+                            color: cs.onSurface.withValues(alpha: 0.4))),
+                    items: _departments
+                        .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedDepartment = v),
                   ),
                   const SizedBox(height: 14),
 
-                  // Staff code
-                  TextFormField(
-                    controller: _staffCodeController,
-                    decoration: _decoration('Staff Code (optional)'),
-                    textInputAction: TextInputAction.done,
+                  // Homeroom class — optional
+                  classesAsync.when(
+                    loading: () => const SizedBox(
+                      height: 56,
+                      child: Center(child: LinearProgressIndicator()),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (classes) {
+                      final validId = classes.any(
+                              (c) => c['id'] == _selectedClassId)
+                          ? _selectedClassId
+                          : null;
+
+                      return DropdownButtonFormField<int>(
+                        initialValue: validId,
+                        decoration: _decoration('Homeroom Class (optional)'),
+                        dropdownColor:
+                            isDark ? AppTheme.darkCard : Colors.white,
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: cs.onSurface),
+                        hint: Text('None — not a form teacher',
+                            style: TextStyle(
+                                color: cs.onSurface.withValues(alpha: 0.4))),
+                        items: [
+                          DropdownMenuItem<int>(
+                            value: null,
+                            child: Text('None',
+                                style: TextStyle(
+                                    color:
+                                        cs.onSurface.withValues(alpha: 0.5))),
+                          ),
+                          ...classes.map((c) => DropdownMenuItem<int>(
+                                value: c['id'] as int,
+                                child: Text(c['name'].toString()),
+                              )),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _selectedClassId = v),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 28),
@@ -362,12 +408,10 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: cs.onSurface),
                     items: _shiftOptions.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.value,
-                            child: Text(e.key),
-                          ),
-                        )
+                        .map((e) => DropdownMenuItem(
+                              value: e.value,
+                              child: Text(e.key),
+                            ))
                         .toList(),
                     onChanged: (v) {
                       if (v != null) setState(() => _selectedShift = v);
@@ -382,19 +426,27 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: cs.onSurface),
                     items: _employmentTypes.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.value,
-                            child: Text(e.key),
-                          ),
-                        )
+                        .map((e) => DropdownMenuItem(
+                              value: e.value,
+                              child: Text(e.key),
+                            ))
                         .toList(),
                     onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _selectedEmploymentType = v);
-                      }
+                      if (v != null) setState(() => _selectedEmploymentType = v);
                     },
                   ),
+
+                  // In edit mode show current staff code (read-only)
+                  if (!_isCreateMode &&
+                      widget.staff?.studentId != null) ...[
+                    const SizedBox(height: 28),
+                    _SectionHeader(title: 'School Identity'),
+                    const SizedBox(height: 12),
+                    _ReadOnlyField(
+                      label: 'Staff Code',
+                      value: widget.staff!.studentId!,
+                    ),
+                  ],
 
                   const SizedBox(height: 32),
 
@@ -445,7 +497,7 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
   }
 }
 
-// ── Section header (matches shared_profile_edit_page) ─────────────────────────
+// ── Section header ─────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
@@ -469,8 +521,88 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Read-only field ─────────────────────────────────────────────────────────────
+
+class _ReadOnlyField extends StatelessWidget {
+  const _ReadOnlyField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: cs.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: cs.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Credentials row in the post-creation dialog ─────────────────────────────────
+
+class _CredentialRow extends StatelessWidget {
+  const _CredentialRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

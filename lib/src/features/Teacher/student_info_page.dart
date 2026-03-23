@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -259,8 +260,11 @@ class _StudentTile extends StatelessWidget {
   final String? dateOfBirth;
 
   String get _displayName => '$firstName $lastName'.trim();
-  String get _initials =>
-      firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
+  String get _initials {
+    final f = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
+    final l = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
+    return '$f$l'.isNotEmpty ? '$f$l' : '?';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -294,18 +298,7 @@ class _StudentTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor:
-                    AppTheme.secondaryColor.withValues(alpha: 0.35),
-                child: Text(
-                  _initials,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ),
+              UserAvatar(initials: _initials, radius: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -403,19 +396,7 @@ class StudentDetailPage extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 34,
-                    backgroundColor:
-                        AppTheme.primaryColor.withValues(alpha: 0.15),
-                    child: Text(
-                      _initials,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                  ),
+                  UserAvatar(initials: _initials, radius: 34),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(

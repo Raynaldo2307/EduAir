@@ -90,15 +90,19 @@ class AdminStudentListPage extends ConsumerWidget {
   }
 
   void _openEditPage(BuildContext context, WidgetRef ref, AppUser student) async {
-    final result = await Navigator.of(context).push<AppUser>(
+    final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AdminStudentEditPage(student: student),
       ),
     );
 
-    // Refresh the list if a student was updated
-    if (result != null) {
+    if (result == true) {
       ref.invalidate(schoolStudentsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Student updated successfully')),
+        );
+      }
     }
   }
 }

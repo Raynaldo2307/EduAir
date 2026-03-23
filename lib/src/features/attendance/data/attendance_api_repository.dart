@@ -113,12 +113,14 @@ class AttendanceApiRepository {
   Future<Map<String, dynamic>> updateRecord({
     required int attendanceId,
     required String status,
+    String? lateReasonCode,
     String? note,
   }) async {
     final response = await _dio.put(
       '/api/attendance/$attendanceId',
       data: {
         'status': status,
+        if (lateReasonCode != null) 'late_reason_code': lateReasonCode,
         if (note != null) 'note': note,
       },
     );

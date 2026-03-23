@@ -124,6 +124,11 @@ class AdminStaffListPage extends ConsumerWidget {
 
     if (result == true) {
       ref.invalidate(schoolStaffProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Staff record updated')),
+        );
+      }
     }
   }
 }
@@ -182,7 +187,7 @@ class _StaffTile extends StatelessWidget {
                   '$shift · ${member.email}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: cs.primary,
+                    color: cs.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],

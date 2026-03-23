@@ -236,7 +236,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             schoolId: schoolId,
             classOption: classOption,
             dateKey: dateKey,
-            shiftType: null,
+            shiftType: _shiftType,
           ),
         ),
       );
@@ -907,7 +907,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
         Expanded(
           child: _SummaryCard(
             label: 'Present',
-            value: '22',
+            value: '—',
             icon: Icons.person_outline,
             backgroundColor: Color(0xFFE8F3FF),
             iconColor: Color(0xFF3B82F6),
@@ -917,7 +917,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
         Expanded(
           child: _SummaryCard(
             label: 'Absent',
-            value: '03',
+            value: '—',
             icon: Icons.person_off_outlined,
             backgroundColor: Color(0xFFFFE8EC),
             iconColor: Color(0xFFE25563),
@@ -926,9 +926,9 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
         SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
-            label: 'Event',
-            value: '05',
-            icon: Icons.event_note_outlined,
+            label: 'Late',
+            value: '—',
+            icon: Icons.schedule_outlined,
             backgroundColor: Color(0xFFEDE9FF),
             iconColor: Color(0xFF7C5CF2),
           ),

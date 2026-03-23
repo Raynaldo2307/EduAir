@@ -35,6 +35,9 @@ class QuickLinkItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // WHY: In dark mode, light pastel backgrounds look washed out and jarring.
+    // We use a tinted version of the icon colour instead — same pattern as the teacher home.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(16),
@@ -45,7 +48,7 @@ class QuickLinkItemWidget extends StatelessWidget {
           Material(
             elevation: 3,
             borderRadius: BorderRadius.circular(16),
-            color: item.backgroundColor,
+            color: isDark ? item.iconColor.withValues(alpha: 0.2) : item.backgroundColor,
             shadowColor: Colors.black.withValues(alpha: 0.1),
             child: Container(
               height: 60,

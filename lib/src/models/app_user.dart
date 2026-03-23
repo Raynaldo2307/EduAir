@@ -41,6 +41,7 @@ class AppUser {
   final String? classId;
   final String? className;
   final String? teacherDepartment;
+  final String? employmentType; // full_time | part_time | substitute | contract
   final String? homeroomClassId;
   final String? homeroomClassName;
   final List<SubjectAssignment>? subjectAssignments;
@@ -70,6 +71,7 @@ class AppUser {
     this.classId,
     this.className,
     this.teacherDepartment,
+    this.employmentType,
     this.homeroomClassId,
     this.homeroomClassName,
     this.subjectAssignments,
@@ -173,6 +175,7 @@ class AppUser {
       classId: map['classId'] as String?,
       className: map['className'] as String?,
       teacherDepartment: map['teacherDepartment'],
+      employmentType: map['employmentType'] as String?,
       homeroomClassId: map['homeroomClassId'] as String?,
       homeroomClassName: map['homeroomClassName'] as String?,
       subjectAssignments: subjectAssignments,
@@ -210,6 +213,7 @@ class AppUser {
       'classId': classId,
       'className': className,
       'teacherDepartment': teacherDepartment,
+      'employmentType': employmentType,
       'homeroomClassId': homeroomClassId,
       'homeroomClassName': homeroomClassName,
       'subjectAssignments': subjectAssignments
@@ -252,6 +256,7 @@ class AppUser {
     String? classId,
     String? className,
     String? teacherDepartment,
+    String? employmentType,
     String? homeroomClassId,
     String? homeroomClassName,
     List<SubjectAssignment>? subjectAssignments,
@@ -285,6 +290,7 @@ class AppUser {
       classId: classId ?? this.classId,
       className: className ?? this.className,
       teacherDepartment: teacherDepartment ?? this.teacherDepartment,
+      employmentType: employmentType ?? this.employmentType,
       homeroomClassId: homeroomClassId ?? this.homeroomClassId,
       homeroomClassName: homeroomClassName ?? this.homeroomClassName,
       subjectAssignments: subjectAssignments ?? this.subjectAssignments,
