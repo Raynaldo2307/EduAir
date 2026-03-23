@@ -44,7 +44,16 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Firebase config — contains API keys, never commit
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 
-/ Mobile Application Development Course Outline Rev 3.pdf
-/ my_32_day_playbook.my_32_day_playbook
-/ post
+# Private dev docs — personal notes, playbooks, course files
+CLAUDE.md
+lib/docs/
+lib/src/core/app_module.dart
+ai_workflow.md
+edu_air.txt
+postMan_school_test.md
+my_32_day_playbook.md
+"Mobile Application Development Course Outline Rev 3.pdf"
