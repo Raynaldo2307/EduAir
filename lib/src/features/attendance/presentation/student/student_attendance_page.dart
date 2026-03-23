@@ -248,7 +248,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
                     Text(
                       'Select a reason from the list below:',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -259,7 +259,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
                       decoration: InputDecoration(
                         labelText: 'Reason',
                         filled: true,
-                        fillColor: AppTheme.surface,
+                        fillColor: theme.colorScheme.surfaceContainerHighest,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 14,
@@ -267,7 +267,7 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: AppTheme.outline.withValues(alpha: 0.5),
+                            color: theme.colorScheme.outline.withValues(alpha: 0.5),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(

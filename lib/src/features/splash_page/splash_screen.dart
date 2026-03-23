@@ -54,8 +54,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   ///
   /// Here we:
   /// - Wait a short time so the user can see the splash.
-  /// - Ask Firebase Auth if there is a current user.
-  /// - If there is, we load their profile from Firestore.
+  /// - Check JWT via GET /api/auth/me to see if user is logged in.
   /// - Based on that, we decide which route to send them to.
   Future<void> _bootstrap() async {
     // 1) Show splash for a moment
