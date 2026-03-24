@@ -47,11 +47,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -106,10 +106,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // EduAir logo
-          const Center(
-            child: CircleAvatar(
-              radius: 34,
-              backgroundImage: AssetImage('assets/images/eduair_logo.png'),
+          Center(
+            child: Image.asset(
+              'assets/images/eduair_logo.png',
+              width: 80,
+              height: 80,
             ),
           ),
           const SizedBox(height: 24),
@@ -216,10 +217,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // EduAir logo
-          const Center(
-            child: CircleAvatar(
-              radius: 34,
-              backgroundImage: AssetImage('assets/images/eduair_logo.png'),
+          Center(
+            child: Image.asset(
+              'assets/images/eduair_logo.png',
+              width: 80,
+              height: 80,
             ),
           ),
           const SizedBox(height: 24),

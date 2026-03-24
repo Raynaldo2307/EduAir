@@ -16,6 +16,14 @@ import '../features/teacher/attendance/teacher_attendance_page.dart';
 // 👇 Admin feature screens
 import '../features/admin/students/admin_student_list_page.dart';
 
+// Smooth fade transition — used for splash → onboarding and splash → login
+PageRouteBuilder<T> _fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
+      pageBuilder: (_, __, ___) => page,
+      transitionDuration: const Duration(milliseconds: 600),
+      transitionsBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
+
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -23,10 +31,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SplashPage());
 
       case '/onboarding':
-        return MaterialPageRoute(builder: (_) => const OnboardingPage());
+        return _fadeRoute(const OnboardingPage());
 
       case '/signin':
-        return MaterialPageRoute(builder: (_) => const SignInPage());
+        return _fadeRoute(const SignInPage());
 
       case '/signup':
         return MaterialPageRoute(builder: (_) => const SignUpPage());

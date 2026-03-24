@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:edu_air/src/services/token_storage_service.dart';
 
@@ -58,7 +57,6 @@ class ApiClient {
   static const _port = '3000';
 
   static String get _baseUrl {
-    if (Platform.isAndroid) return 'http://10.0.2.2:$_port';
     return 'http://$_devIp:$_port';
   }
 }

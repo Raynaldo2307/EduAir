@@ -79,7 +79,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           alignment: Alignment.center,
           children: [
             // Center logo with soft glow + animation.
-            Container(
+            Hero(
+              tag: 'eduair_logo',
+              child: Container(
                   width: 220,
                   height: 220,
                   decoration: BoxDecoration(
@@ -98,7 +100,8 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                       fit: BoxFit.cover,
                     ),
                   ),
-                )
+                ),
+            )
                 .animate()
                 // 1) Fade in
                 .fadeIn(duration: 600.ms, curve: Curves.easeOutCubic)

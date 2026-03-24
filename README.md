@@ -34,7 +34,6 @@ this reality.
 
 | Layer | Technology |
 |-------|------------|
-|-------|-----------|
 | Mobile client | Flutter 3.9.2+ / Dart |
 | State management | Riverpod |
 | Backend API | Node.js + Express 5 |
@@ -240,6 +239,16 @@ flutter run
    → Home shows: Present today ✅
    → Calendar shows today marked green
 ```
+
+---
+
+## Database Schema
+
+The full database schema — all tables, columns, foreign keys, and indexes — is documented in the backend repository:
+
+**[View Database Schema → EduAir Node.js Backend README](https://github.com/Raynaldo2307/EduAir-Node.js)**
+
+The backend README covers: `schools`, `users`, `students`, `staff`, `classes`, `attendance_records`, and `attendance_audit_logs` tables with their relationships.
 
 ---
 

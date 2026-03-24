@@ -55,11 +55,11 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

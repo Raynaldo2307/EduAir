@@ -42,11 +42,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: cs.primary, width: 1.2),
+        borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.2), width: 1.0),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -105,10 +105,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               children: [
                 const SizedBox(height: 40),
                 Center(
-                  child: CircleAvatar(
-                    radius: 34,
-                    backgroundImage: const AssetImage(
+                  child: Hero(
+                    tag: 'eduair_logo',
+                    child: Image.asset(
                       'assets/images/eduair_logo.png',
+                      width: 90,
+                      height: 90,
                     ),
                   ),
                 ),
