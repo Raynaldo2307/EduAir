@@ -114,6 +114,7 @@ class TeacherAttendanceEntry {
     required this.classOption,
     required this.takenByUid,
     this.shiftType,
+    this.lateReason,
     this.subjectId,
     this.subjectName,
     this.periodId,
@@ -140,6 +141,9 @@ class TeacherAttendanceEntry {
 
   /// Shift type ("morning", "afternoon", "evening", "whole_day").
   final String? shiftType;
+
+  /// MoEYI late reason code — required when status is late.
+  final String? lateReason;
 
   /// Optional subject metadata (for lesson-level attendance, v2).
   final String? subjectId;
@@ -207,6 +211,7 @@ class TeacherAttendanceEntry {
       if (periodId != null) 'periodId': periodId,
       'shiftType': resolvedShiftType,
       'source': AttendanceSource.teacherBatch.name,
+      if (lateReason != null) 'lateReason': lateReason,
       if (deviceId != null) 'deviceId': deviceId,
     };
   }

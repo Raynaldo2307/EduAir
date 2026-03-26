@@ -29,7 +29,17 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   DateTime _selectedDate = DateTime.now();
   TeacherClassOption? _selectedClass;
   final Map<String, AttendanceStatus?> _selectedStatuses = {};
+  final Map<String, String?> _lateReasons = {};
   bool _isSaving = false;
+
+  static const List<Map<String, String>> _lateReasonOptions = [
+    {'code': 'transportation', 'label': 'Transportation'},
+    {'code': 'economic',       'label': 'Economic'},
+    {'code': 'illness',        'label': 'Illness'},
+    {'code': 'emergency',      'label': 'Emergency'},
+    {'code': 'family',         'label': 'Family'},
+    {'code': 'other',          'label': 'Other'},
+  ];
   /// Resolved from the school's config stored on the logged-in user.
   /// Defaults to 'whole_day' — correct for most Jamaican schools.
   /// Teachers and admins never select this manually; it is locked to
@@ -150,7 +160,12 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   }
 
   void _toggleStatus(String studentUid, AttendanceStatus status) {
-    setState(() => _selectedStatuses[studentUid] = status);
+    setState(() {
+      _selectedStatuses[studentUid] = status;
+      if (status != AttendanceStatus.late) {
+        _lateReasons.remove(studentUid);
+      }
+    });
   }
 
   void _changeMonth(int delta) {
@@ -217,6 +232,9 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             classOption: classOption,
             takenByUid: teacherUid,
             shiftType: _shiftType,
+            lateReason: status == AttendanceStatus.late
+                ? _lateReasons[student.uid]
+                : null,
             deviceId: deviceId,
           ),
         );
@@ -728,7 +746,12 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
           student: student,
           status: status,
           statusColumnWidth: _statusColumnWidth,
+          lateReason: _lateReasons[student.uid],
+          lateReasonOptions: _lateReasonOptions,
           onStatusSelected: (selected) => _toggleStatus(student.uid, selected),
+          onLateReasonChanged: (reason) {
+            setState(() => _lateReasons[student.uid] = reason);
+          },
         );
       },
     );
@@ -944,12 +967,18 @@ class _StudentAttendanceRow extends StatelessWidget {
     required this.status,
     required this.statusColumnWidth,
     required this.onStatusSelected,
+    required this.lateReasonOptions,
+    this.lateReason,
+    this.onLateReasonChanged,
   });
 
   final TeacherAttendanceStudent student;
   final AttendanceStatus? status;
   final double statusColumnWidth;
   final ValueChanged<AttendanceStatus> onStatusSelected;
+  final String? lateReason;
+  final List<Map<String, String>> lateReasonOptions;
+  final ValueChanged<String?>? onLateReasonChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -979,60 +1008,95 @@ class _StudentAttendanceRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          avatar,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              student.displayName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
+          Row(
+            children: [
+              avatar,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  student.displayName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            width: statusColumnWidth,
-            child: Center(
-              child: _AttendanceIndicator(
-                selected: status == AttendanceStatus.present,
-                activeColor: AppTheme.primaryColor,
-                onTap: () => onStatusSelected(AttendanceStatus.present),
+              SizedBox(
+                width: statusColumnWidth,
+                child: Center(
+                  child: _AttendanceIndicator(
+                    selected: status == AttendanceStatus.present,
+                    activeColor: AppTheme.primaryColor,
+                    onTap: () => onStatusSelected(AttendanceStatus.present),
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            width: statusColumnWidth,
-            child: Center(
-              child: _AttendanceIndicator(
-                selected: status == AttendanceStatus.absent,
-                activeColor: AppTheme.danger,
-                onTap: () => onStatusSelected(AttendanceStatus.absent),
+              SizedBox(
+                width: statusColumnWidth,
+                child: Center(
+                  child: _AttendanceIndicator(
+                    selected: status == AttendanceStatus.absent,
+                    activeColor: AppTheme.danger,
+                    onTap: () => onStatusSelected(AttendanceStatus.absent),
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            width: statusColumnWidth,
-            child: Center(
-              child: _AttendanceIndicator(
-                selected: status == AttendanceStatus.late,
-                activeColor: const Color(0xFFE68A00),
-                onTap: () => onStatusSelected(AttendanceStatus.late),
+              SizedBox(
+                width: statusColumnWidth,
+                child: Center(
+                  child: _AttendanceIndicator(
+                    selected: status == AttendanceStatus.late,
+                    activeColor: const Color(0xFFE68A00),
+                    onTap: () => onStatusSelected(AttendanceStatus.late),
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            width: statusColumnWidth,
-            child: Center(
-              child: _AttendanceIndicator(
-                selected: status == AttendanceStatus.excused,
-                activeColor: const Color(0xFFF2B233),
-                onTap: () => onStatusSelected(AttendanceStatus.excused),
+              SizedBox(
+                width: statusColumnWidth,
+                child: Center(
+                  child: _AttendanceIndicator(
+                    selected: status == AttendanceStatus.excused,
+                    activeColor: const Color(0xFFF2B233),
+                    onTap: () => onStatusSelected(AttendanceStatus.excused),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
+          if (status == AttendanceStatus.late) ...[
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: lateReason,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Late Reason (MoEYI)',
+                labelStyle: const TextStyle(fontSize: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: true,
+                fillColor: const Color(0xFFE68A00).withValues(alpha: 0.08),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: const Color(0xFFE68A00).withValues(alpha: 0.4)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: const Color(0xFFE68A00).withValues(alpha: 0.4)),
+                ),
+              ),
+              hint: const Text('Select reason', style: TextStyle(fontSize: 13)),
+              items: lateReasonOptions
+                  .map((option) => DropdownMenuItem<String>(
+                        value: option['code'],
+                        child: Text(option['label']!, style: const TextStyle(fontSize: 13)),
+                      ))
+                  .toList(),
+              onChanged: onLateReasonChanged,
+            ),
+          ],
         ],
       ),
     );
