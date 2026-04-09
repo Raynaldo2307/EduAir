@@ -9,10 +9,12 @@ import 'package:edu_air/src/features/admin/students/application/admin_students_p
 class AdminHomeData {
   final int totalStudents;
   final List<AppUser> recentStudents;
+  final String schoolName;
 
   const AdminHomeData({
     required this.totalStudents,
     required this.recentStudents,
+    required this.schoolName,
   });
 }
 
@@ -23,20 +25,21 @@ class AdminHomeData {
 /// - recentStudents: separate call for 3 newest enrollments (order=newest&limit=3)
 /// autoDispose — refreshes each time admin navigates to the home tab.
 final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async {
-  final repo = ref.read(studentsApiRepositoryProvider);
+  final repo     = ref.read(studentsApiRepositoryProvider);
+  final client   = ref.read(apiClientProvider);
+  final user     = ref.read(userProvider);
+  final schoolId = user?.schoolId ?? '';
 
-  // Two parallel calls — total count (full list) + 3 newest
-  final results = await Future.wait([
-    ref.watch(schoolStudentsProvider.future),
-    repo.getAll(order: 'newest', limit: 3),
-  ]);
+  final allStudents  = await ref.watch(schoolStudentsProvider.future);
+  final recentRaw    = await repo.getAll(order: 'newest', limit: 3);
+  final schoolResp   = await client.dio.get('/api/schools/$schoolId');
 
-  final allStudents    = results[0] as List<AppUser>;
-  final recentRaw      = results[1] as List<Map<String, dynamic>>;
   final recentStudents = recentRaw.map(nodeStudentToAppUser).toList();
+  final schoolName     = (schoolResp.data?['data']?['name'] as String?) ?? 'EduAir School';
 
   return AdminHomeData(
     totalStudents:  allStudents.length,
     recentStudents: recentStudents,
+    schoolName:     schoolName,
   );
 });

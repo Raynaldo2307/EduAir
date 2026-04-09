@@ -21,9 +21,8 @@ class AdminHomeScreen extends ConsumerWidget {
         ? user!.displayName
         : 'Admin';
 
-    // School name comes from the user profile (set during login).
-    // TODO: replace with GET /api/schools/me for full school details.
-    final schoolName = user?.schoolId != null ? 'School #${user!.schoolId}' : 'EduAir School';
+    final schoolName = homeAsync.whenOrNull(data: (d) => d.schoolName) ??
+        (user?.schoolId != null ? 'School #${user!.schoolId}' : 'EduAir School');
     final adminId    = user?.uid ?? '—';
 
     final cs = Theme.of(context).colorScheme;
