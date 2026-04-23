@@ -63,7 +63,11 @@ class AdminHomeScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.person_outline,
                     label: 'Today Present',
-                    value: '—', // TODO: GET /api/attendance/stats?date=today
+                    value: homeAsync.when(
+                      data: (d) => d.presentToday.toString(),
+                      loading: () => '—',
+                      error: (_, __) => '?',
+                    ),
                     color: const Color(0xFFE6F6F3),
                     iconColor: const Color(0xFF2D9CDB),
                   ),
@@ -71,7 +75,11 @@ class AdminHomeScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.person_off_outlined,
                     label: 'Absent Today',
-                    value: '—', // TODO: GET /api/attendance/stats?date=today
+                    value: homeAsync.when(
+                      data: (d) => d.absentToday.toString(),
+                      loading: () => '—',
+                      error: (_, __) => '?',
+                    ),
                     color: const Color(0xFFFDE9EC),
                     iconColor: const Color(0xFFE65D7B),
                   ),
