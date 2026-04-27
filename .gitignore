@@ -48,7 +48,7 @@ app.*.map.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
-# Private dev docs — personal notes, playbooks, course files
+# Private dev docs — personal notes, playbooks, sensitive context
 CLAUDE.md
 lib/docs/
 lib/src/core/app_module.dart
@@ -56,4 +56,10 @@ ai_workflow.md
 edu_air.txt
 postMan_school_test.md
 my_32_day_playbook.md
+my_final_2week_playbook.md
+eduair_90day_playbook.md
+EduAir_Project_Brief.md
+EduAir_User_Manual.pdf
 Mobile Application Development Course Outline Rev 3.pdf
+ai_workspace/
+*.local.md

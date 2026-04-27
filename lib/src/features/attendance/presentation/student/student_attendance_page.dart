@@ -1,5 +1,11 @@
-// Student view – Calendar tab (Attendance + Time Table).
-// UX rules (Jan 2026):
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: student_attendance_page.dart
+// WHAT: The main screen a student sees — their attendance calendar, summary,
+//       Clock In / Clock Out buttons, and attendance history.
+// HOW:  ConsumerStatefulWidget (Riverpod) — watches providers for live data.
+// WHY:  This is the student-facing feature. Everything else in the app supports
+//       this screen. The student opens the app, sees today's status, and clocks in.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,6 +73,11 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
   // ───────────────── Clock in / out ─────────────────
 
+  // ASSESSOR POINT A — Handle Clock In
+  // Called when student taps the Clock In button.
+  // Checks: is the user logged in? Do they have a school? Is today a school day?
+  // If the student is late, we show a MoEYI reason dialog BEFORE calling the API.
+  // GPS location is captured silently — if it fails, we default to 0,0 and still clock in.
   Future<void> _handleClockIn() async {
     final user = ref.read(userProvider);
     if (user == null) {
@@ -147,6 +158,10 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     }
   }
 
+  // ASSESSOR POINT B — Handle Clock Out
+  // Called when student taps the Clock Out button.
+  // Fetches today's MySQL record ID, then sends PUT /api/attendance/:id/clock-out.
+  // GPS captured silently — doesn't block the clock-out if location is unavailable.
   Future<void> _handleClockOut() async {
     final user = ref.read(userProvider);
     if (user == null) {
@@ -209,7 +224,10 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
 
   // ───────────────── Late reason dialog (MoEYI dropdown) ─────────────────
 
-  /// Shows a dialog with MoEYI late reason categories.
+  // ASSESSOR POINT C — MoEYI Late Reason Dialog
+  // This dialog pops up automatically if the student clocks in after the grace period.
+  // Ministry of Education rules require a reason code — no free text allowed.
+  // If the student cancels without selecting, the clock-in is blocked entirely.
   ///
   /// Returns the selected reason code (e.g. 'transportation') or null if cancelled.
   /// Free-text is not permitted per MoEYI compliance requirements.
@@ -475,7 +493,9 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        // Non-blocking error banner — keeps the rest of the screen usable
+        // ASSESSOR POINT D — Non-blocking error banner
+        // If the API fails, the error shows at the top but the rest of the screen still works.
+        // The student can still see their history even if today's data fails to load.
         if (recentAsync.hasError || summaryAsync.hasError)
           _buildErrorBanner(recentAsync.error ?? summaryAsync.error),
         const SizedBox(height: 8),

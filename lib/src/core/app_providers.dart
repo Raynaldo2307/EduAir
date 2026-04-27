@@ -76,9 +76,15 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     userNotifier.state = profile;
     dev.log('Session restored for ${profile.email}', name: 'StartupProvider');
 
-    // Step 3: Route based on role.
+    // Step 3: Force password change before anything else.
+    if (userData['mustChangePassword'] == true) {
+      return '/forceChangePassword';
+    }
+
+    // Step 4: Route based on role.
     final role = profile.role;
     final schoolId = profile.schoolId;
+  
 
     if (role.isEmpty) return '/selectRole';
     if (schoolId == null || schoolId.isEmpty) return '/noSchool';

@@ -32,6 +32,8 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   final Map<String, String?> _lateReasons = {};
   bool _isSaving = false;
 
+  // ASSESSOR POINT 1: MoEYI categories — these are the Ministry of Education's
+  // official late reason codes. No free text allowed. Matches Form SF4 reporting.
   static const List<Map<String, String>> _lateReasonOptions = [
     {'code': 'transportation', 'label': 'Transportation'},
     {'code': 'economic',       'label': 'Economic'},
@@ -40,10 +42,9 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     {'code': 'family',         'label': 'Family'},
     {'code': 'other',          'label': 'Other'},
   ];
-  /// Resolved from the school's config stored on the logged-in user.
-  /// Defaults to 'whole_day' — correct for most Jamaican schools.
-  /// Teachers and admins never select this manually; it is locked to
-  /// whatever the school admin configured when the school was registered.
+  // ASSESSOR POINT 2: Shift type is read from the logged-in user's JWT profile.
+  // The teacher never selects this — the school admin sets it once during setup.
+  // This prevents teachers from marking attendance under the wrong shift.
   String get _shiftType =>
       ref.read(userProvider)?.defaultShiftType ?? 'whole_day';
 
@@ -159,6 +160,9 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     });
   }
 
+  // ASSESSOR POINT 3: Teacher taps Present / Absent / Late / Excused.
+  // State is stored locally until Save is pressed — no partial writes to the database.
+  // If a student is unmarked as Late, their late reason is also cleared automatically.
   void _toggleStatus(String studentUid, AttendanceStatus status) {
     setState(() {
       _selectedStatuses[studentUid] = status;
@@ -201,6 +205,12 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     return existing;
   }
 
+  
+
+  // : Save Attendance button calls this.
+  // Builds one entry per student, then sends the entire class as a single batch
+  // to the Node.js API → MySQL. The teacher's UID is stamped on every record
+  // as an audit trail — we always know who marked what and when.
   Future<void> _saveAttendance({
     required String schoolId,
     required String teacherUid,
@@ -1067,6 +1077,8 @@ class _StudentAttendanceRow extends StatelessWidget {
               ),
             ],
           ),
+          // ASSESSOR POINT 5: This dropdown only appears when status == Late.
+          // Forces the teacher to select a MoEYI reason before saving.
           if (status == AttendanceStatus.late) ...[
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(

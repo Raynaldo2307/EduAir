@@ -15,6 +15,7 @@ import '../features/teacher/attendance/teacher_attendance_page.dart';
 
 // 👇 Admin feature screens
 import '../features/admin/students/admin_student_list_page.dart';
+import '../features/auth/force_change_password_page.dart';
 
 // Smooth fade transition — used for splash → onboarding and splash → login
 PageRouteBuilder<T> _fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
@@ -60,6 +61,9 @@ class AppRouter {
 
       //case '/teacherStudentInfo':
        // return MaterialPageRoute(builder: (_) => const StudentInfoPage());
+
+      case '/forceChangePassword':
+        return MaterialPageRoute(builder: (_) => const ForceChangePasswordPage());
 
       // 👇 Admin/Principal student management
       case '/adminStudents':

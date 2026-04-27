@@ -50,6 +50,7 @@ class AppUser {
   final String? parentGuardianPhone;
   final String? address;
   final DateTime? dateOfBirth;
+  final bool mustChangePassword;
 
   AppUser({
     required this.uid,
@@ -82,6 +83,7 @@ class AppUser {
     this.dateOfBirth,
     this.address,
     this.parentGuardianPhone,
+    this.mustChangePassword = false,
   });
 
   /// ✅ Computed UI name
@@ -190,6 +192,7 @@ class AppUser {
       parentGuardianPhone: map['parentGuardianPhone'] as String?,
       address: map['address'] as String?,
       dateOfBirth: dobTs,
+      mustChangePassword: map['mustChangePassword'] == true,
     );
   }
 

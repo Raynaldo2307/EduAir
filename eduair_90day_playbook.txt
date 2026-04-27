@@ -1,0 +1,311 @@
+# EduAir — 90-Day Production Playbook
+**April 26 → July 24, 2026 (Your 24th Birthday)**
+**Built by: Raynaldo Montaque**
+**Mission: Turn EduAir from a capstone project into a product a CTO would fund.**
+
+---
+
+## The Contract
+
+- **2 hours daily. Duty days = 30 min minimum. No excuses.**
+- **CS50 = Sundays only. One day. Don't spread thin.**
+- **No vibe coding. Every line you write, you must explain why.**
+- **This app is your resume. Treat it like a product, not a school project.**
+- **Update this playbook every week. Mark what's done. Add what you learned.**
+
+---
+
+## SDLC — How Real Software Gets Built
+
+Before we write a single line, understand the process. This is what Uber, Google, and any serious company follows.
+
+| Phase | What Happens | EduAir Example |
+|-------|-------------|----------------|
+| **1. Planning** | Define what to build, who it's for, what problem it solves | "Schools need digital attendance that complies with MoEYI SF4" |
+| **2. Requirements** | List every feature — who needs it, what it must do | Parent sees child's attendance. Admin sees school-wide stats. |
+| **3. Design** | Architecture, database schema, UI wireframes | ERD done. Layered architecture done. UI needs work. |
+| **4. Development** | Write the code in structured phases | Where we are now |
+| **5. Testing** | Unit tests, integration tests, real device testing | Partially done — needs more |
+| **6. Deployment** | Put it on a real server, real users | Phase 3 of this plan |
+| **7. Maintenance** | Fix bugs, add features, monitor logs | Ongoing |
+
+**You already completed phases 1-4 for the core features. Now we go back and do them properly for the new features.**
+
+---
+
+## The Big Engineering Questions (Think Like Uber)
+
+Before building, you must answer these. A CTO will ask them.
+
+**Q1: How does clock-in work when 500 students at one school all tap at 7:55 AM on Monday?**
+- Problem: 500 requests hit the server at the same time
+- Answer: MySQL connection pool handles concurrent requests. The `UNIQUE KEY` on `(school_id, student_id, date, shift_type)` prevents duplicate records even if two requests arrive simultaneously.
+- What we need to add: Rate limiting on the clock-in endpoint
+
+**Q2: How do we know when something breaks at 7 AM on a Monday?**
+- Right now: We don't. The app crashes silently.
+- What real systems do: Logging. Every request, every error, every clock-in gets written to a log file with timestamp, user_id, and what happened.
+- What we need to add: Server-side logging with `winston` (Node.js library)
+
+**Q3: How does a new school get onto EduAir?**
+- Right now: You manually insert into the database
+- What it should be: A school registration form — principal fills it in, submits, gets credentials
+- What we need to build: School onboarding portal (Phase 2)
+
+**Q4: How does a parent know their child is absent without opening the app?**
+- Answer: Push notification (FCM) — backend sends alert to parent's phone when child is marked absent
+- What we need to build: FCM integration (Phase 2)
+
+**Q5: How do you make money?**
+- See Business Model section below
+
+---
+
+## Phase 1 — UI Polish + Admin Dashboard (Apr 26 – May 23)
+
+**Goal: Make it look like a product a principal would pay for.**
+**Why first: A CTO judges the UI in 10 seconds. If it looks cheap, the conversation ends.**
+
+### Week 1 (Apr 26 – May 2) — Audit Every Screen
+- [ ] Run the app on a real device. Go through every screen as every role (student, teacher, admin)
+- [ ] Write down every screen that looks broken, empty, or confusing
+- [ ] Fix the 3 worst UI problems you find
+- [ ] Push to GitHub
+
+**Viva question this week:** "Walk me through the flow from a student opening the app to a teacher seeing that student's clock-in."
+
+### Week 2 (May 3 – May 9) — Admin Dashboard Rebuild
+**Current problem:** Admin dashboard has hardcoded stats. A CTO will catch this immediately.
+
+What the admin dashboard needs to show (all live from the API):
+- Total students enrolled
+- Today's present count (by shift)
+- Today's absent count
+- Late arrivals today
+- Attendance rate this week (%)
+- Recent activity feed (last 5 clock-ins)
+
+**Tasks:**
+- [ ] Build `GET /api/stats/today` endpoint on backend (returns all 5 stats in one call)
+- [ ] Wire admin dashboard to that endpoint
+- [ ] Add a loading skeleton so it doesn't flash empty
+
+### Week 3 (May 10 – May 16) — Analytics Screen
+**What a principal actually wants to see:**
+- Attendance trend (last 30 days) — line chart
+- Most absent students (top 5)
+- Most late students (top 5)
+- Attendance by class (which class has worst attendance)
+
+**Tasks:**
+- [ ] Add `fl_chart` package to Flutter (free, production-grade charts)
+- [ ] Build `GET /api/stats/trends?days=30` endpoint
+- [ ] Build analytics screen for admin/principal role
+- [ ] Show bar chart for weekly attendance
+
+### Week 4 (May 17 – May 23) — Teacher Experience
+**Current problem:** Teacher marks attendance but gets no confirmation it worked.
+
+**Tasks:**
+- [ ] Teacher batch attendance — show success/failure per student clearly
+- [ ] Teacher sees their class's attendance rate for today at the top
+- [ ] Teacher can filter their student list by status (present/absent/late)
+- [ ] Fix any crashes found on teacher flow
+
+---
+
+## Phase 2 — Parent Portal + Notifications (May 24 – Jun 20)
+
+**Goal: Give parents visibility. This is the feature that sells EduAir to principals.**
+**Why: A principal's biggest headache is parents calling asking "where is my child?" EduAir kills that call.**
+
+### Week 5 (May 24 – May 30) — Parent Account Flow
+The `parent_students` table already exists in the database. We just need to wire it up.
+
+**Backend tasks:**
+- [ ] `POST /api/parents/:parentId/children/:studentId` — link parent to student
+- [ ] `GET /api/parents/my-children` — returns list of linked students
+- [ ] `GET /api/parents/child/:studentId/attendance` — returns that child's attendance
+
+**Flutter tasks:**
+- [ ] Parent shell — 2 tabs: My Children, Notifications
+- [ ] My Children screen — list of linked children with today's status badge (present/absent/late)
+
+### Week 6 (May 31 – Jun 6) — Parent Attendance Detail
+- [ ] Tap a child → see their attendance calendar for this month
+- [ ] Colour coded: green = present, red = absent, yellow = late
+- [ ] Tap a day → see clock-in time, clock-out time, late reason
+
+### Week 7 (Jun 7 – Jun 13) — Push Notifications
+**How it works (simplified):**
+1. Parent opens app → Flutter registers their device with FCM → sends device token to backend
+2. Teacher marks student absent → backend checks if student has a linked parent → sends push notification to parent's device token
+
+**Tasks:**
+- [ ] Add FCM to Flutter (`firebase_messaging` package)
+- [ ] Add `device_tokens` table to MySQL (stores user_id + FCM token)
+- [ ] Backend: when attendance status = absent, query parent, send notification
+- [ ] Test: mark a student absent → parent phone gets notification within 5 seconds
+
+### Week 8 (Jun 14 – Jun 20) — School Registration Portal
+**Why: Right now you manually add schools to the database. That doesn't scale.**
+
+**What it needs:**
+- A web form (can be built with Flutter Web or a simple HTML page)
+- Principal fills in: school name, parish, MoEY school code, contact email, admin password
+- Submits → record created in `schools` table + admin user created
+- Principal gets login credentials by email
+
+**Tasks:**
+- [ ] `POST /api/schools/register` endpoint (public, no auth required)
+- [ ] Flutter Web registration page OR simple HTML form
+- [ ] Email sending with `nodemailer` (Node.js) — sends credentials to principal
+
+---
+
+## Phase 3 — Production Readiness (Jun 21 – Jul 24)
+
+**Goal: The app is demo-ready for any principal in Jamaica who reopens in September.**
+
+### Week 9 (Jun 21 – Jun 27) — Logging
+**Why Uber and Google know when things break before users complain:**
+They log everything. You need to do the same.
+
+**Tasks:**
+- [ ] Add `winston` to Node.js backend
+- [ ] Log every: login attempt (success/fail), clock-in, clock-out, error
+- [ ] Log format: `[timestamp] [level] [user_id] [action] [result]`
+- [ ] Logs save to a file so you can read them later
+
+### Week 10 (Jun 28 – Jul 4) — Rate Limiting + Security Hardening
+**Why: Monday morning, 500 students clock in simultaneously. Your server must not crash.**
+
+**Tasks:**
+- [ ] Add `express-rate-limit` to Node.js — max 10 requests per minute per IP on clock-in
+- [ ] Add `helmet` to Node.js — sets security headers automatically
+- [ ] Test: what happens if you send 100 clock-in requests at once?
+
+### Week 11 (Jul 5 – Jul 11) — Deploy Backend
+**Now** we deploy. App is complete. Don't deploy broken software.
+- [ ] Push backend to Render.com (free tier)
+- [ ] Migrate MySQL to Railway.app (free tier)
+- [ ] Update Flutter `api_client.dart` with production URL
+- [ ] Test every endpoint against live server
+
+### Week 12 (Jul 12 – Jul 18) — Demo Preparation
+- [ ] Build APK — install on a real Android phone
+- [ ] Record 2-minute demo video: login as admin → create student → student clocks in → parent sees notification → teacher views report
+- [ ] Update README.md with screenshots and live demo link
+- [ ] Update Technical Documentation with all new features
+
+### Week 13 (Jul 19 – Jul 24) — Pitch + Birthday
+- [ ] LinkedIn post: "I built EduAir. Looking for work."
+- [ ] Send demo to 3 principals in Jamaica
+- [ ] Apply to 5 developer jobs
+- [ ] **July 24: 24th birthday. Offer pending or hired.**
+
+---
+
+## Business Model (What You Tell a CTO or Investor)
+
+**Problem:** Jamaican schools use paper registers. MoEYI requires SF4 compliance. Manual tracking is slow, error-prone, and untraceable.
+
+**Solution:** EduAir — a mobile attendance system built for Jamaican schools. Digital, real-time, MoEYI-compliant.
+
+**Revenue model (SaaS subscription):**
+
+| School Size | Monthly Price | Annual Price |
+|-------------|--------------|--------------|
+| Small (under 500 students) | $5,000 JMD/month | $50,000 JMD |
+| Medium (500–1000 students) | $10,000 JMD/month | $100,000 JMD |
+| Large (1000+ students) | $18,000 JMD/month | $180,000 JMD |
+
+**Why schools pay:**
+- Replaces paper (saves admin time)
+- Real-time parent notifications (reduces parent calls)
+- MoEYI compliance built in (SF4 reporting)
+- Audit trail (legal protection for the school)
+
+**Why Microsoft/Google can't beat us:**
+- They are not built for Jamaican shifts (morning/afternoon)
+- They don't know MoEYI categories
+- They don't integrate with JA school culture
+- We do.
+
+**5-year vision:**
+- Year 1: 10 pilot schools in Jamaica
+- Year 2: 50 schools, add parent paid tier
+- Year 3: Caribbean expansion (Trinidad, Barbados)
+- Year 4: Ministry of Education partnership
+- Year 5: National infrastructure
+
+---
+
+## CS50 Schedule (Sundays Only)
+
+| Sunday | Week | Topic |
+|--------|------|-------|
+| Apr 27 | 0 | Scratch — do it fast, 1 hour max |
+| May 4 | 1 | C — memory, pointers |
+| May 11 | 2 | Arrays |
+| May 18 | 3 | Algorithms |
+| May 25 | 4 | Memory (malloc, free) |
+| Jun 1 | 5 | Data Structures |
+| Jun 8 | 6 | Python |
+| Jun 15 | 7 | SQL |
+| Jun 22 | 8 | HTML/CSS/JS |
+| Jun 29 | 9 | Flask |
+| Jul 6 | 10 | Emoji |
+| Jul 13 | Final | Final Project |
+
+**Why CS50:** It teaches you how computers actually work. It makes you a real engineer, not just a framework user.
+
+---
+
+## Weekly Rhythm
+
+Every week follows the same pattern:
+
+| Day | What You Do |
+|-----|------------|
+| Mon | Plan the week. Read this playbook. Write down 3 tasks to complete. |
+| Tue | Code session 1 — 2 hours |
+| Wed | Code session 2 — 2 hours |
+| Thu | Code session 3 — 2 hours |
+| Fri | Code session 4 — 2 hours. Push to GitHub. |
+| Sat | Review what you built. Fix anything broken. |
+| Sun | CS50 only. No EduAir code. |
+
+**Duty days:** Minimum 30 minutes. Review code, read documentation, plan tomorrow. Don't break the streak.
+
+---
+
+## Technical Documentation Update Log
+
+Every time we finish a feature, update the technical doc. A CTO who sees your documentation evolving knows you think like a professional.
+
+| Date | Update |
+|------|--------|
+| Apr 26 | 90-day plan created. Phase 1 started. |
+| — | Add new rows as you complete features |
+
+---
+
+## What a CTO Sees in 10 Minutes
+
+When you show EduAir to a CTO, they check in this order:
+
+1. **Does it actually work?** — Open it, log in, do something real
+2. **Does the UI look professional?** — Clean layouts, no broken screens
+3. **How does it handle edge cases?** — What if the student clocks in twice? What if the network drops?
+4. **What does the database look like?** — Show them the ERD. Multi-tenant, audit trail, soft delete.
+5. **How does it scale?** — "We use connection pooling and the unique constraint prevents race conditions"
+6. **What's the business model?** — SaaS, JMD pricing, Jamaican-specific features
+7. **What's next?** — Parent portal, push notifications, school registration
+
+**Practice this pitch. 10 minutes. No notes.**
+
+---
+
+*Last updated: April 26, 2026*
+*Next update: May 2, 2026 (end of Week 1)*

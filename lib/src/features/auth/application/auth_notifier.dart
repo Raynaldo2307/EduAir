@@ -72,6 +72,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       state = state.copyWith(isLoading: false);
+      // check if user password changed here 
+      if (userData['mustChangePassword'] == true) {
+        return '/forceChangePassword';
+      }
       return _routeForRole(role, schoolId);
     } catch (e, st) {
       final message = AppErrorHandler.message(e, context: 'SignIn', stackTrace: st);

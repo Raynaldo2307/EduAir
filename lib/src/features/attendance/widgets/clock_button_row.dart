@@ -1,6 +1,19 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: clock_button_row.dart
+// WHAT: The Clock In / Clock Out button the student sees on their home screen.
+// HOW:  A pure UI widget. Receives state flags and callbacks — no logic inside.
+// WHY:  UI widgets should be dumb. They display state, they don't decide it.
+//       The StudentAttendancePage decides what the flags are. This widget just shows them.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'package:flutter/material.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
+// ASSESSOR POINT A — Smart Button Logic
+// This widget shows ONE of three things based on the student's state:
+// Case 1: Not clocked in yet   → show "Clock In" button (blue)
+// Case 2: Clocked in, not out  → show "Clock Out" button (outlined)
+// Case 3: Done for today        → show "You're all set for today" text
 class ClockButtonsRow extends StatelessWidget {
   const ClockButtonsRow({
     super.key,
