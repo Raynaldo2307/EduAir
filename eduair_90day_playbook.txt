@@ -9,6 +9,7 @@
 
 - **2 hours daily. Duty days = 30 min minimum. No excuses.**
 - **CS50 = Sundays only. One day. Don't spread thin.**
+-- ** Claude should log every debug error , content log , and lesson log this can help claude see the student progressing here too 
 - **No vibe coding. Every line you write, you must explain why.**
 - **This app is your resume. Treat it like a product, not a school project.**
 - **Update this playbook every week. Mark what's done. Add what you learned.**
