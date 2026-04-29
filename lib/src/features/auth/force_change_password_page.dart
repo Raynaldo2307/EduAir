@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:flutter/services.dart';
 
 class ForceChangePasswordPage extends ConsumerStatefulWidget {
   const ForceChangePasswordPage({super.key});
@@ -47,6 +48,11 @@ class _ForceChangePasswordPageState
         currentPassword: _currentCtrl.text.trim(),
         newPassword: _newCtrl.text.trim(),
       );
+      
+    TextInput.finishAutofillContext(shouldSave: true);
+
+                                                                                                                       
+
 
       if (!mounted) return;
 
