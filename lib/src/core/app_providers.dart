@@ -89,9 +89,15 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
     if (role.isEmpty) return '/selectRole';
     if (schoolId == null || schoolId.isEmpty) return '/noSchool';
     if (role == 'student') return '/studentHome';
-    if (role == 'teacher' || role == 'admin' || role == 'principal') {
+    if (role == 'teacher') {
       return '/teacherHome';
     }
+    if (role == 'admin' ||  role == 'principal') {
+      return '/adminHome';
+    }
+
+
+
     if (role == 'parent') return '/parentHome';
     return targetRoute;
   } catch (e) {

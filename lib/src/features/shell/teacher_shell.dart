@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/teacher/home/teacher_home_screen.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 import 'package:edu_air/src/features/teacher/student_info_page.dart';
-import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
-import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
-import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
-import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
+
 import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_page.dart';
 
 class TeacherShell extends ConsumerStatefulWidget {
@@ -31,48 +26,18 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(userProvider);
-    final isAdminOrPrincipal = user?.isAdminOrPrincipal ?? false;
-
-    final pages = isAdminOrPrincipal
-        ? <Widget>[
-            AdminHomeScreen(onSelectTab: _onSelectTab),
-            AdminStudentListPage(onBackToHome: () => _onSelectTab(0)),
-            AdminStaffListPage(onBackToHome: () => _onSelectTab(0)),
-            AdminAttendancePage(onBackToHome: () => _onSelectTab(0)),
-            const SettingsPage(),
-          ]
-        : <Widget>[
+    
+    
+    final pages = 
+         <Widget>[
             TeacherHomeScreen(onSelectTab: _onSelectTab),
             StudentInfoPage(onBackToHome: () => _onSelectTab(0)),
             const TeacherAttendancePage(),
             const SettingsPage(),
           ];
 
-    final navItems = isAdminOrPrincipal
-        ? const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              label: 'Students',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.badge_outlined),
-              label: 'Staff',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.fact_check_outlined),
-              label: 'Attendance',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: 'Settings',
-            ),
-          ]
-        : const [
+    final navItems = 
+         const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               label: 'Home',
@@ -109,3 +74,5 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
     );
   }
 }
+
+

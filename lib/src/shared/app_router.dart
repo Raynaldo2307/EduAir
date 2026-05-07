@@ -7,7 +7,9 @@ import '../features/auth/sign_up_form.dart';
 import '../features/shell/select_role.dart';
 import '../features/shell/student_shell.dart';
 import '../features/shell/teacher_shell.dart';
-import '../features/shell/select_school.dart'; // exports NoSchoolPage
+import '../features/shell/admin_shell.dart';
+import '../features/shell/select_school.dart'; 
+// exports NoSchoolPage
 
 // 👇 NEW: teacher feature screens
 import '../features/teacher/attendance/teacher_attendance_page.dart';
@@ -47,6 +49,9 @@ class AppRouter {
       // Account exists but no school assigned — admin must link the account.
       case '/noSchool':
         return MaterialPageRoute(builder: (_) => const NoSchoolPage());
+
+        case '/adminHome' : 
+        return MaterialPageRoute(builder: (_) => const AdminResponsiveShell());
 
       // Main shells
       case '/studentHome':
