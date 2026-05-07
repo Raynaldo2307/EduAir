@@ -14,16 +14,19 @@ class AdminHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user      = ref.watch(userProvider);
+    final user = ref.watch(userProvider);
     final homeAsync = ref.watch(adminHomeProvider);
 
     final name = (user?.displayName.trim().isNotEmpty ?? false)
         ? user!.displayName
         : 'Admin';
 
-    final schoolName = homeAsync.whenOrNull(data: (d) => d.schoolName) ??
-        (user?.schoolId != null ? 'School #${user!.schoolId}' : 'EduAir School');
-    final adminId    = user?.uid ?? '—';
+    final schoolName =
+        homeAsync.whenOrNull(data: (d) => d.schoolName) ??
+        (user?.schoolId != null
+            ? 'School #${user!.schoolId}'
+            : 'EduAir School');
+    final adminId = user?.uid ?? '—';
 
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
@@ -44,46 +47,71 @@ class AdminHomeScreen extends ConsumerWidget {
               ),
 
               const SizedBox(height: 20),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                // ── Stats row ────────────────────────────────────────
+                child: Row(
+                  children: [
+                    _StatCard(
+                      width: 140,
+                      icon: Icons.people_outline,
+                      label: 'Total Students',
+                      value: homeAsync.when(
+                        data: (d) => d.totalStudents.toString(),
+                        loading: () => '—',
+                        error: (_, __) => '?',
+                      ),
+                      color: const Color(0xFFE8F2FF),
+                      iconColor: const Color(0xFF4A7CFF),
+                    ),
+                    const SizedBox(width: 10),
+                    _StatCard(
+                      width: 140,
+                      icon: Icons.person_outline,
+                      label: 'Today Present',
+                      value: homeAsync.when(
+                        data: (d) => d.presentToday.toString(),
+                        loading: () => '—',
+                        error: (_, __) => '?',
+                      ),
+                      color: const Color(0xFFE6F6F3),
+                      iconColor: const Color(0xFF2D9CDB),
+                    ),
+                    const SizedBox(width: 10),
+                    _StatCard(
+                      width: 140,
+                      icon: Icons.person_off_outlined,
+                      label: 'Absent Today',
+                      value: homeAsync.when(
+                        data: (d) => d.absentToday.toString(),
+                        loading: () => '—',
+                        error: (_, __) => '?',
+                      ),
+                      color: const Color(0xFFFDE9EC),
+                      iconColor: const Color(0xFFE65D7B),
+                    ),
 
-              // ── Stats row ────────────────────────────────────────
-              Row(
-                children: [
-                  _StatCard(
-                    icon: Icons.people_outline,
-                    label: 'Total Students',
-                    value: homeAsync.when(
-                      data: (d) => d.totalStudents.toString(),
-                      loading: () => '—',
-                      error: (_, __) => '?',
+                    const SizedBox(width: 10),
+                    _StatCard(
+                      width: 140,
+                      icon: Icons.person_off_outlined,
+                      label: 'Total Courses',
+                      value: '1,500',
+                      color: const Color(0xFFE8F2FF), // blue
+                      iconColor: const Color(0xFF4A7CFF), // blue
                     ),
-                    color: const Color(0xFFE8F2FF),
-                    iconColor: const Color(0xFF4A7CFF),
-                  ),
-                  const SizedBox(width: 10),
-                  _StatCard(
-                    icon: Icons.person_outline,
-                    label: 'Today Present',
-                    value: homeAsync.when(
-                      data: (d) => d.presentToday.toString(),
-                      loading: () => '—',
-                      error: (_, __) => '?',
+
+                    const SizedBox(width: 10),
+                    _StatCard(
+                      width: 140,
+                      icon: Icons.person_off_outlined,
+                      label: 'Total Teachers',
+                      value: '120',
+                      color: const Color(0xFFE8F2FF), // blue
+                      iconColor: const Color(0xFF4A7CFF), // blue
                     ),
-                    color: const Color(0xFFE6F6F3),
-                    iconColor: const Color(0xFF2D9CDB),
-                  ),
-                  const SizedBox(width: 10),
-                  _StatCard(
-                    icon: Icons.person_off_outlined,
-                    label: 'Absent Today',
-                    value: homeAsync.when(
-                      data: (d) => d.absentToday.toString(),
-                      loading: () => '—',
-                      error: (_, __) => '?',
-                    ),
-                    color: const Color(0xFFFDE9EC),
-                    iconColor: const Color(0xFFE65D7B),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -91,9 +119,9 @@ class AdminHomeScreen extends ConsumerWidget {
               // ── Quick Actions title ──────────────────────────────
               Text(
                 'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: cs.onSurface,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
               ),
 
               const SizedBox(height: 14),
@@ -146,9 +174,9 @@ class AdminHomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'Recent Students',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: cs.onSurface,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
                   ),
                   TextButton(
                     onPressed: () => onSelectTab(1),
@@ -165,25 +193,33 @@ class AdminHomeScreen extends ConsumerWidget {
               // ── Recent Students list ─────────────────────────────
               homeAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Could not load students',
-                    style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5))),
+                error: (e, _) => Text(
+                  'Could not load students',
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5)),
+                ),
                 data: (d) => d.recentStudents.isEmpty
-                    ? Text('No students yet',
-                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5)))
+                    ? Text(
+                        'No students yet',
+                        style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                        ),
+                      )
                     : Column(
                         children: d.recentStudents
-                            .map((s) => _StudentRow(
-                                  initials: s.initials,
-                                  name: s.displayName,
-                                  subtitle: [
-                                    if (s.className?.isNotEmpty == true)
-                                      s.className!
-                                    else if (s.gradeLevel?.isNotEmpty == true)
-                                      s.gradeLevel!,
-                                    if (s.currentShift != null)
-                                      _formatShift(s.currentShift!),
-                                  ].join(' · '),
-                                ))
+                            .map(
+                              (s) => _StudentRow(
+                                initials: s.initials,
+                                name: s.displayName,
+                                subtitle: [
+                                  if (s.className?.isNotEmpty == true)
+                                    s.className!
+                                  else if (s.gradeLevel?.isNotEmpty == true)
+                                    s.gradeLevel!,
+                                  if (s.currentShift != null)
+                                    _formatShift(s.currentShift!),
+                                ].join(' · '),
+                              ),
+                            )
                             .toList(),
                       ),
               ),
@@ -217,6 +253,7 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.color,
     required this.iconColor,
+    required this.width,
   });
 
   final IconData icon;
@@ -224,42 +261,42 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final Color iconColor;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(
-          color: isDark ? iconColor.withValues(alpha: 0.2) : color,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: cs.onSurface,
-              ),
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: isDark ? iconColor.withValues(alpha: 0.2) : color,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface.withValues(alpha: 0.5),
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.5),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -301,7 +338,11 @@ class _ActionCard extends StatelessWidget {
                 color: iconColor.withValues(alpha: isDark ? 0.3 : 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 22),
+              child: Icon(
+                icon,
+                color: isDark ? Colors.white : iconColor,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -371,7 +412,10 @@ class _StudentRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: cs.onSurface.withValues(alpha: 0.5),
+                  ),
                 ),
               ],
             ),
