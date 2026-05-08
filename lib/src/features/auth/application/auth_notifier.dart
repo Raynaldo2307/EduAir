@@ -31,9 +31,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (role.isEmpty) return '/selectRole';
     if (schoolId == null || schoolId.isEmpty) return '/noSchool';
     if (role == 'student') return '/studentHome';
-    if (role == 'teacher' || role == 'admin' || role == 'principal') {
-      return '/teacherHome';
-    }
+    if (role == 'teacher') return '/teacherHome';
+    if (role == 'admin' || role == 'principal') return '/adminHome';
     return '/onboarding';
   }
 
