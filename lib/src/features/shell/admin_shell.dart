@@ -57,231 +57,143 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
       builder: (context, constraints) {
         if (constraints.maxWidth >= 900) {
           // ── Desktop / tablet layout ──────────────────────────────
-          return Row(
+          return Scaffold(
+            body: Row(
             children: [
               Container(
-                width: 220,
+                width: 260,
+                height: double.infinity,
                 color: const Color(0xFF1A2B4A),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // nav items at top
-                      const Text(
-                        'EduAir',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Admin Portal',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white54,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Text(
-                        'ACADEMICS & STUDENTS',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-
-                      // the Academics  and student section header
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.dashboard_outlined,
-                        label: 'Dashboard',
-                        isActive: safeIndex == 0,
-                        onTap: () => _onSelectTab(0),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.group_outlined,
-                        label: 'Students',
-                        isActive: safeIndex == 1,
-                        onTap: () => _onSelectTab(1),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.school_outlined,
-                        label: 'Classes & Subjects',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.calendar_month_outlined,
-                        label: 'TimeTable',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Text(
-                        'ATTENDANCE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.fact_check_outlined,
-                        label: 'Attendance & Overview',
-                        isActive: safeIndex == 4,
-                        onTap: () => _onSelectTab(4),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.schedule_outlined,
-                        label: 'Clock-in Records',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.analytics_outlined,
-                        label: 'Reports / SF4',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Text(
-                        'STAFF',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.badge_outlined,
-                        label: 'Staff List ',
-                        isActive: safeIndex == 3,
-                        onTap: () => _onSelectTab(3),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.how_to_reg_outlined,
-                        label: 'Staff Attendance',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Text(
-                        'COMMUNICATION',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.campaign_outlined,
-                        label: 'Notice  Board',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.notifications_outlined,
-                        label: 'Notification',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'SYSTEM CONTROL',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.history_edu_outlined,
-                        label: 'Audit & Log',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.settings_outlined,
-                        label: 'School Settings',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Text(
-                        'SUPPORT',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white38,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _NavItems(
-                        icon: Icons.history_edu_outlined,
-                        label: 'Help & FAQ',
-                        isActive: false,
-                        onTap: () {},
-                      ),
-
-                      const SizedBox(height: 40),
-                      GestureDetector(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                child: Column(
+                  children: [
+                    // ── Logo ──────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'EduAir',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.white,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.logout_rounded,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-
-                              const SizedBox(width: 8),
-
-                              const Text(
-                                "Logout",
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                          const Text(
+                            'Admin Portal',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+                        ],
+                      ),
+                    ),
+                    // ── Nav ───────────────────────────────────────────
+                    Expanded(
+                      child: ScrollbarTheme(
+                        data: ScrollbarThemeData(
+                          thumbColor: WidgetStateProperty.all(
+                            Colors.white.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _NavSection(
+                                  label: 'ACADEMICS & STUDENTS',
+                                  initiallyExpanded: true,
+                                  children: [
+                                    _NavItems(icon: Icons.dashboard_outlined, label: 'Dashboard', isActive: safeIndex == 0, onTap: () => _onSelectTab(0)),
+                                    _NavItems(icon: Icons.group_outlined, label: 'Students', isActive: safeIndex == 1, onTap: () => _onSelectTab(1)),
+                                    _NavItems(icon: Icons.school_outlined, label: 'Classes & Subjects', isActive: false, onTap: () {}),
+                                    _NavItems(icon: Icons.calendar_month_outlined, label: 'Timetable', isActive: false, onTap: () {}),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                _NavSection(
+                                  label: 'ATTENDANCE',
+                                  initiallyExpanded: true,
+                                  children: [
+                                    _NavItems(icon: Icons.fact_check_outlined, label: 'Attendance & Overview', isActive: safeIndex == 3, onTap: () => _onSelectTab(3)),
+                                    _NavItems(icon: Icons.schedule_outlined, label: 'Clock-in Records', isActive: false, onTap: () {}),
+                                    _NavItems(icon: Icons.analytics_outlined, label: 'Reports / SF4', isActive: false, onTap: () {}),
+                                  ],
+                                ),
+                                _NavSection(
+                                  label: 'STAFF',
+                                  initiallyExpanded: true,
+                                  children: [
+                                    _NavItems(icon: Icons.badge_outlined, label: 'Staff List', isActive: safeIndex == 2, onTap: () => _onSelectTab(2)),
+                                    _NavItems(icon: Icons.how_to_reg_outlined, label: 'Staff Attendance', isActive: false, onTap: () {}),
+                                  ],
+                                ),
+                                _NavSection(
+                                  label: 'COMMUNICATION',
+                                  initiallyExpanded: false,
+                                  children: [
+                                    _NavItems(icon: Icons.campaign_outlined, label: 'Notice Board', isActive: false, onTap: () {}),
+                                    _NavItems(icon: Icons.notifications_outlined, label: 'Notifications', isActive: false, onTap: () {}),
+                                  ],
+                                ),
+                                _NavSection(
+                                  label: 'SYSTEM CONTROL',
+                                  initiallyExpanded: false,
+                                  children: [
+                                    _NavItems(icon: Icons.history_edu_outlined, label: 'Audit & Logs', isActive: false, onTap: () {}),
+                                    _NavItems(icon: Icons.settings_outlined, label: 'School Settings', isActive: false, onTap: () {}),
+                                  ],
+                                ),
+                                _NavSection(
+                                  label: 'SUPPORT',
+                                  initiallyExpanded: false,
+                                  children: [
+                                    _NavItems(icon: Icons.help_outline, label: 'Help & FAQ', isActive: false, onTap: () {}),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    // ── Logout ────────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                      child: Column(
+                        children: [
+                          Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Logout',
+                                    style: TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -289,6 +201,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                 child: IndexedStack(index: safeIndex, children: pages),
               ),
             ],
+          ),
           );
         }
 
@@ -310,6 +223,43 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NavSection extends StatelessWidget {
+  const _NavSection({
+    required this.label,
+    required this.children,
+    this.initiallyExpanded = true,
+  });
+
+  final String label;
+  final List<Widget> children;
+  final bool initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      // Remove the default divider ExpansionTile adds
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+        childrenPadding: EdgeInsets.zero,
+        iconColor: Colors.white54,
+        collapsedIconColor: Colors.white38,
+        title: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Colors.white54,
+            letterSpacing: 1.4,
+          ),
+        ),
+        children: children,
+      ),
     );
   }
 }
@@ -341,12 +291,15 @@ class _NavItems extends StatelessWidget {
           children: [
             Icon(icon, color: AppTheme.white, size: 18),
             const SizedBox(width: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
