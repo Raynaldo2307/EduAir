@@ -12,6 +12,7 @@ import 'package:edu_air/src/features/admin/home/widgets/student_row.dart';
 import 'package:edu_air/src/features/admin/home/widgets/audit_log_card.dart';
 import 'package:edu_air/src/features/admin/home/widgets/attendance_trend_card.dart';
 import 'package:edu_air/src/features/admin/home/widgets/notice_board_card.dart';
+import 'package:shimmer/shimmer.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key, required this.onSelectTab});
@@ -58,17 +59,16 @@ class AdminHomeScreen extends ConsumerWidget {
               // ── Stats row ────────────────────────────────────────
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
+                child: homeAsync.when(
+                  loading: () => const _StatRowSkeleton(),
+                  error: (_, __) => const SizedBox(),
+                  data: (d) => Row(
                   children: [
                     StatCard(
                       width: 140,
                       icon: Icons.people_outline,
                       label: 'Total Students',
-                      value: homeAsync.when(
-                        data: (d) => d.totalStudents.toString(),
-                        loading: () => '—',
-                        error: (_, __) => '?',
-                      ),
+                      value: d.totalStudents.toString(),
                       color: const Color(0xFFE8F2FF),
                       iconColor: const Color(0xFF4A7CFF),
                     ),
@@ -77,11 +77,7 @@ class AdminHomeScreen extends ConsumerWidget {
                       width: 140,
                       icon: Icons.person_outline,
                       label: 'Today Present',
-                      value: homeAsync.when(
-                        data: (d) => d.presentToday.toString(),
-                        loading: () => '—',
-                        error: (_, __) => '?',
-                      ),
+                      value: d.presentToday.toString(),
                       color: const Color(0xFFE6F6F3),
                       iconColor: const Color(0xFF2D9CDB),
                     ),
@@ -90,11 +86,7 @@ class AdminHomeScreen extends ConsumerWidget {
                       width: 140,
                       icon: Icons.person_off_outlined,
                       label: 'Absent Today',
-                      value: homeAsync.when(
-                        data: (d) => d.absentToday.toString(),
-                        loading: () => '—',
-                        error: (_, __) => '?',
-                      ),
+                      value: d.absentToday.toString(),
                       color: const Color(0xFFFDE9EC),
                       iconColor: const Color(0xFFE65D7B),
                     ),
@@ -112,11 +104,12 @@ class AdminHomeScreen extends ConsumerWidget {
                       width: 140,
                       icon: Icons.school_outlined,
                       label: 'Total Teachers',
-                      value: homeAsync.when(data: (d) => d.totalTeachers.toString(), error: (_, __) => '?', loading: () => '—'),
+                      value: d.totalTeachers.toString(),
                       color: const Color(0xFFF5EBFF),
                       iconColor: const Color(0xFF9B51E0),
                     ),
                   ],
+                  ),
                 ),
               ),
 
@@ -181,10 +174,9 @@ class AdminHomeScreen extends ConsumerWidget {
               // ── Quick Actions ────────────────────────────────────
               Text(
                 'Quick Actions',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: cs.onSurface),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
               ),
               const SizedBox(height: 14),
               LayoutBuilder(
@@ -239,10 +231,9 @@ class AdminHomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'Recent Students',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: cs.onSurface),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
                   ),
                   TextButton(
                     onPressed: () => onSelectTab(1),
@@ -304,5 +295,65 @@ String _formatShift(String shift) {
       return 'Whole Day';
     default:
       return shift;
+  }
+}
+
+class _StatRowSkeleton extends StatelessWidget {
+  const _StatRowSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Row(
+        children: [
+          Container(
+            width: 140,
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          SizedBox(width: 10),
+          Container(
+            width: 140,
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          SizedBox(width: 10),
+          Container(
+            width: 140,
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+
+          SizedBox(width: 10),
+          Container(
+            width: 140,
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          SizedBox(width: 10),
+          Container(
+            width: 140,
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
