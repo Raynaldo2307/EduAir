@@ -112,7 +112,7 @@ class AdminHomeScreen extends ConsumerWidget {
                       width: 140,
                       icon: Icons.school_outlined,
                       label: 'Total Teachers',
-                      value: '120',
+                      value: homeAsync.when(data: (d) => d.totalTeachers.toString(), error: (_, __) => '?', loading: () => '—'),
                       color: const Color(0xFFF5EBFF),
                       iconColor: const Color(0xFF9B51E0),
                     ),
@@ -122,25 +122,61 @@ class AdminHomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // ── Attendance Chart ─────────────────────────────────
-              const AttendanceChartCard(),
+              // ── Chart + Stats — side by side on desktop ───────────
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktop = constraints.maxWidth >= 700;
+                  if (isDesktop) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Flexible(flex: 3, child: AttendanceChartCard()),
+                        const SizedBox(width: 16),
+                        const Flexible(flex: 2, child: StatsCard()),
+                      ],
+                    );
+                  }
+                  return const Column(
+                    children: [
+                      AttendanceChartCard(),
+                      SizedBox(height: 16),
+                      StatsCard(),
+                    ],
+                  );
+                },
+              ),
+
               const SizedBox(height: 16),
 
-              // ── Stats ────────────────────────────────────────────
-              const StatsCard(),
+              // ── Audit + Trend + Notice — 3 columns on desktop ─────
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktop = constraints.maxWidth >= 700;
+                  if (isDesktop) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Flexible(child: AuditLogCard()),
+                        const SizedBox(width: 16),
+                        const Flexible(child: AttendanceTrendCard()),
+                        const SizedBox(width: 16),
+                        const Flexible(child: NoticeBoardCard()),
+                      ],
+                    );
+                  }
+                  return const Column(
+                    children: [
+                      AuditLogCard(),
+                      SizedBox(height: 16),
+                      NoticeBoardCard(),
+                      SizedBox(height: 16),
+                      AttendanceTrendCard(),
+                    ],
+                  );
+                },
+              ),
+
               const SizedBox(height: 24),
-
-              // ── Audit Log ────────────────────────────────────────
-              const AuditLogCard(),
-              const SizedBox(height: 16),
-
-              // ── Notice Board ─────────────────────────────────────
-              const NoticeBoardCard(),
-              const SizedBox(height: 16),
-
-              // ── Attendance Trend ─────────────────────────────────
-              const AttendanceTrendCard(),
-              const SizedBox(height: 16),
 
               // ── Quick Actions ────────────────────────────────────
               Text(
@@ -151,43 +187,48 @@ class AdminHomeScreen extends ConsumerWidget {
                     ?.copyWith(color: cs.onSurface),
               ),
               const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.6,
-                children: [
-                  ActionCard(
-                    icon: Icons.people_outline,
-                    label: 'Manage Students',
-                    color: const Color(0xFFE8F2FF),
-                    iconColor: const Color(0xFF4A7CFF),
-                    onTap: () => onSelectTab(1),
-                  ),
-                  ActionCard(
-                    icon: Icons.badge_outlined,
-                    label: 'Manage Staff',
-                    color: const Color(0xFFF5EBFF),
-                    iconColor: const Color(0xFF9B51E0),
-                    onTap: () => onSelectTab(2),
-                  ),
-                  ActionCard(
-                    icon: Icons.fact_check_outlined,
-                    label: 'Attendance Report',
-                    color: const Color(0xFFE6F6F3),
-                    iconColor: const Color(0xFF2D9CDB),
-                    onTap: () => onSelectTab(3),
-                  ),
-                  ActionCard(
-                    icon: Icons.school_outlined,
-                    label: 'School Info',
-                    color: const Color(0xFFF8F2DC),
-                    iconColor: const Color(0xFFB7791F),
-                    onTap: () => onSelectTab(4),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cols = constraints.maxWidth >= 700 ? 4 : 2;
+                  return GridView.count(
+                    crossAxisCount: cols,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: cols == 4 ? 2.2 : 1.6,
+                    children: [
+                      ActionCard(
+                        icon: Icons.people_outline,
+                        label: 'Manage Students',
+                        color: const Color(0xFFE8F2FF),
+                        iconColor: const Color(0xFF4A7CFF),
+                        onTap: () => onSelectTab(1),
+                      ),
+                      ActionCard(
+                        icon: Icons.badge_outlined,
+                        label: 'Manage Staff',
+                        color: const Color(0xFFF5EBFF),
+                        iconColor: const Color(0xFF9B51E0),
+                        onTap: () => onSelectTab(2),
+                      ),
+                      ActionCard(
+                        icon: Icons.fact_check_outlined,
+                        label: 'Attendance Report',
+                        color: const Color(0xFFE6F6F3),
+                        iconColor: const Color(0xFF2D9CDB),
+                        onTap: () => onSelectTab(3),
+                      ),
+                      ActionCard(
+                        icon: Icons.school_outlined,
+                        label: 'School Info',
+                        color: const Color(0xFFF8F2DC),
+                        iconColor: const Color(0xFFB7791F),
+                        onTap: () => onSelectTab(4),
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
