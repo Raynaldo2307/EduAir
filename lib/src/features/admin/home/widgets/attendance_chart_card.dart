@@ -1,16 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 
+// Bar chart showing attendance for the last 7 school days.
+// Each bar = one day. Height = fraction of enrolled students who showed up.
 class AttendanceChartCard extends StatelessWidget {
-  const AttendanceChartCard({super.key});
+  const AttendanceChartCard({
+    super.key,
+    required this.trendData,     // 30-day list from adminHomeProvider
+    required this.totalStudents, // total enrolled — denominator for bar height
+  });
 
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  static const _values = [0.85, 0.60, 0.90, 0.45, 0.75, 0.30, 0.55];
+  final List<AttendanceTrendPoint> trendData;
+  final int totalStudents;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs     = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // weekday returns 1 (Mon) to 7 (Sun). Subtract 1 → 0-based index for this list.
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    // Slice last 7 entries from the 30-day trend list.
+    // If the school has fewer than 7 days of data, use whatever exists.
+    final week = trendData.length >= 7
+        ? trendData.sublist(trendData.length - 7)
+        : trendData;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -39,33 +56,57 @@ class AttendanceChartCard extends StatelessWidget {
           const SizedBox(height: 20),
           SizedBox(
             height: 140,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(_days.length, (i) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 100 * _values[i],
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0059BA),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _days[i],
+            child: week.isEmpty
+                ? Center(
+                    child: Text(
+                      'No attendance data yet',
                       style: TextStyle(
-                        fontSize: 10,
-                        color: cs.onSurface.withValues(alpha: 0.5),
+                        fontSize: 12,
+                        color: cs.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
-                  ],
-                );
-              }),
-            ),
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(week.length, (i) {
+                      // 'point' is Ray's variable — week[i] is the item at this index.
+                      // List.generate gives us i (the index). We use it to pull the item.
+                      final point = week[i];
+
+                      // Formula Ray derived: (showed up ÷ total enrolled) × 100 = bar height in px.
+                      // clamp(0, 100) prevents bar from overflowing if data is unusual.
+                      // totalStudents guard prevents divide-by-zero crash.
+                      final barHeight = totalStudents > 0
+                          ? (point.totalPresent / totalStudents * 100).clamp(0, 100).toDouble()
+                          : 0.0;
+
+                      // Parse date string → DateTime → weekday number → list index → day name.
+                      final dayLabel = dayNames[DateTime.parse(point.date).weekday - 1];
+
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            width: 28,
+                            height: barHeight,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0059BA),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            dayLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: cs.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
           ),
         ],
       ),

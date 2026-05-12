@@ -35,6 +35,14 @@ class AdminHomeScreen extends ConsumerWidget {
             : 'EduAir School');
     final adminId = user?.uid ?? '—';
 
+    // whenOrNull returns the value only when the provider is in the 'data' state.
+    // It returns null during loading and on error — the '??' provides the safe fallback.
+    // We extract these here (not inside LayoutBuilder) because the card appears in
+    // both the desktop row and the mobile column — extract once, use twice.
+    final trendData     = homeAsync.whenOrNull(data: (d) => d.trendData)     ?? const [];
+    final trendLabel    = homeAsync.whenOrNull(data: (d) => d.trendLabel)    ?? '';
+    final totalStudents = homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
+
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -125,17 +133,17 @@ class AdminHomeScreen extends ConsumerWidget {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Flexible(flex: 3, child: AttendanceChartCard()),
+                        Flexible(flex: 3, child: AttendanceChartCard(trendData: trendData, totalStudents: totalStudents)),
                         const SizedBox(width: 16),
                         const Flexible(flex: 2, child: StatsCard()),
                       ],
                     );
                   }
-                  return const Column(
+                  return Column(
                     children: [
-                      AttendanceChartCard(),
-                      SizedBox(height: 16),
-                      StatsCard(),
+                      AttendanceChartCard(trendData: trendData, totalStudents: totalStudents),
+                      const SizedBox(height: 16),
+                      const StatsCard(),
                     ],
                   );
                 },
@@ -153,19 +161,19 @@ class AdminHomeScreen extends ConsumerWidget {
                       children: [
                         const Flexible(child: AuditLogCard()),
                         const SizedBox(width: 16),
-                        const Flexible(child: AttendanceTrendCard()),
+                        Flexible(child: AttendanceTrendCard(trendData: trendData, trendLabel: trendLabel)),
                         const SizedBox(width: 16),
                         const Flexible(child: NoticeBoardCard()),
                       ],
                     );
                   }
-                  return const Column(
+                  return Column(
                     children: [
-                      AuditLogCard(),
-                      SizedBox(height: 16),
-                      NoticeBoardCard(),
-                      SizedBox(height: 16),
-                      AttendanceTrendCard(),
+                      const AuditLogCard(),
+                      const SizedBox(height: 16),
+                      const NoticeBoardCard(),
+                      const SizedBox(height: 16),
+                      AttendanceTrendCard(trendData: trendData, trendLabel: trendLabel),
                     ],
                   );
                 },
