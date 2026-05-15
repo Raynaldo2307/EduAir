@@ -6,6 +6,7 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
 import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
+import 'package:edu_air/src/features/admin/analytics/admin_analytics_screen.dart';
 
 class AdminResponsiveShell extends ConsumerStatefulWidget {
   const AdminResponsiveShell({super.key});
@@ -17,6 +18,7 @@ class AdminResponsiveShell extends ConsumerStatefulWidget {
 
 class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
   int _currentIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _onSelectTab(int index) {
     setState(() {
@@ -27,24 +29,28 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      AdminHomeScreen(onSelectTab: _onSelectTab),
+      AdminHomeScreen(
+        onSelectTab: _onSelectTab,
+        onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+      ),
+      AdminAnalyticsPage(onBackToHome: () => _onSelectTab(0), onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer()),
       AdminStudentListPage(onBackToHome: () => _onSelectTab(0)),
       AdminStaffListPage(onBackToHome: () => _onSelectTab(0)),
-      AdminAttendancePage(onBackToHome: () => _onSelectTab(0)),
       const SettingsPage(),
+      AdminAttendancePage(onBackToHome: () => _onSelectTab(0)),
     ];
 
     final navItems = const [
       BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
       BottomNavigationBarItem(
+        icon: Icon(Icons.analytics_outlined),
+        label: 'Analytics',
+      ),
+      BottomNavigationBarItem(
         icon: Icon(Icons.people_outlined),
         label: 'Students',
       ),
       BottomNavigationBarItem(icon: Icon(Icons.badge_outlined), label: 'Staff'),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.fact_check_outlined),
-        label: 'Attendance',
-      ),
       BottomNavigationBarItem(
         icon: Icon(Icons.settings_outlined),
         label: 'Settings',
@@ -59,155 +65,286 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           // ── Desktop / tablet layout ──────────────────────────────
           return Scaffold(
             body: Row(
-            children: [
-              Container(
-                width: 260,
-                height: double.infinity,
-                color: const Color(0xFF1A2B4A),
-                child: Column(
-                  children: [
-                    // ── Logo ──────────────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'EduAir',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.white,
-                              letterSpacing: -0.5,
+              children: [
+                Container(
+                  width: 260,
+                  height: double.infinity,
+                  color: const Color(0xFF1A2B4A),
+                  child: Column(
+                    children: [
+                      // ── Logo ──────────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'EduAir',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.white,
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                          ),
-                          const Text(
-                            'Admin Portal',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white54,
+                            const Text(
+                              'Admin Portal',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white54,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
-                        ],
-                      ),
-                    ),
-                    // ── Nav ───────────────────────────────────────────
-                    Expanded(
-                      child: ScrollbarTheme(
-                        data: ScrollbarThemeData(
-                          thumbColor: WidgetStateProperty.all(
-                            Colors.white.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Scrollbar(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _NavSection(
-                                  label: 'ACADEMICS & STUDENTS',
-                                  initiallyExpanded: true,
-                                  children: [
-                                    _NavItems(icon: Icons.dashboard_outlined, label: 'Dashboard', isActive: safeIndex == 0, onTap: () => _onSelectTab(0)),
-                                    _NavItems(icon: Icons.group_outlined, label: 'Students', isActive: safeIndex == 1, onTap: () => _onSelectTab(1)),
-                                    _NavItems(icon: Icons.school_outlined, label: 'Classes & Subjects', isActive: false, onTap: () {}),
-                                    _NavItems(icon: Icons.calendar_month_outlined, label: 'Timetable', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                                _NavSection(
-                                  label: 'ATTENDANCE',
-                                  initiallyExpanded: true,
-                                  children: [
-                                    _NavItems(icon: Icons.fact_check_outlined, label: 'Attendance & Overview', isActive: safeIndex == 3, onTap: () => _onSelectTab(3)),
-                                    _NavItems(icon: Icons.schedule_outlined, label: 'Clock-in Records', isActive: false, onTap: () {}),
-                                    _NavItems(icon: Icons.analytics_outlined, label: 'Reports / SF4', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                                _NavSection(
-                                  label: 'STAFF',
-                                  initiallyExpanded: true,
-                                  children: [
-                                    _NavItems(icon: Icons.badge_outlined, label: 'Staff List', isActive: safeIndex == 2, onTap: () => _onSelectTab(2)),
-                                    _NavItems(icon: Icons.how_to_reg_outlined, label: 'Staff Attendance', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                                _NavSection(
-                                  label: 'COMMUNICATION',
-                                  initiallyExpanded: false,
-                                  children: [
-                                    _NavItems(icon: Icons.campaign_outlined, label: 'Notice Board', isActive: false, onTap: () {}),
-                                    _NavItems(icon: Icons.notifications_outlined, label: 'Notifications', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                                _NavSection(
-                                  label: 'SYSTEM CONTROL',
-                                  initiallyExpanded: false,
-                                  children: [
-                                    _NavItems(icon: Icons.history_edu_outlined, label: 'Audit & Logs', isActive: false, onTap: () {}),
-                                    _NavItems(icon: Icons.settings_outlined, label: 'School Settings', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                                _NavSection(
-                                  label: 'SUPPORT',
-                                  initiallyExpanded: false,
-                                  children: [
-                                    _NavItems(icon: Icons.help_outline, label: 'Help & FAQ', isActive: false, onTap: () {}),
-                                  ],
-                                ),
-                              ],
+                            const SizedBox(height: 20),
+                            Divider(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              height: 1,
                             ),
-                          ),
+                          ],
                         ),
                       ),
-                    ),
-                    // ── Logout ────────────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-                      child: Column(
-                        children: [
-                          Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                children: const [
-                                  Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Logout',
-                                    style: TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                      // ── Nav ───────────────────────────────────────────
+                      Expanded(
+                        child: ScrollbarTheme(
+                          data: ScrollbarThemeData(
+                            thumbColor: WidgetStateProperty.all(
+                              Colors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Scrollbar(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _NavSection(
+                                    label: 'ACADEMICS & STUDENTS',
+                                    initiallyExpanded: true,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.dashboard_outlined,
+                                        label: 'Dashboard',
+                                        isActive: safeIndex == 0,
+                                        onTap: () => _onSelectTab(0),
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.group_outlined,
+                                        label: 'Students',
+                                        isActive: safeIndex == 2,
+                                        onTap: () => _onSelectTab(2),
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.school_outlined,
+                                        label: 'Classes & Subjects',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.calendar_month_outlined,
+                                        label: 'Timetable',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                    ],
+                                  ),
+                                  _NavSection(
+                                    label: 'ATTENDANCE',
+                                    initiallyExpanded: true,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.fact_check_outlined,
+                                        label: 'Attendance & Overview',
+                                        isActive: safeIndex == 5,
+                                        onTap: () => _onSelectTab(5),
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.schedule_outlined,
+                                        label: 'Clock-in Records',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.analytics_outlined,
+                                        label: 'Analytics',
+                                        isActive: safeIndex == 1,
+                                        onTap: () => _onSelectTab(1),
+                                      ),
+                                    ],
+                                  ),
+                                  _NavSection(
+                                    label: 'STAFF',
+                                    initiallyExpanded: true,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.badge_outlined,
+                                        label: 'Staff List',
+                                        isActive: safeIndex == 3,
+                                        onTap: () => _onSelectTab(3),
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.how_to_reg_outlined,
+                                        label: 'Staff Attendance',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                    ],
+                                  ),
+                                  _NavSection(
+                                    label: 'COMMUNICATION',
+                                    initiallyExpanded: false,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.campaign_outlined,
+                                        label: 'Notice Board',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.notifications_outlined,
+                                        label: 'Notifications',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                    ],
+                                  ),
+                                  _NavSection(
+                                    label: 'SYSTEM CONTROL',
+                                    initiallyExpanded: false,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.history_edu_outlined,
+                                        label: 'Audit & Logs',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.settings_outlined,
+                                        label: 'School Settings',
+                                        isActive: safeIndex == 4,
+                                        onTap: () => _onSelectTab(4),
+                                      ),
+                                    ],
+                                  ),
+                                  _NavSection(
+                                    label: 'SUPPORT',
+                                    initiallyExpanded: false,
+                                    children: [
+                                      _NavItems(
+                                        icon: Icons.help_outline,
+                                        label: 'Help & FAQ',
+                                        isActive: false,
+                                        onTap: () {},
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      // ── Logout ────────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                        child: Column(
+                          children: [
+                            Divider(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              height: 1,
+                            ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () {},
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: const [
+                                    Icon(
+                                      Icons.logout_rounded,
+                                      color: Colors.redAccent,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Logout',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              Expanded(
-                child: IndexedStack(index: safeIndex, children: pages),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: IndexedStack(index: _currentIndex, children: pages),
+                ),
+              ],
+            ),
           );
         }
 
         // ── Mobile layout ────────────────────────────────────────
         return Scaffold(
-          body: IndexedStack(index: safeIndex, children: pages),
+          key: _scaffoldKey,
+
+          drawer: Drawer(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                DrawerHeader(
+                  decoration: const BoxDecoration(color: Color(0xFF1A2B4A)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: const [
+                      Text(
+                        'EduAir',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Admin Portal',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: const Text('Attendance'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _onSelectTab(5);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule_outlined),
+                  title: const Text('Clock-in Records'),
+                  onTap: () => Navigator.pop(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
+                  title: const Text('Reports / SF4'),
+                  onTap: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          body: IndexedStack(index: _currentIndex, children: pages),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: safeIndex,
             selectedItemColor: Theme.of(context).colorScheme.primary,

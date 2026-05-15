@@ -15,9 +15,16 @@ import 'package:edu_air/src/features/admin/home/widgets/notice_board_card.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
-  const AdminHomeScreen({super.key, required this.onSelectTab});
+
+  const AdminHomeScreen({super.key, required this.onSelectTab, required this.onOpenDrawer});
 
   final void Function(int index) onSelectTab;
+
+  final VoidCallback onOpenDrawer;
+
+
+ 
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,6 +53,7 @@ class AdminHomeScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
+      
       backgroundColor: cs.surface,
       body: SafeArea(
         child: SingleChildScrollView(
