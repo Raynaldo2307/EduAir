@@ -9,7 +9,7 @@ class StatCard extends StatelessWidget {
     required this.value,
     required this.color,
     required this.iconColor,
-    required this.width,
+    this.width,
     this.trend,
     this.trendUp,
   });
@@ -19,7 +19,8 @@ class StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final Color iconColor;
-  final double width;
+  // null on desktop — card fills Expanded width. Fixed on mobile scroll.
+  final double? width;
   // Optional trend line shown at the bottom of the card.
   // trendUp=true → green (improvement), false → red (worse), null → no arrow.
   final String? trend;
@@ -34,7 +35,7 @@ class StatCard extends StatelessWidget {
         : const Color(0xFFE65D7B);
 
     return Container(
-      width: width,
+      width: width,           // null = fills Expanded, fixed = mobile scroll
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: isDark ? iconColor.withValues(alpha: 0.2) : color,

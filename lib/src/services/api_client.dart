@@ -79,7 +79,10 @@ class ApiClient {
    // this is the wifi at  work st ann bay here 
    //static const _devIp = '192.168.0.119';
    //static const _devIp = '192.168.0.104';
-   static const _devIp = '192.168.0.105';
+   //static const _devIp = '192.168.0.105';
+   // radio. rooom 
+   // 
+   static const _devIp = '192.168.1.21';
 
   static const _port = '3000';
 

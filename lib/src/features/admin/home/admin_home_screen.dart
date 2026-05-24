@@ -12,6 +12,8 @@ import 'package:edu_air/src/features/admin/home/widgets/student_row.dart';
 import 'package:edu_air/src/features/admin/home/widgets/audit_log_card.dart';
 import 'package:edu_air/src/features/admin/home/widgets/attendance_trend_card.dart';
 import 'package:edu_air/src/features/admin/home/widgets/notice_board_card.dart';
+import 'package:edu_air/src/features/admin/students/admin_student_edit_page.dart';
+import 'package:edu_air/src/shared/widgets/student_detail_sheet.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
@@ -85,106 +87,127 @@ class AdminHomeScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // ── Stats row ────────────────────────────────────────
-              Stack(
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: homeAsync.when(
-                      loading: () => const _StatRowSkeleton(),
-                      error: (_, __) => const SizedBox(),
-                      data: (d) => Row(
-                        children: [
-                          StatCard(
-                            width: 140,
-                            icon: Icons.people_outline,
-                            label: 'Total Students',
-                            value: d.totalStudents.toString(),
-                            color: const Color(0xFFE8F2FF),
-                            iconColor: const Color(0xFF4A7CFF),
-                          ),
-                          const SizedBox(width: 10),
-                          StatCard(
-                            width: 140,
-                            icon: Icons.person_outline,
-                            label: 'Today Present',
-                            value: d.presentToday.toString(),
-                            color: const Color(0xFFE6F6F3),
-                            iconColor: const Color(0xFF2D9CDB),
-                            trend: presentTrend,
-                            trendUp: presentTrend != null
-                                ? d.presentToday >=
-                                    (trendData.length >= 7
-                                        ? trendData[trendData.length - 7].totalPresent
-                                        : d.presentToday)
-                                : null,
-                          ),
-                          const SizedBox(width: 10),
-                          StatCard(
-                            width: 140,
-                            icon: Icons.person_off_outlined,
-                            label: 'Absent Today',
-                            value: d.absentToday.toString(),
-                            color: const Color(0xFFFDE9EC),
-                            iconColor: const Color(0xFFE65D7B),
-                            trend: absentTrend,
-                            trendUp: absentTrend != null
-                                ? d.absentToday <=
-                                    (trendData.length >= 7
-                                        ? trendData[trendData.length - 7].absentCount
-                                        : d.absentToday)
-                                : null,
-                          ),
-                          const SizedBox(width: 10),
-                          StatCard(
-                            icon: Icons.schedule_outlined,
-                            label: 'Late Today',
-                            value: d.lateToday.toString(),
-                            color: const Color(0xFFFFF8E1),
-                            iconColor: const Color(0xFFF59E0B),
-                            width: 140,
-                            trend: lateTrend,
-                            trendUp: lateTrend != null
-                                ? d.lateToday <=
-                                    (trendData.length >= 7
-                                        ? trendData[trendData.length - 7].lateCount
-                                        : d.lateToday)
-                                : null,
-                          ),
-                          const SizedBox(width: 10),
-                          StatCard(
-                            width: 140,
-                            icon: Icons.school_outlined,
-                            label: 'Total Teachers',
-                            value: d.totalTeachers.toString(),
-                            color: const Color(0xFFF5EBFF),
-                            iconColor: const Color(0xFF9B51E0),
-                          ),
-                        ],
-                      ),
+              // Desktop: all cards Expanded across the full width — no scroll.
+              // Mobile: fixed 140px cards in horizontal scroll + right-edge fade.
+              // Adding a new stat card in the future = one StatCard entry here, nothing else changes.
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktop = constraints.maxWidth >= 700;
+
+                  if (homeAsync.isLoading) {
+                    return const SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _StatRowSkeleton(),
+                    );
+                  }
+                  if (homeAsync.hasError) return const SizedBox();
+
+                  final d = homeAsync.asData!.value;
+
+                  final presentUp = presentTrend != null
+                      ? d.presentToday >= (trendData.length >= 7 ? trendData[trendData.length - 7].totalPresent : d.presentToday)
+                      : null;
+                  final absentUp = absentTrend != null
+                      ? d.absentToday <= (trendData.length >= 7 ? trendData[trendData.length - 7].absentCount : d.absentToday)
+                      : null;
+                  final lateUp = lateTrend != null
+                      ? d.lateToday <= (trendData.length >= 7 ? trendData[trendData.length - 7].lateCount : d.lateToday)
+                      : null;
+
+                  final statCards = [
+                    StatCard(
+                      width: isDesktop ? null : 140,
+                      icon: Icons.people_outline,
+                      label: 'Total Students',
+                      value: d.totalStudents.toString(),
+                      color: const Color(0xFFE8F2FF),
+                      iconColor: const Color(0xFF4A7CFF),
                     ),
-                  ),
-                  // Right-edge fade — signals more cards exist to the right
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              cs.surface.withValues(alpha: 0.0),
-                              cs.surface.withValues(alpha: 0.85),
+                    StatCard(
+                      width: isDesktop ? null : 140,
+                      icon: Icons.person_outline,
+                      label: 'Today Present',
+                      value: d.presentToday.toString(),
+                      color: const Color(0xFFE6F6F3),
+                      iconColor: const Color(0xFF2D9CDB),
+                      trend: presentTrend,
+                      trendUp: presentUp,
+                    ),
+                    StatCard(
+                      width: isDesktop ? null : 140,
+                      icon: Icons.person_off_outlined,
+                      label: 'Absent Today',
+                      value: d.absentToday.toString(),
+                      color: const Color(0xFFFDE9EC),
+                      iconColor: const Color(0xFFE65D7B),
+                      trend: absentTrend,
+                      trendUp: absentUp,
+                    ),
+                    StatCard(
+                      width: isDesktop ? null : 140,
+                      icon: Icons.schedule_outlined,
+                      label: 'Late Today',
+                      value: d.lateToday.toString(),
+                      color: const Color(0xFFFFF8E1),
+                      iconColor: const Color(0xFFF59E0B),
+                      trend: lateTrend,
+                      trendUp: lateUp,
+                    ),
+                    StatCard(
+                      width: isDesktop ? null : 140,
+                      icon: Icons.school_outlined,
+                      label: 'Total Teachers',
+                      value: d.totalTeachers.toString(),
+                      color: const Color(0xFFF5EBFF),
+                      iconColor: const Color(0xFF9B51E0),
+                    ),
+                  ];
+
+                  if (isDesktop) {
+                    return Row(
+                      children: [
+                        for (int i = 0; i < statCards.length; i++) ...[
+                          Expanded(child: statCards[i]),
+                          if (i < statCards.length - 1) const SizedBox(width: 10),
+                        ],
+                      ],
+                    );
+                  }
+
+                  return Stack(
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (int i = 0; i < statCards.length; i++) ...[
+                              statCards[i],
+                              if (i < statCards.length - 1) const SizedBox(width: 10),
                             ],
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        right: 0, top: 0, bottom: 0,
+                        child: IgnorePointer(
+                          child: Container(
+                            width: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  cs.surface.withValues(alpha: 0.0),
+                                  cs.surface.withValues(alpha: 0.85),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -350,6 +373,19 @@ class AdminHomeScreen extends ConsumerWidget {
                                     : (s.gradeLevel?.isNotEmpty == true
                                         ? 'Grade ${s.gradeLevel}'
                                         : '—'),
+                                onTap: () => showStudentDetail(
+                                  context,
+                                  s,
+                                  isAdmin: true,
+                                  onEdit: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            AdminStudentEditPage(student: s),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             )
                             .toList(),
