@@ -89,6 +89,45 @@ class AppTheme {
   );
 
   // ─────────────────────────────────────────────
+  // 3c) Shadow System
+  // ─────────────────────────────────────────────
+  // Single source of truth for card shadows.
+  // Light: two-layer shadow — one tight, one wide — gives a realistic lift.
+  // Dark:  colored glow using the primary colour — black shadows are invisible
+  //        on dark backgrounds, so we use a faint primary-tinted glow instead.
+  //
+  // Usage in any widget:
+  //   boxShadow: AppTheme.cardShadow(isDark: isDark, primary: cs.primary),
+  static List<BoxShadow> cardShadow({
+    required bool isDark,
+    required Color primary,
+  }) {
+    if (isDark) {
+      return [
+        BoxShadow(
+          color: primary.withValues(alpha: 0.15),
+          blurRadius: 20,
+          spreadRadius: 2,
+          offset: const Offset(0, 4),
+        ),
+      ];
+    }
+    return [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.08),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 20,
+        spreadRadius: 1,
+        offset: const Offset(0, 8),
+      ),
+    ];
+  }
+
+  // ─────────────────────────────────────────────
   // 4) ThemeData — light + dark
   // ─────────────────────────────────────────────
   static ThemeData get lightTheme {

@@ -37,6 +37,10 @@ class AdminAnalyticsPage extends ConsumerWidget {
 
     final schoolName =
         homeAsync.whenOrNull(data: (d) => d.schoolName) ?? 'EduAir School';
+    final trendData =
+        homeAsync.whenOrNull(data: (d) => d.trendData) ?? const [];
+    final totalStudents =
+        homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
 
     return Scaffold(
       body: SafeArea(
@@ -131,65 +135,10 @@ class AdminAnalyticsPage extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // Attendance Trends card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: _cardDecoration(cs),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Attendance\nTrends',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: cs.onSurface,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _TabChip(label: '30D', selected: true, cs: cs),
-                            const SizedBox(width: 4),
-                            _TabChip(label: '90D', selected: false, cs: cs),
-                            const SizedBox(width: 4),
-                            _TabChip(label: 'Term', selected: false, cs: cs),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      height: 160,
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Bar chart coming soon',
-                          style: TextStyle(color: cs.onSurfaceVariant),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _LegendDot(
-                          color: cs.primary,
-                          label: 'Students',
-                          cs: cs,
-                        ),
-                        const SizedBox(width: 16),
-                        const _LegendDot(
-                          color: Color(0xFF2D9CDB),
-                          label: 'Staff',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              _AttendanceTrendsCard(
+                trendData: trendData,
+                totalStudents: totalStudents,
+                cs: cs,
               ),
 
               const SizedBox(height: 16),
@@ -210,50 +159,15 @@ class AdminAnalyticsPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _ClassRow(
-                      label: 'Class 9B',
-                      value: 0.645,
-                      percent: '64.5%',
-                      barColor: cs.error,
-                      percentColor: cs.error,
-                      cs: cs,
-                    ),
+                    _ClassRow(label: 'Class 9B',  value: 0.645, percent: '64.5%', cs: cs),
                     const SizedBox(height: 10),
-                    _ClassRow(
-                      label: 'Class 11C',
-                      value: 0.721,
-                      percent: '72.1%',
-                      barColor: const Color(0xFFB7791F),
-                      percentColor: const Color(0xFFB7791F),
-                      cs: cs,
-                    ),
+                    _ClassRow(label: 'Class 11C', value: 0.721, percent: '72.1%', cs: cs),
                     const SizedBox(height: 10),
-                    _ClassRow(
-                      label: 'Class 7A',
-                      value: 0.748,
-                      percent: '74.8%',
-                      barColor: const Color(0xFFB7791F),
-                      percentColor: const Color(0xFFB7791F),
-                      cs: cs,
-                    ),
+                    _ClassRow(label: 'Class 7A',  value: 0.748, percent: '74.8%', cs: cs),
                     const SizedBox(height: 10),
-                    _ClassRow(
-                      label: 'Class 10D',
-                      value: 0.785,
-                      percent: '78.5%',
-                      barColor: cs.primary,
-                      percentColor: cs.primary,
-                      cs: cs,
-                    ),
+                    _ClassRow(label: 'Class 10D', value: 0.785, percent: '78.5%', cs: cs),
                     const SizedBox(height: 10),
-                    _ClassRow(
-                      label: 'Class 8F',
-                      value: 0.822,
-                      percent: '82.2%',
-                      barColor: cs.primary,
-                      percentColor: cs.primary,
-                      cs: cs,
-                    ),
+                    _ClassRow(label: 'Class 8F',  value: 0.822, percent: '82.2%', cs: cs),
                   ],
                 ),
               ),
@@ -325,32 +239,168 @@ class AdminAnalyticsPage extends ConsumerWidget {
   }
 }
 
-class _TabChip extends StatelessWidget {
-  const _TabChip({
-    required this.label,
-    required this.selected,
+class _AttendanceTrendsCard extends StatefulWidget {
+  const _AttendanceTrendsCard({
+    required this.trendData,
+    required this.totalStudents,
     required this.cs,
   });
 
-  final String label;
-  final bool selected;
+  final List<AttendanceTrendPoint> trendData;
+  final int totalStudents;
   final ColorScheme cs;
 
   @override
+  State<_AttendanceTrendsCard> createState() => _AttendanceTrendsCardState();
+}
+
+class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
+  int _selected = 0; // 0=30D, 1=90D, 2=Term
+
+  static const _ranges = ['30D', '90D', 'Term'];
+
+  static const _barColors = [
+    Color(0xFF0059BA), // 30D — blue
+    Color(0xFF2E7D32), // 90D — green
+    Color(0xFF9B51E0), // Term — purple
+  ];
+
+  static const _dayNames = [
+    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+  ];
+
+  @override
   Widget build(BuildContext context) {
+    final cs = widget.cs;
+    final data = widget.trendData;
+    final barColor = _barColors[_selected];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: selected ? cs.primary : cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: selected ? cs.onPrimary : cs.onSurfaceVariant,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Attendance Trends',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
+              ),
+              Row(
+                children: List.generate(_ranges.length, (i) {
+                  final active = _selected == i;
+                  return Padding(
+                    padding: EdgeInsets.only(left: i > 0 ? 4 : 0),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selected = i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: active ? _barColors[i] : cs.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _ranges[i],
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: active ? Colors.white : cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 140,
+            child: data.isEmpty
+                ? Center(
+                    child: Text(
+                      'No trend data yet',
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: List.generate(data.length, (i) {
+                      final point = data[i];
+                      final barHeight = widget.totalStudents > 0
+                          ? (point.totalPresent /
+                                  widget.totalStudents *
+                                  130)
+                              .clamp(0, 130)
+                              .toDouble()
+                          : 0.0;
+                      final dayLabel =
+                          _dayNames[DateTime.parse(point.date).weekday - 1];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                              width: 28,
+                              height: barHeight,
+                              decoration: BoxDecoration(
+                                color: barColor,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              dayLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _LegendDot(color: barColor, label: 'Students', cs: cs),
+              const SizedBox(width: 16),
+              _LegendDot(
+                color: const Color(0xFF2D9CDB),
+                label: 'Staff',
+                cs: cs,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -388,20 +438,27 @@ class _ClassRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.percent,
-    required this.barColor,
-    required this.percentColor,
     required this.cs,
   });
 
   final String label;
   final double value;
   final String percent;
-  final Color barColor;
-  final Color percentColor;
   final ColorScheme cs;
+
+  // Color driven by severity — no guessing needed at the call site.
+  // < 80% is below the MoEYI acceptable threshold → red.
+  // 80–90% is borderline → amber.
+  // ≥ 90% is healthy → primary blue.
+  Color _severityColor() {
+    if (value < 0.80) return cs.error;
+    if (value < 0.90) return const Color(0xFFB7791F);
+    return cs.primary;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final color = _severityColor();
     return Column(
       children: [
         Row(
@@ -416,7 +473,7 @@ class _ClassRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: percentColor,
+                color: color,
               ),
             ),
           ],
@@ -424,7 +481,7 @@ class _ClassRow extends StatelessWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: value,
-          color: barColor,
+          color: color,
           backgroundColor: cs.surfaceContainerLow,
           minHeight: 6,
           borderRadius: BorderRadius.circular(4),
@@ -449,10 +506,18 @@ class _TopAbsentStudent extends StatelessWidget {
   final double absencePercent;
   final ColorScheme cs;
 
+  // >= 30% absent is critical, 20–29% is a warning, below that is flagged but manageable.
+  Color _chipColor() {
+    if (absencePercent >= 30) return cs.error;
+    if (absencePercent >= 20) return const Color(0xFFB7791F);
+    return cs.primary;
+  }
+
   @override
   Widget build(BuildContext context) {
     final initials =
         '${firstName[0].toUpperCase()}${lastName[0].toUpperCase()}';
+    final chipColor = _chipColor();
     return Row(
       children: [
         CircleAvatar(
@@ -492,17 +557,18 @@ class _TopAbsentStudent extends StatelessWidget {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: cs.error.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: chipColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: chipColor.withValues(alpha: 0.35)),
           ),
           child: Text(
-            '${absencePercent.toInt()}% Abs.',
+            '${absencePercent.toInt()}% absent',
             style: TextStyle(
-              color: cs.error,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              color: chipColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),

@@ -2,58 +2,97 @@ import 'package:flutter/material.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 
-// Bar chart showing attendance for the last 7 school days.
-// Each bar = one day. Height = fraction of enrolled students who showed up.
-class AttendanceChartCard extends StatelessWidget {
+class AttendanceChartCard extends StatefulWidget {
   const AttendanceChartCard({
     super.key,
-    required this.trendData,     // 30-day list from adminHomeProvider
-    required this.totalStudents, // total enrolled — denominator for bar height
+    required this.trendData,
+    required this.totalStudents,
   });
 
   final List<AttendanceTrendPoint> trendData;
   final int totalStudents;
 
   @override
+  State<AttendanceChartCard> createState() => _AttendanceChartCardState();
+}
+
+class _AttendanceChartCardState extends State<AttendanceChartCard> {
+  int _selectedTab = 0; // 0=Attendance, 1=Enrollment, 2=Users
+
+  static const _tabs = ['Attendance', 'Enrollment', 'Users'];
+
+  // Each tab gets a distinct bar colour so the admin can tell them apart.
+  static const _tabColors = [
+    Color(0xFF0059BA), // Attendance — primary blue
+    Color(0xFF2E7D32), // Enrollment — green
+    Color(0xFF9B51E0), // Users — purple
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    final cs     = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // weekday returns 1 (Mon) to 7 (Sun). Subtract 1 → 0-based index for this list.
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    // Slice last 7 entries from the 30-day trend list.
-    // If the school has fewer than 7 days of data, use whatever exists.
-    final week = trendData.length >= 7
-        ? trendData.sublist(trendData.length - 7)
-        : trendData;
+    final week = widget.trendData.length >= 7
+        ? widget.trendData.sublist(widget.trendData.length - 7)
+        : widget.trendData;
+
+    final barColor = _tabColors[_selectedTab];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : AppTheme.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: AppTheme.cardShadow(isDark: isDark, primary: cs.primary),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Tappable tab row
           Row(
-            children: [
-              _ChartTab(label: 'Attendance', active: true),
-              const SizedBox(width: 16),
-              _ChartTab(label: 'Enrollment', active: false),
-              const SizedBox(width: 16),
-              _ChartTab(label: 'Users', active: false),
-            ],
+            children: List.generate(_tabs.length, (i) {
+              final active = _selectedTab == i;
+              return Padding(
+                padding: EdgeInsets.only(right: i < _tabs.length - 1 ? 20 : 0),
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedTab = i),
+                  child: Column(
+                    children: [
+                      Text(
+                        _tabs[i],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.w400,
+                          color: active
+                              ? _tabColors[i]
+                              : cs.onSurface.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 2,
+                        width: active ? 40 : 0,
+                        decoration: BoxDecoration(
+                          color: _tabColors[i],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
+
           const SizedBox(height: 20),
+
+          // Bar chart
           SizedBox(
             height: 140,
             child: week.isEmpty
@@ -68,81 +107,50 @@ class AttendanceChartCard extends StatelessWidget {
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: List.generate(week.length, (i) {
-                      // 'point' is Ray's variable — week[i] is the item at this index.
-                      // List.generate gives us i (the index). We use it to pull the item.
                       final point = week[i];
-
-                      // Formula Ray derived: (showed up ÷ total enrolled) × 100 = bar height in px.
-                      // clamp(0, 100) prevents bar from overflowing if data is unusual.
-                      // totalStudents guard prevents divide-by-zero crash.
-                      final barHeight = totalStudents > 0
-                          ? (point.totalPresent / totalStudents * 100).clamp(0, 100).toDouble()
+                      final barHeight = widget.totalStudents > 0
+                          ? (point.totalPresent /
+                                  widget.totalStudents *
+                                  100)
+                              .clamp(0, 100)
+                              .toDouble()
                           : 0.0;
+                      final dayLabel =
+                          dayNames[DateTime.parse(point.date).weekday - 1];
 
-                      // Parse date string → DateTime → weekday number → list index → day name.
-                      final dayLabel = dayNames[DateTime.parse(point.date).weekday - 1];
-
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            width: 28,
-                            height: barHeight,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0059BA),
-                              borderRadius: BorderRadius.circular(6),
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                              width: 28,
+                              height: barHeight,
+                              decoration: BoxDecoration(
+                                color: barColor,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            dayLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: cs.onSurface.withValues(alpha: 0.5),
+                            const SizedBox(height: 6),
+                            Text(
+                              dayLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     }),
                   ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ChartTab extends StatelessWidget {
-  const _ChartTab({required this.label, required this.active});
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-            color: active ? cs.primary : cs.onSurface.withValues(alpha: 0.45),
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (active)
-          Container(
-            height: 2,
-            width: 40,
-            decoration: BoxDecoration(
-              color: cs.primary,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-      ],
     );
   }
 }

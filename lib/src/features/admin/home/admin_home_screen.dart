@@ -50,6 +50,17 @@ class AdminHomeScreen extends ConsumerWidget {
     final trendLabel    = homeAsync.whenOrNull(data: (d) => d.trendLabel)    ?? '';
     final totalStudents = homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
 
+    // Week-over-week deltas — null when < 7 days of history available.
+    final presentTrend = homeAsync.whenOrNull(
+      data: (d) => _weekDelta(d.presentToday, trendData, 'present'),
+    );
+    final absentTrend = homeAsync.whenOrNull(
+      data: (d) => _weekDelta(d.absentToday, trendData, 'absent'),
+    );
+    final lateTrend = homeAsync.whenOrNull(
+      data: (d) => _weekDelta(d.lateToday, trendData, 'late'),
+    );
+
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -74,61 +85,106 @@ class AdminHomeScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // ── Stats row ────────────────────────────────────────
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: homeAsync.when(
-                  loading: () => const _StatRowSkeleton(),
-                  error: (_, __) => const SizedBox(),
-                  data: (d) => Row(
-                    children: [
-                      StatCard(
-                        width: 140,
-                        icon: Icons.people_outline,
-                        label: 'Total Students',
-                        value: d.totalStudents.toString(),
-                        color: const Color(0xFFE8F2FF),
-                        iconColor: const Color(0xFF4A7CFF),
+              Stack(
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: homeAsync.when(
+                      loading: () => const _StatRowSkeleton(),
+                      error: (_, __) => const SizedBox(),
+                      data: (d) => Row(
+                        children: [
+                          StatCard(
+                            width: 140,
+                            icon: Icons.people_outline,
+                            label: 'Total Students',
+                            value: d.totalStudents.toString(),
+                            color: const Color(0xFFE8F2FF),
+                            iconColor: const Color(0xFF4A7CFF),
+                          ),
+                          const SizedBox(width: 10),
+                          StatCard(
+                            width: 140,
+                            icon: Icons.person_outline,
+                            label: 'Today Present',
+                            value: d.presentToday.toString(),
+                            color: const Color(0xFFE6F6F3),
+                            iconColor: const Color(0xFF2D9CDB),
+                            trend: presentTrend,
+                            trendUp: presentTrend != null
+                                ? d.presentToday >=
+                                    (trendData.length >= 7
+                                        ? trendData[trendData.length - 7].totalPresent
+                                        : d.presentToday)
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          StatCard(
+                            width: 140,
+                            icon: Icons.person_off_outlined,
+                            label: 'Absent Today',
+                            value: d.absentToday.toString(),
+                            color: const Color(0xFFFDE9EC),
+                            iconColor: const Color(0xFFE65D7B),
+                            trend: absentTrend,
+                            trendUp: absentTrend != null
+                                ? d.absentToday <=
+                                    (trendData.length >= 7
+                                        ? trendData[trendData.length - 7].absentCount
+                                        : d.absentToday)
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          StatCard(
+                            icon: Icons.schedule_outlined,
+                            label: 'Late Today',
+                            value: d.lateToday.toString(),
+                            color: const Color(0xFFFFF8E1),
+                            iconColor: const Color(0xFFF59E0B),
+                            width: 140,
+                            trend: lateTrend,
+                            trendUp: lateTrend != null
+                                ? d.lateToday <=
+                                    (trendData.length >= 7
+                                        ? trendData[trendData.length - 7].lateCount
+                                        : d.lateToday)
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          StatCard(
+                            width: 140,
+                            icon: Icons.school_outlined,
+                            label: 'Total Teachers',
+                            value: d.totalTeachers.toString(),
+                            color: const Color(0xFFF5EBFF),
+                            iconColor: const Color(0xFF9B51E0),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      StatCard(
-                        width: 140,
-                        icon: Icons.person_outline,
-                        label: 'Today Present',
-                        value: d.presentToday.toString(),
-                        color: const Color(0xFFE6F6F3),
-                        iconColor: const Color(0xFF2D9CDB),
-                      ),
-                      const SizedBox(width: 10),
-                      StatCard(
-                        width: 140,
-                        icon: Icons.person_off_outlined,
-                        label: 'Absent Today',
-                        value: d.absentToday.toString(),
-                        color: const Color(0xFFFDE9EC),
-                        iconColor: const Color(0xFFE65D7B),
-                      ),
-                      const SizedBox(width: 10),
-                      StatCard(
-                        icon: Icons.schedule_outlined,
-                        label: 'Late Today',
-                        value: d.lateToday.toString(),
-                        color: const Color(0xFFFFF8E1),
-                        iconColor: const Color(0xFFF59E0B),
-                        width: 140,
-                      ),
-                     
-                      const SizedBox(width: 10),
-                      StatCard(
-                        width: 140,
-                        icon: Icons.school_outlined,
-                        label: 'Total Teachers',
-                        value: d.totalTeachers.toString(),
-                        color: const Color(0xFFF5EBFF),
-                        iconColor: const Color(0xFF9B51E0),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  // Right-edge fade — signals more cards exist to the right
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              cs.surface.withValues(alpha: 0.0),
+                              cs.surface.withValues(alpha: 0.85),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 24),
@@ -191,10 +247,13 @@ class AdminHomeScreen extends ConsumerWidget {
 
               // ── Quick Actions ────────────────────────────────────
               Text(
-                'Quick Actions',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
+                'QUICK ACTIONS',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                  color: cs.onSurface.withValues(alpha: 0.65),
+                ),
               ),
               const SizedBox(height: 14),
               LayoutBuilder(
@@ -248,10 +307,13 @@ class AdminHomeScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Recent Students',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(color: cs.onSurface),
+                    'RECENT STUDENTS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: cs.onSurface.withValues(alpha: 0.55),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => onSelectTab(1),
@@ -282,14 +344,12 @@ class AdminHomeScreen extends ConsumerWidget {
                               (s) => StudentRow(
                                 initials: s.initials,
                                 name: s.displayName,
-                                subtitle: [
-                                  if (s.className?.isNotEmpty == true)
-                                    s.className!
-                                  else if (s.gradeLevel?.isNotEmpty == true)
-                                    s.gradeLevel!,
-                                  if (s.currentShift != null)
-                                    _formatShift(s.currentShift!),
-                                ].join(' · '),
+                                shift: s.currentShift,
+                                subtitle: s.className?.isNotEmpty == true
+                                    ? s.className!
+                                    : (s.gradeLevel?.isNotEmpty == true
+                                        ? 'Grade ${s.gradeLevel}'
+                                        : '—'),
                               ),
                             )
                             .toList(),
@@ -303,17 +363,22 @@ class AdminHomeScreen extends ConsumerWidget {
   }
 }
 
-String _formatShift(String shift) {
-  switch (shift) {
-    case 'morning':
-      return 'Morning';
-    case 'afternoon':
-      return 'Afternoon';
-    case 'whole_day':
-      return 'Whole Day';
-    default:
-      return shift;
-  }
+
+// Compares today's value against the same day last week using trendData.
+// Returns null when there aren't 7 days of history yet.
+String? _weekDelta(int todayValue, List<AttendanceTrendPoint> trend, String field) {
+  if (trend.length < 7) return null;
+  final weekAgo = trend[trend.length - 7];
+  final weekAgoValue = switch (field) {
+    'present' => weekAgo.totalPresent,
+    'late'    => weekAgo.lateCount,
+    'absent'  => weekAgo.absentCount,
+    _         => 0,
+  };
+  final delta = todayValue - weekAgoValue;
+  if (delta == 0) return 'Same as last week';
+  final sign = delta > 0 ? '+' : '';
+  return '$sign$delta vs last week';
 }
 
 class _StatRowSkeleton extends StatelessWidget {

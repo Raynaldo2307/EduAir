@@ -34,7 +34,8 @@ class AppGreetingHeader extends StatelessWidget {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 20) return 'Good Evening';
+    return 'Good Night';
   }
 
   @override
@@ -44,15 +45,10 @@ class AppGreetingHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : AppTheme.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: AppTheme.cardShadow(isDark: isDark, primary: cs.primary),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
