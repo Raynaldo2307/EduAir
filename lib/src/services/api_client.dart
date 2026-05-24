@@ -71,11 +71,15 @@ class ApiClient {
   // this is for the my hotspot here
   //static const _devIp = '172.20.10.2';
   // thisis for the wifi at home here
-  static const _devIp = '192.168.40.171';
+  //static const _devIp = '192.168.40.171';
 
   // this is for the wifi at school here
   //static const _devIp  = '10.44.16.164';
   //static const _devIp  = '10.44.16.220';
+   // this is the wifi at  work st ann bay here 
+   //static const _devIp = '192.168.0.119';
+   //static const _devIp = '192.168.0.104';
+   static const _devIp = '192.168.0.105';
 
   static const _port = '3000';
 

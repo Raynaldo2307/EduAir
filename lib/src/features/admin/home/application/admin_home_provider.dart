@@ -26,6 +26,53 @@ class AttendanceTrendPoint {
   // It's a getter, not a stored field, because it's derived — never store what you can compute.
   int get totalPresent => presentCount + lateCount;
 }
+class TopAbsentStudent{
+  final String firstName;
+  final String lastName;
+  final String className;
+  final double absencePercent;
+  final String? photoUrl;
+
+  const TopAbsentStudent({
+    required this.firstName,
+    required this.lastName,
+    required this.className,
+    required this.absencePercent,
+     this.photoUrl,
+  });
+
+  String get initials {
+    String a = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
+    String b = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
+    return (a + b).isNotEmpty ? (a + b) : 'U';
+  }
+
+
+
+
+}
+
+
+
+class StaffConsistency {
+  final String firstName;
+  final String lastName;
+  final String department;
+  final String? photoUrl;
+
+  const StaffConsistency({
+    required this.firstName,
+    required this.lastName,
+    required this.department,
+    this.photoUrl,
+  });
+
+  String get initials {
+    String a = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
+    String b = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
+    return (a + b).isNotEmpty ? (a + b) : 'U';
+  }
+}
 
 // The single data object that powers the entire admin home dashboard.
 // One provider fetch fills all of this — stats, trend, school name, recent students.
@@ -38,7 +85,9 @@ class AdminHomeData {
   final List<AppUser> recentStudents;           // 3 newest enrollments for the dashboard list
   final String schoolName;                      // displayed in the header
   final List<AttendanceTrendPoint> trendData;   // last 30 days, one point per day
-  final String trendLabel;                      // e.g. "+3.2% increase from last week"
+  final String trendLabel;
+  final List<TopAbsentStudent> topAbsent;
+  final List<StaffConsistency> staffConsistency;  // top consistently-attending staff members
 
   const AdminHomeData({
     required this.totalStudents,
@@ -50,6 +99,8 @@ class AdminHomeData {
     required this.lateToday,
     required this.trendData,
     required this.trendLabel,
+    required this.topAbsent,
+    required this.staffConsistency,
   });
 }
 
@@ -147,6 +198,7 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
     );
   }).toList();
 
+
   // Convert raw student maps to typed AppUser objects using the shared mapper function.
   final recentStudents = recentRaw.map(nodeStudentToAppUser).toList();
 
@@ -154,17 +206,51 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
   // The schools endpoint wraps the result under a 'data' key (unlike the dashboard endpoint).
   final schoolName = (schoolResp.data?['data']?['name'] as String?) ?? 'EduAir School';
 
+final topAbsent = [
+    TopAbsentStudent(
+      firstName: 'Ricardo',
+      lastName: 'H',
+      className: 'Class 11-A',
+      absencePercent: 32.0,
+    ),
+    TopAbsentStudent(
+      firstName: 'Simony',
+      lastName: 'Smith',
+      className: 'Class 9-B',
+      absencePercent: 28.0,
+    ),
+  TopAbsentStudent(
+      firstName: 'Coder',
+      lastName: 'Ray',
+      className: 'Class 10-B',
+      absencePercent: 25.0,
+    ),
+  
+  
+  ];
+
+
+
+  // TODO: replace with real GET /api/staff/consistency when backend endpoint is built
+  final staffConsistency = [
+    const StaffConsistency(firstName: 'Mrs.', lastName: 'Thompson', department: 'English Dept.'),
+    const StaffConsistency(firstName: 'Mr.', lastName: 'Anderson', department: 'Mathematics'),
+    const StaffConsistency(firstName: 'Ms.', lastName: 'Williams', department: 'Science Dept.'),
+  ];
+
   // Build and return the single AdminHomeData object.
   // _buildTrendLabel() runs the week-over-week calculation and returns the label string.
   return AdminHomeData(
-    totalStudents:  totalStudents,
-    presentToday:   present,
-    absentToday:    absentToday,
-    totalTeachers:  totalTeachers,
-    lateToday:      lateToday,
-    recentStudents: recentStudents,
-    schoolName:     schoolName,
-    trendData:      trendData,
-    trendLabel:     _buildTrendLabel(trendData),
+    totalStudents:    totalStudents,
+    presentToday:     present,
+    absentToday:      absentToday,
+    totalTeachers:    totalTeachers,
+    lateToday:        lateToday,
+    recentStudents:   recentStudents,
+    schoolName:       schoolName,
+    trendData:        trendData,
+    topAbsent:        topAbsent,
+    staffConsistency: staffConsistency,
+    trendLabel:       _buildTrendLabel(trendData),
   );
 });

@@ -10,56 +10,74 @@ class AdminAnalyticsHeader extends StatelessWidget {
   final String schoolName;
   final VoidCallback? onOpenDrawer;
 
+  static const _weekdays = [
+    '', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+  ];
+
+  static const _months = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  String _formattedDate(DateTime d) {
+    final weekday = _weekdays[d.weekday];
+    final month = _months[d.month];
+    return '$weekday, $month ${d.day}, ${d.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final now = DateTime.now();
-    final date = '${now.day}/${now.month}/${now.year}';
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (onOpenDrawer != null)
+        if (onOpenDrawer != null) ...[
           IconButton(
             onPressed: onOpenDrawer,
             icon: Icon(Icons.menu, color: cs.onSurface),
           ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.school_outlined, color: cs.primary, size: 20),
-                const SizedBox(width: 6),
-                Text(
-                  'Analytics',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
-                    letterSpacing: -0.5,
+          const SizedBox(width: 4),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.school, color: cs.primary, size: 26),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Analytics',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                      letterSpacing: -0.5,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                schoolName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
                 ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              schoolName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              date,
-              style: TextStyle(
-                fontSize: 12,
-                color: cs.onSurface.withValues(alpha: 0.5),
+              const SizedBox(height: 2),
+              Text(
+                _formattedDate(now),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: cs.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         IconButton(
           onPressed: () {},
