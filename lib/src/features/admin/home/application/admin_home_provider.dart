@@ -86,9 +86,6 @@ class AdminHomeData {
   final String schoolName;                      // displayed in the header
   final List<AttendanceTrendPoint> trendData;   // last 30 days, one point per day
   final String trendLabel;
-  final List<TopAbsentStudent> topAbsent;
-  final List<StaffConsistency> staffConsistency;  // top consistently-attending staff members
-
   const AdminHomeData({
     required this.totalStudents,
     required this.presentToday,
@@ -99,8 +96,6 @@ class AdminHomeData {
     required this.lateToday,
     required this.trendData,
     required this.trendLabel,
-    required this.topAbsent,
-    required this.staffConsistency,
   });
 }
 
@@ -206,51 +201,17 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
   // The schools endpoint wraps the result under a 'data' key (unlike the dashboard endpoint).
   final schoolName = (schoolResp.data?['data']?['name'] as String?) ?? 'EduAir School';
 
-final topAbsent = [
-    TopAbsentStudent(
-      firstName: 'Ricardo',
-      lastName: 'H',
-      className: 'Class 11-A',
-      absencePercent: 32.0,
-    ),
-    TopAbsentStudent(
-      firstName: 'Simony',
-      lastName: 'Smith',
-      className: 'Class 9-B',
-      absencePercent: 28.0,
-    ),
-  TopAbsentStudent(
-      firstName: 'Coder',
-      lastName: 'Ray',
-      className: 'Class 10-B',
-      absencePercent: 25.0,
-    ),
-  
-  
-  ];
-
-
-
-  // TODO: replace with real GET /api/staff/consistency when backend endpoint is built
-  final staffConsistency = [
-    const StaffConsistency(firstName: 'Mrs.', lastName: 'Thompson', department: 'English Dept.'),
-    const StaffConsistency(firstName: 'Mr.', lastName: 'Anderson', department: 'Mathematics'),
-    const StaffConsistency(firstName: 'Ms.', lastName: 'Williams', department: 'Science Dept.'),
-  ];
-
   // Build and return the single AdminHomeData object.
   // _buildTrendLabel() runs the week-over-week calculation and returns the label string.
   return AdminHomeData(
-    totalStudents:    totalStudents,
-    presentToday:     present,
-    absentToday:      absentToday,
-    totalTeachers:    totalTeachers,
-    lateToday:        lateToday,
-    recentStudents:   recentStudents,
-    schoolName:       schoolName,
-    trendData:        trendData,
-    topAbsent:        topAbsent,
-    staffConsistency: staffConsistency,
-    trendLabel:       _buildTrendLabel(trendData),
+    totalStudents:  totalStudents,
+    presentToday:   present,
+    absentToday:    absentToday,
+    totalTeachers:  totalTeachers,
+    lateToday:      lateToday,
+    recentStudents: recentStudents,
+    schoolName:     schoolName,
+    trendData:      trendData,
+    trendLabel:     _buildTrendLabel(trendData),
   );
 });

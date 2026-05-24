@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
+import 'package:edu_air/src/features/admin/analytics/application/admin_analytics_provider.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/admin_analytics_header.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/staff_consistency_card.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/day_of_week_card.dart';
@@ -33,14 +34,15 @@ class AdminAnalyticsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final homeAsync = ref.watch(adminHomeProvider);
 
-    final schoolName =
-        homeAsync.whenOrNull(data: (d) => d.schoolName) ?? 'EduAir School';
-    final trendData =
-        homeAsync.whenOrNull(data: (d) => d.trendData) ?? const [];
-    final totalStudents =
-        homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
+    final homeAsync      = ref.watch(adminHomeProvider);
+    final analyticsAsync = ref.watch(adminAnalyticsProvider);
+
+    final schoolName     = homeAsync.whenOrNull(data: (d) => d.schoolName) ?? 'EduAir School';
+    final totalStudents  = homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
+
+    final chronicAbsentees = analyticsAsync.whenOrNull(data: (d) => d.chronicAbsentees) ?? 0;
+    final avgAttendance    = analyticsAsync.whenOrNull(data: (d) => d.avgAttendance) ?? 0.0;
 
     return Scaffold(
       body: SafeArea(
@@ -55,7 +57,7 @@ class AdminAnalyticsPage extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // Stat chips row
+              // ── Summary stat chips ────────────────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -67,17 +69,14 @@ class AdminAnalyticsPage extends ConsumerWidget {
                         children: [
                           Text(
                             'Chronic Absentees',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurfaceVariant,
-                            ),
+                            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                           ),
                           const SizedBox(height: 10),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '14',
+                                '$chronicAbsentees',
                                 style: TextStyle(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,
@@ -89,10 +88,7 @@ class AdminAnalyticsPage extends ConsumerWidget {
                                 padding: const EdgeInsets.only(bottom: 4),
                                 child: Text(
                                   '(20%+)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: cs.error,
-                                  ),
+                                  style: TextStyle(fontSize: 12, color: cs.error),
                                 ),
                               ),
                             ],
@@ -111,14 +107,11 @@ class AdminAnalyticsPage extends ConsumerWidget {
                         children: [
                           Text(
                             'Avg Attendance',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurfaceVariant,
-                            ),
+                            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            '94.2%',
+                            '${avgAttendance.toStringAsFixed(1)}%',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -134,16 +127,15 @@ class AdminAnalyticsPage extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // Attendance Trends card
+              // ── Attendance Trends — tappable 30D/90D/Term tabs ───────────
               _AttendanceTrendsCard(
-                trendData: trendData,
                 totalStudents: totalStudents,
                 cs: cs,
               ),
 
               const SizedBox(height: 16),
 
-              // Lowest performing classes
+              // ── Lowest Performing Classes ────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: _cardDecoration(cs),
@@ -159,22 +151,42 @@ class AdminAnalyticsPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _ClassRow(label: 'Class 9B',  value: 0.645, percent: '64.5%', cs: cs),
-                    const SizedBox(height: 10),
-                    _ClassRow(label: 'Class 11C', value: 0.721, percent: '72.1%', cs: cs),
-                    const SizedBox(height: 10),
-                    _ClassRow(label: 'Class 7A',  value: 0.748, percent: '74.8%', cs: cs),
-                    const SizedBox(height: 10),
-                    _ClassRow(label: 'Class 10D', value: 0.785, percent: '78.5%', cs: cs),
-                    const SizedBox(height: 10),
-                    _ClassRow(label: 'Class 8F',  value: 0.822, percent: '82.2%', cs: cs),
+                    analyticsAsync.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (_, __) => Text(
+                        'Could not load class data',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                      data: (d) => d.classPerformance.isEmpty
+                          ? Text(
+                              'No class data yet',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            )
+                          : Column(
+                              children: d.classPerformance
+                                  .asMap()
+                                  .entries
+                                  .map((e) => Padding(
+                                        padding: EdgeInsets.only(
+                                          top: e.key > 0 ? 10 : 0,
+                                        ),
+                                        child: _ClassRow(
+                                          label:   e.value.className,
+                                          value:   e.value.fraction,
+                                          percent: '${e.value.attendanceRate.toStringAsFixed(1)}%',
+                                          cs:      cs,
+                                        ),
+                                      ))
+                                  .toList(),
+                            ),
+                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Top 5 Absent/Late
+              // ── Top 5 Absent / Late ──────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: _cardDecoration(cs),
@@ -190,44 +202,56 @@ class AdminAnalyticsPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ...homeAsync.whenOrNull(
-                          data: (d) => d.topAbsent
-                              .map(
-                                (s) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _TopAbsentStudent(
-                                    firstName: s.firstName,
-                                    lastName: s.lastName,
-                                    className: s.className,
-                                    absencePercent: s.absencePercent,
-                                    cs: cs,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ) ??
-                        [],
+                    analyticsAsync.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (_, __) => Text(
+                        'Could not load student data',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                      data: (d) => d.topAbsent.isEmpty
+                          ? Text(
+                              'No absence data yet',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            )
+                          : Column(
+                              children: d.topAbsent
+                                  .map((s) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 10),
+                                        child: _TopAbsentStudent(
+                                          firstName:      s.firstName,
+                                          lastName:       s.lastName,
+                                          className:      s.className,
+                                          absencePercent: s.absencePercent,
+                                          cs:             cs,
+                                        ),
+                                      ))
+                                  .toList(),
+                            ),
+                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Staff Consistency — which staff members are showing up reliably
-              homeAsync.when(
-                data: (d) => StaffConsistencyCard(staff: d.staffConsistency),
+              // ── Staff Consistency ────────────────────────────────────────
+              analyticsAsync.when(
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error:   (_, __) => const SizedBox.shrink(),
+                data:    (d) => StaffConsistencyCard(staff: d.staffConsistency),
               ),
 
               const SizedBox(height: 16),
 
-              // Day-of-Week — which day students miss school the most
-              const DayOfWeekCard(),
+              // ── Day of Week ──────────────────────────────────────────────
+              analyticsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error:   (_, __) => const SizedBox.shrink(),
+                data:    (d) => DayOfWeekCard(days: d.dayOfWeek),
+              ),
 
               const SizedBox(height: 24),
 
-              // Export SF4 — generate Ministry of Education attendance report
               const ExportSf4Button(),
 
               const SizedBox(height: 16),
@@ -239,25 +263,28 @@ class AdminAnalyticsPage extends ConsumerWidget {
   }
 }
 
-class _AttendanceTrendsCard extends StatefulWidget {
+// ─── Attendance Trends Card ────────────────────────────────────────────────────
+// ConsumerStatefulWidget so it can watch analyticsTrendsProvider with the
+// selected days key and rebuild when the user taps a tab.
+class _AttendanceTrendsCard extends ConsumerStatefulWidget {
   const _AttendanceTrendsCard({
-    required this.trendData,
     required this.totalStudents,
     required this.cs,
   });
 
-  final List<AttendanceTrendPoint> trendData;
   final int totalStudents;
   final ColorScheme cs;
 
   @override
-  State<_AttendanceTrendsCard> createState() => _AttendanceTrendsCardState();
+  ConsumerState<_AttendanceTrendsCard> createState() =>
+      _AttendanceTrendsCardState();
 }
 
-class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
+class _AttendanceTrendsCardState extends ConsumerState<_AttendanceTrendsCard> {
   int _selected = 0; // 0=30D, 1=90D, 2=Term
 
-  static const _ranges = ['30D', '90D', 'Term'];
+  static const _ranges    = ['30D', '90D', 'Term'];
+  static const _daysKeys  = ['30',  '90',  'term'];
 
   static const _barColors = [
     Color(0xFF0059BA), // 30D — blue
@@ -271,9 +298,11 @@ class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = widget.cs;
-    final data = widget.trendData;
+    final cs       = widget.cs;
     final barColor = _barColors[_selected];
+    final daysKey  = _daysKeys[_selected];
+
+    final trendsAsync = ref.watch(analyticsTrendsProvider(daysKey));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -317,7 +346,9 @@ class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: active ? _barColors[i] : cs.surfaceContainerLow,
+                          color: active
+                              ? _barColors[i]
+                              : cs.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -338,55 +369,64 @@ class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
           const SizedBox(height: 16),
           SizedBox(
             height: 140,
-            child: data.isEmpty
-                ? Center(
-                    child: Text(
-                      'No trend data yet',
-                      style: TextStyle(color: cs.onSurfaceVariant),
+            child: trendsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error:   (_, __) => Center(
+                child: Text(
+                  'Could not load trend data',
+                  style: TextStyle(color: cs.onSurfaceVariant),
+                ),
+              ),
+              data: (data) => data.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No trend data yet',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: List.generate(data.length, (i) {
+                        final point = data[i];
+                        final barHeight = widget.totalStudents > 0
+                            ? (point.totalPresent /
+                                    widget.totalStudents *
+                                    130)
+                                .clamp(0, 130)
+                                .toDouble()
+                            : 0.0;
+                        final dayLabel = _dayNames[
+                            DateTime.parse(point.date).weekday - 1];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                                width: 28,
+                                height: barHeight,
+                                decoration: BoxDecoration(
+                                  color: barColor,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                dayLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: cs.onSurface.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
                     ),
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: List.generate(data.length, (i) {
-                      final point = data[i];
-                      final barHeight = widget.totalStudents > 0
-                          ? (point.totalPresent /
-                                  widget.totalStudents *
-                                  130)
-                              .clamp(0, 130)
-                              .toDouble()
-                          : 0.0;
-                      final dayLabel =
-                          _dayNames[DateTime.parse(point.date).weekday - 1];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                              width: 28,
-                              height: barHeight,
-                              decoration: BoxDecoration(
-                                color: barColor,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              dayLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: cs.onSurface.withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -406,6 +446,8 @@ class _AttendanceTrendsCardState extends State<_AttendanceTrendsCard> {
   }
 }
 
+// ─── Support widgets ──────────────────────────────────────────────────────────
+
 class _LegendDot extends StatelessWidget {
   const _LegendDot({required this.color, required this.label, this.cs});
 
@@ -424,10 +466,7 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
       ],
     );
   }
@@ -442,14 +481,10 @@ class _ClassRow extends StatelessWidget {
   });
 
   final String label;
-  final double value;
+  final double value;   // 0.0 – 1.0 fraction
   final String percent;
   final ColorScheme cs;
 
-  // Color driven by severity — no guessing needed at the call site.
-  // < 80% is below the MoEYI acceptable threshold → red.
-  // 80–90% is borderline → amber.
-  // ≥ 90% is healthy → primary blue.
   Color _severityColor() {
     if (value < 0.80) return cs.error;
     if (value < 0.90) return const Color(0xFFB7791F);
@@ -463,10 +498,7 @@ class _ClassRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            ),
+            Text(label, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
             const Spacer(),
             Text(
               percent,
@@ -506,7 +538,6 @@ class _TopAbsentStudent extends StatelessWidget {
   final double absencePercent;
   final ColorScheme cs;
 
-  // >= 30% absent is critical, 20–29% is a warning, below that is flagged but manageable.
   Color _chipColor() {
     if (absencePercent >= 30) return cs.error;
     if (absencePercent >= 20) return const Color(0xFFB7791F);
@@ -515,8 +546,8 @@ class _TopAbsentStudent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        '${firstName[0].toUpperCase()}${lastName[0].toUpperCase()}';
+    final initials  = '${firstName.isNotEmpty ? firstName[0].toUpperCase() : '?'}'
+                      '${lastName.isNotEmpty  ? lastName[0].toUpperCase()  : '?'}';
     final chipColor = _chipColor();
     return Row(
       children: [
