@@ -77,11 +77,18 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           _passwordController.text.trim(),
         );
 
-    // Navigate on success. Error is already set in notifier state.
     if (route != null && mounted) {
       // Clear the entire stack — prevents stale shells staying mounted
       // when a different role logs in. See debugging playbook BUG-020.
       navigator.pushNamedAndRemoveUntil(route, (r) => false);
+    } else {
+      // Clear the password field on network/server errors so the user
+      // re-types it once connection is restored. Wrong password (401)
+      // keeps the field so the user can correct a typo without retyping.
+      final error = ref.read(authNotifierProvider).errorMessage ?? '';
+      if (error.contains('internet') || error.contains('server') || error.contains('connection')) {
+        _passwordController.clear();
+      }
     }
   }
 
