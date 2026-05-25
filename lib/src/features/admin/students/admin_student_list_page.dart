@@ -178,6 +178,7 @@ class _AdminStudentListPageState extends ConsumerState<AdminStudentListPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_add_student',
         onPressed: () => _openEditPage(null),
         icon: const Icon(Icons.person_add_outlined),
         label: const Text('Add Student'),

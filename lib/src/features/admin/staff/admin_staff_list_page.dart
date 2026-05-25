@@ -192,6 +192,7 @@ class _AdminStaffListPageState extends ConsumerState<AdminStaffListPage> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_add_staff',
         onPressed: () => _openEditPage(null),
         icon: const Icon(Icons.person_add_outlined),
         label: const Text('Add Staff'),
