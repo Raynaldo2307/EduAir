@@ -9,7 +9,7 @@ class ReportsApiRepository {
   // the raw bytes. Flutter writes these to a temp file then shares it.
   Future<List<int>> downloadSf4Pdf(String month) async {
     final response = await _apiClient.dio.get<List<int>>(
-      '/reports/sf4',
+      '/api/reports/sf4',
       queryParameters: {'month': month},
       options: Options(responseType: ResponseType.bytes),
     );
