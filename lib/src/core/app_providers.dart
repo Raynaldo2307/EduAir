@@ -13,6 +13,7 @@ import 'package:edu_air/src/features/attendance/data/attendance_api_repository.d
 import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
+import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
 
 
 // Schoool + Geofencing
@@ -147,6 +148,11 @@ final studentsApiRepositoryProvider = Provider<StudentsApiRepository>((ref) {
 /// Staff API — full CRUD for admin staff management via Node backend.
 final staffApiRepositoryProvider = Provider<StaffApiRepository>((ref) {
   return StaffApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// Reports API — SF4 PDF export and future report types.
+final reportsApiRepositoryProvider = Provider<ReportsApiRepository>((ref) {
+  return ReportsApiRepository(ref.read(apiClientProvider));
 });
 
 /// Classes API — returns all classes for the school (used in admin dropdowns).

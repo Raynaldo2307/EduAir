@@ -82,7 +82,11 @@ class ApiClient {
    //static const _devIp = '192.168.0.105';
    // radio. rooom 
    // 
-   static const _devIp = '192.168.1.21';
+   //static const _devIp = '192.168.1.21';
+   //static const _devIp = '192.168.0.112';
+   static const _devIp = '172.20.10.11';
+
+
 
   static const _port = '3000';
 
