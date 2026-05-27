@@ -314,13 +314,16 @@ class _StaffTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        member.teacherDepartment != null
-                            ? 'Teacher · ${member.teacherDepartment}'
-                            : 'Teacher',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
+                      Flexible(
+                        child: Text(
+                          member.teacherDepartment != null
+                              ? 'Teacher · ${member.teacherDepartment}'
+                              : 'Teacher',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),

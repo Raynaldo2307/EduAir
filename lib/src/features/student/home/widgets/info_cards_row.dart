@@ -139,7 +139,7 @@ class _InfoCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         width: double.infinity,
-        height: 160,
+        height: 175,
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -201,8 +201,7 @@ class _InfoCard extends StatelessWidget {
                           ),
                           child: Text(
                             card.ctaLabel!,
-                            // You had this as black; keeping that,
-                            // but you *could* change to white for more contrast.
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(color: Colors.black),
                           ),

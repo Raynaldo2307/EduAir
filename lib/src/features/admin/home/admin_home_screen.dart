@@ -48,9 +48,10 @@ class AdminHomeScreen extends ConsumerWidget {
     // It returns null during loading and on error — the '??' provides the safe fallback.
     // We extract these here (not inside LayoutBuilder) because the card appears in
     // both the desktop row and the mobile column — extract once, use twice.
-    final trendData     = homeAsync.whenOrNull(data: (d) => d.trendData)     ?? const [];
-    final trendLabel    = homeAsync.whenOrNull(data: (d) => d.trendLabel)    ?? '';
-    final totalStudents = homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
+    final trendData      = homeAsync.whenOrNull(data: (d) => d.trendData)        ?? const [];
+    final trendLabel     = homeAsync.whenOrNull(data: (d) => d.trendLabel)       ?? '';
+    final totalStudents  = homeAsync.whenOrNull(data: (d) => d.totalStudents)    ?? 0;
+    final auditLogs      = homeAsync.whenOrNull(data: (d) => d.recentAuditLogs)  ?? const [];
 
     // Week-over-week deltas — null when < 7 days of history available.
     final presentTrend = homeAsync.whenOrNull(
@@ -246,7 +247,7 @@ class AdminHomeScreen extends ConsumerWidget {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Flexible(child: AuditLogCard()),
+                        Flexible(child: AuditLogCard(logs: auditLogs)),
                         const SizedBox(width: 16),
                         Flexible(child: AttendanceTrendCard(trendData: trendData, trendLabel: trendLabel)),
                         const SizedBox(width: 16),
@@ -256,7 +257,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   }
                   return Column(
                     children: [
-                      const AuditLogCard(),
+                      AuditLogCard(logs: auditLogs),
                       const SizedBox(height: 16),
                       const NoticeBoardCard(),
                       const SizedBox(height: 16),

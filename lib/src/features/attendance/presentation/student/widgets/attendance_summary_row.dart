@@ -89,12 +89,14 @@ class _SummaryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Column(
+            Flexible(
+             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                     fontWeight: FontWeight.w600,
@@ -110,6 +112,7 @@ class _SummaryCard extends StatelessWidget {
                 ),
               ],
             ),
+           ),
           ],
         ),
       ),

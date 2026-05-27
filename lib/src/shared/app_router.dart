@@ -18,6 +18,7 @@ import '../features/teacher/attendance/teacher_attendance_page.dart';
 // 👇 Admin feature screens
 import '../features/admin/students/admin_student_list_page.dart';
 import '../features/auth/force_change_password_page.dart';
+import '../features/admin/audit/admin_audit_log_screen.dart';
 
 // Smooth fade transition — used for splash → onboarding and splash → login
 PageRouteBuilder<T> _fadeRoute<T>(Widget page) => PageRouteBuilder<T>(
@@ -73,6 +74,9 @@ class AppRouter {
       // 👇 Admin/Principal student management
       case '/adminStudents':
         return MaterialPageRoute(builder: (_) => const AdminStudentListPage());
+
+      case '/adminAuditLog':
+        return MaterialPageRoute(builder: (_) => const AdminAuditLogScreen());
 
       // 👇 Parent portal — role is known, UI not built yet
       case '/parentHome':

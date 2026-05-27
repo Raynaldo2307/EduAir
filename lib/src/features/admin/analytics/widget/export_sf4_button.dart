@@ -124,12 +124,15 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
       final file      = File('${dir.path}/SF4_$month.pdf');
       await file.writeAsBytes(bytes);
 
+      if (mounted) setState(() => _loading = false);
+
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
         subject: 'SF4 Attendance Report — ${_months[_selectedMonth - 1]} $_selectedYear',
       );
     } catch (e) {
       if (mounted) {
+        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: ${e.toString()}'),
@@ -137,8 +140,6 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 

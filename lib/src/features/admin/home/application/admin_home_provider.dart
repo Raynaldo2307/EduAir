@@ -74,6 +74,54 @@ class StaffConsistency {
   }
 }
 
+// One row from the attendance_history table joined with the user who made the change.
+class AuditLogEntry {
+  final String changedByName;    // full name of the user who triggered the change
+  final String source;           // studentSelf | teacherBatch | adminEdit
+  final String newStatus;        // early | late | present | absent | excused
+  final String? previousStatus;  // null on first write; set on corrections
+  final DateTime createdAt;      // when the change happened (UTC from MySQL)
+  final String studentName;      // name of the student the record belongs to
+  final String shiftType;        // morning | afternoon | whole_day
+  final String attendanceDate;   // YYYY-MM-DD
+
+  const AuditLogEntry({
+    required this.changedByName,
+    required this.source,
+    required this.newStatus,
+    required this.createdAt,
+    required this.studentName,
+    required this.shiftType,
+    required this.attendanceDate,
+    this.previousStatus,
+  });
+
+  String get actionLabel {
+    switch (source) {
+      case 'teacherBatch': return 'Teacher Batch';
+      case 'adminEdit':    return 'Admin Edit';
+      default:             return 'Student Self';
+    }
+  }
+
+  bool get isCorrection =>
+      previousStatus != null && previousStatus != newStatus;
+
+  String get timeAgo {
+    final diff = DateTime.now().difference(createdAt);
+    if (diff.inMinutes < 1)  return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours   < 24) return '${diff.inHours} hrs ago';
+    return '${diff.inDays} days ago';
+  }
+
+  String get initials {
+    final parts = changedByName.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return changedByName.isNotEmpty ? changedByName.substring(0, 2).toUpperCase() : '?';
+  }
+}
+
 // The single data object that powers the entire admin home dashboard.
 // One provider fetch fills all of this — stats, trend, school name, recent students.
 class AdminHomeData {
@@ -86,6 +134,7 @@ class AdminHomeData {
   final String schoolName;                      // displayed in the header
   final List<AttendanceTrendPoint> trendData;   // last 30 days, one point per day
   final String trendLabel;
+  final List<AuditLogEntry> recentAuditLogs;    // last 10 attendance history rows
   const AdminHomeData({
     required this.totalStudents,
     required this.presentToday,
@@ -96,6 +145,7 @@ class AdminHomeData {
     required this.lateToday,
     required this.trendData,
     required this.trendLabel,
+    required this.recentAuditLogs,
   });
 }
 
@@ -194,6 +244,22 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
   }).toList();
 
 
+  // Parse the audit log rows from the dashboard response.
+  final rawLogs = (dashData['recentAuditLogs'] as List<dynamic>?) ?? [];
+  final recentAuditLogs = rawLogs.map((row) {
+    final m = row as Map<String, dynamic>;
+    return AuditLogEntry(
+      changedByName:  m['changed_by_name']  as String? ?? 'Unknown',
+      source:         m['source']           as String? ?? 'studentSelf',
+      newStatus:      m['new_status']       as String? ?? '',
+      previousStatus: m['previous_status']  as String?,
+      createdAt:      DateTime.tryParse(m['created_at']       as String? ?? '') ?? DateTime.now(),
+      studentName:    m['student_name']     as String? ?? '',
+      shiftType:      m['shift_type']       as String? ?? '',
+      attendanceDate: m['attendance_date']  as String? ?? '',
+    );
+  }).toList();
+
   // Convert raw student maps to typed AppUser objects using the shared mapper function.
   final recentStudents = recentRaw.map(nodeStudentToAppUser).toList();
 
@@ -204,14 +270,15 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
   // Build and return the single AdminHomeData object.
   // _buildTrendLabel() runs the week-over-week calculation and returns the label string.
   return AdminHomeData(
-    totalStudents:  totalStudents,
-    presentToday:   present,
-    absentToday:    absentToday,
-    totalTeachers:  totalTeachers,
-    lateToday:      lateToday,
-    recentStudents: recentStudents,
-    schoolName:     schoolName,
-    trendData:      trendData,
-    trendLabel:     _buildTrendLabel(trendData),
+    totalStudents:    totalStudents,
+    presentToday:     present,
+    absentToday:      absentToday,
+    totalTeachers:    totalTeachers,
+    lateToday:        lateToday,
+    recentStudents:   recentStudents,
+    schoolName:       schoolName,
+    trendData:        trendData,
+    trendLabel:       _buildTrendLabel(trendData),
+    recentAuditLogs:  recentAuditLogs,
   );
 });
