@@ -73,6 +73,7 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
       isShiftSchool:     userData['isShiftSchool']   as bool? ?? false,
       homeroomClassId:   userData['homeroomClassId']   as String?,
       homeroomClassName: userData['homeroomClassName'] as String?,
+      photoUrl:          userData['photoUrl']          as String?,
     );
 
     userNotifier.state = profile;
