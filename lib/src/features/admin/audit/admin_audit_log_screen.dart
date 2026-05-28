@@ -168,18 +168,24 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
       if (!mounted) return;
       setState(() => _exporting = false);
 
+      final homeData   = ref.read(adminHomeProvider).value;
+      final schoolSlug = _toFileSlug(homeData?.schoolName ?? 'EduAir');
+      final today      = DateTime.now();
+      final dateStr    = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final fileName   = 'AuditLog_${schoolSlug}_$dateStr.csv';
+
       if (kIsWeb) {
         // Web: create a blob URL and click an invisible anchor to download.
         final blob = html.Blob([buf.toString()], 'text/csv');
         final url  = html.Url.createObjectUrlFromBlob(blob);
         (html.AnchorElement(href: url)
-          ..setAttribute('download', 'audit_log_export.csv')
+          ..setAttribute('download', fileName)
           ..click());
         html.Url.revokeObjectUrl(url);
       } else {
         // Mobile: write to temp file and open share sheet.
         final dir  = await getTemporaryDirectory();
-        final file = File('${dir.path}/audit_log_export.csv');
+        final file = File('${dir.path}/$fileName');
         await file.writeAsString(buf.toString());
         await Share.shareXFiles(
           [XFile(file.path, mimeType: 'text/csv')],
@@ -1008,6 +1014,9 @@ class _ShiftChip extends StatelessWidget {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+String _toFileSlug(String name) =>
+    name.trim().replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
 
 String _sourceLabel(String source) {
   switch (source) {

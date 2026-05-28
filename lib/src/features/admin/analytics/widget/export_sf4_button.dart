@@ -1,10 +1,14 @@
 import 'dart:io';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:html' as html show Blob, Url, AnchorElement;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 
 class ExportSf4Button extends ConsumerStatefulWidget {
   const ExportSf4Button({super.key});
@@ -115,21 +119,33 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
   Future<void> _export() async {
     setState(() => _loading = true);
     try {
-      final month     = '$_selectedYear-${_selectedMonth.toString().padLeft(2, '0')}';
-      final repo      = ref.read(reportsApiRepositoryProvider);
-      final bytes     = await repo.downloadSf4Pdf(month);
+      final month      = '$_selectedYear-${_selectedMonth.toString().padLeft(2, '0')}';
+      final repo       = ref.read(reportsApiRepositoryProvider);
+      final bytes      = await repo.downloadSf4Pdf(month);
 
-      // Write bytes to a temp file so share_plus can attach it
-      final dir       = await getTemporaryDirectory();
-      final file      = File('${dir.path}/SF4_$month.pdf');
-      await file.writeAsBytes(bytes);
+      final homeData   = ref.read(adminHomeProvider).value;
+      final schoolSlug = _toFileSlug(homeData?.schoolName ?? 'EduAir');
+      final fileName   = 'SF4_${schoolSlug}_$month.pdf';
 
       if (mounted) setState(() => _loading = false);
 
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
-        subject: 'SF4 Attendance Report — ${_months[_selectedMonth - 1]} $_selectedYear',
-      );
+      if (kIsWeb) {
+        final blob = html.Blob([bytes], 'application/pdf');
+        final url  = html.Url.createObjectUrlFromBlob(blob);
+        (html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click());
+        html.Url.revokeObjectUrl(url);
+      } else {
+        final dir  = await getTemporaryDirectory();
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'application/pdf')],
+          subject: 'SF4 Attendance Report — ${_months[_selectedMonth - 1]} $_selectedYear',
+        );
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
@@ -142,6 +158,9 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
       }
     }
   }
+
+  static String _toFileSlug(String name) =>
+      name.trim().replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
 
   @override
   Widget build(BuildContext context) {
