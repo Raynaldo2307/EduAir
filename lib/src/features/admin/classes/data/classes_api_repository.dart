@@ -14,4 +14,11 @@ class ClassesApiRepository {
     final response = await _dio.get('/api/classes');
     return List<Map<String, dynamic>>.from(response.data['data'] as List);
   }
+
+  /// GET /api/classes/details
+  /// Returns [{id, name, grade_level, student_count, homeroom_teacher}, ...]
+  Future<List<Map<String, dynamic>>> getAllWithDetails() async {
+    final response = await _dio.get('/api/classes/details');
+    return List<Map<String, dynamic>>.from(response.data['data'] as List);
+  }
 }

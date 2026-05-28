@@ -19,6 +19,22 @@ class AttendanceApiRepository {
 
   AttendanceApiRepository({required ApiClient client}) : _dio = client.dio;
 
+  // Get all attendance for a date, optionally filtered by shift.
+  // shiftType null = all shifts — used by Clock-in Records screen.
+  Future<List<Map<String, dynamic>>> getByDate({
+    required String date,
+    String? shiftType,
+  }) async {
+    final response = await _dio.get(
+      '/api/attendance',
+      queryParameters: {
+        'date': date,
+        if (shiftType != null) 'shift_type': shiftType,
+      },
+    );
+    return List<Map<String, dynamic>>.from(response.data['data'] as List);
+  }
+
   // ASSESSOR POINT B — Get attendance by date and shift (Teacher/Admin view)
   // Admin uses this to see a full attendance report for a date.
   // The school_id comes from the JWT — can never query another school's records.

@@ -5,6 +5,8 @@ import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/admin/analytics/admin_analytics_screen.dart';
 import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
 import 'package:edu_air/src/features/admin/audit/admin_audit_log_screen.dart';
+import 'package:edu_air/src/features/admin/classes/admin_classes_screen.dart';
+import 'package:edu_air/src/features/admin/clockin/admin_clockin_records_screen.dart';
 import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
 import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
@@ -89,6 +91,10 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           AdminAttendancePage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
           // 6 — Audit & Logs (desktop sidebar only)
           const AdminAuditLogScreen(),
+          // 7 — Clock-in Records
+          AdminClockinRecordsScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 8 — Classes & Subjects
+          AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
         ];
 
         if (isDesktop) {
@@ -165,8 +171,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.school_outlined,
                                         label: 'Classes & Subjects',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 8,
+                                        onTap: () => _onSelectTab(8),
                                       ),
                                       _NavItems(
                                         icon: Icons.calendar_month_outlined,
@@ -189,8 +195,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.schedule_outlined,
                                         label: 'Clock-in Records',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 7,
+                                        onTap: () => _onSelectTab(7),
                                       ),
                                       _NavItems(
                                         icon: Icons.analytics_outlined,
@@ -364,7 +370,10 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                 ListTile(
                   leading: const Icon(Icons.schedule_outlined),
                   title: const Text('Clock-in Records'),
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _onSelectTab(7);
+                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.picture_as_pdf_outlined),
