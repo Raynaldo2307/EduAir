@@ -68,6 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         gradeLevel:        userData['gradeLevel']        as String?,
         homeroomClassId:   userData['homeroomClassId']   as String?,
         homeroomClassName: userData['homeroomClassName'] as String?,
+        photoUrl:          userData['photoUrl']          as String?,
       );
 
       state = state.copyWith(isLoading: false);
