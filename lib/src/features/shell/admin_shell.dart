@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:edu_air/src/features/settings/settings_page.dart';
-import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
+import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
-import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
-import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
 import 'package:edu_air/src/features/admin/analytics/admin_analytics_screen.dart';
+import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
+import 'package:edu_air/src/features/admin/audit/admin_audit_log_screen.dart';
+import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
+import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
+import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
+import 'package:edu_air/src/features/settings/settings_page.dart';
 
 class AdminResponsiveShell extends ConsumerStatefulWidget {
   const AdminResponsiveShell({super.key});
@@ -20,48 +22,76 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
   int _currentIndex = 0;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  void _onSelectTab(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+  void _onSelectTab(int index) => setState(() => _currentIndex = index);
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will be returned to the login screen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final tokenStorage = ref.read(tokenStorageProvider);
+    await tokenStorage.delete();
+    ref.read(userProvider.notifier).state = null;
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/onboarding');
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
-      AdminHomeScreen(
-        onSelectTab: _onSelectTab,
-        onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-      ),
-      AdminAnalyticsPage(onBackToHome: () => _onSelectTab(0), onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer()),
-      AdminStudentListPage(onBackToHome: () => _onSelectTab(0)),
-      AdminStaffListPage(onBackToHome: () => _onSelectTab(0)),
-      const SettingsPage(),
-      AdminAttendancePage(onBackToHome: () => _onSelectTab(0)),
+    const navItems = [
+      BottomNavigationBarItem(icon: Icon(Icons.home_outlined),       label: 'Home'),
+      BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined),  label: 'Analytics'),
+      BottomNavigationBarItem(icon: Icon(Icons.people_outlined),     label: 'Students'),
+      BottomNavigationBarItem(icon: Icon(Icons.badge_outlined),      label: 'Staff'),
+      BottomNavigationBarItem(icon: Icon(Icons.settings_outlined),   label: 'Settings'),
     ];
 
-    final navItems = const [
-      BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.analytics_outlined),
-        label: 'Analytics',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.people_outlined),
-        label: 'Students',
-      ),
-      BottomNavigationBarItem(icon: Icon(Icons.badge_outlined), label: 'Staff'),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.settings_outlined),
-        label: 'Settings',
-      ),
-    ];
-
+    // Clamp to bottom-nav range so mobile bar never shows an invalid index.
     final safeIndex = _currentIndex < navItems.length ? _currentIndex : 0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 900) {
+        final isDesktop = constraints.maxWidth >= 900;
+
+        // Build pages here so desktop can omit back callbacks.
+        final pages = <Widget>[
+          // 0 — Dashboard
+          AdminHomeScreen(
+            onSelectTab: _onSelectTab,
+            onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          // 1 — Analytics
+          AdminAnalyticsPage(
+            onBackToHome: isDesktop ? null : () => _onSelectTab(0),
+            onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          // 2 — Students
+          AdminStudentListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 3 — Staff
+          AdminStaffListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 4 — Settings
+          const SettingsPage(),
+          // 5 — Attendance
+          AdminAttendancePage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 6 — Audit & Logs (desktop sidebar only)
+          const AdminAuditLogScreen(),
+        ];
+
+        if (isDesktop) {
           // ── Desktop / tablet layout ──────────────────────────────
           return Scaffold(
             body: Row(
@@ -123,13 +153,13 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.dashboard_outlined,
                                         label: 'Dashboard',
-                                        isActive: safeIndex == 0,
+                                        isActive: _currentIndex == 0,
                                         onTap: () => _onSelectTab(0),
                                       ),
                                       _NavItems(
                                         icon: Icons.group_outlined,
                                         label: 'Students',
-                                        isActive: safeIndex == 2,
+                                        isActive: _currentIndex == 2,
                                         onTap: () => _onSelectTab(2),
                                       ),
                                       _NavItems(
@@ -153,7 +183,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.fact_check_outlined,
                                         label: 'Attendance & Overview',
-                                        isActive: safeIndex == 5,
+                                        isActive: _currentIndex == 5,
                                         onTap: () => _onSelectTab(5),
                                       ),
                                       _NavItems(
@@ -165,7 +195,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.analytics_outlined,
                                         label: 'Analytics',
-                                        isActive: safeIndex == 1,
+                                        isActive: _currentIndex == 1,
                                         onTap: () => _onSelectTab(1),
                                       ),
                                     ],
@@ -177,7 +207,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.badge_outlined,
                                         label: 'Staff List',
-                                        isActive: safeIndex == 3,
+                                        isActive: _currentIndex == 3,
                                         onTap: () => _onSelectTab(3),
                                       ),
                                       _NavItems(
@@ -213,13 +243,13 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.history_edu_outlined,
                                         label: 'Audit & Logs',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 6,
+                                        onTap: () => _onSelectTab(6),
                                       ),
                                       _NavItems(
                                         icon: Icons.settings_outlined,
                                         label: 'School Settings',
-                                        isActive: safeIndex == 4,
+                                        isActive: _currentIndex == 4,
                                         onTap: () => _onSelectTab(4),
                                       ),
                                     ],
@@ -253,7 +283,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                             ),
                             const SizedBox(height: 12),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: _logout,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,

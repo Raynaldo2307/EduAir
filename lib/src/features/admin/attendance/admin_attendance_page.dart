@@ -14,9 +14,9 @@ const _kStatuses = ['early', 'present', 'late', 'excused', 'absent'];
 /// Admin/Principal screen — shows school-wide attendance from Node API + MySQL.
 /// Demonstrates: Flutter → Dio → Node.js → MySQL end-to-end.
 class AdminAttendancePage extends ConsumerWidget {
-  const AdminAttendancePage({super.key , required this.onBackToHome});
+  const AdminAttendancePage({super.key, this.onBackToHome});
 
-  final VoidCallback onBackToHome;
+  final VoidCallback? onBackToHome;
 
 
   @override
@@ -34,10 +34,12 @@ class AdminAttendancePage extends ConsumerWidget {
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-          onPressed: onBackToHome,
-        ),
+        leading: onBackToHome != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                onPressed: onBackToHome,
+              )
+            : null,
       ),
       body: Column(
         children: [

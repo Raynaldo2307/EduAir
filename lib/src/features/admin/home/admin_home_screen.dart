@@ -18,11 +18,11 @@ import 'package:shimmer/shimmer.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
 
-  const AdminHomeScreen({super.key, required this.onSelectTab, required this.onOpenDrawer});
+  const AdminHomeScreen({super.key, required this.onSelectTab, this.onOpenDrawer});
 
   final void Function(int index) onSelectTab;
 
-  final VoidCallback onOpenDrawer;
+  final VoidCallback? onOpenDrawer;
 
 
  

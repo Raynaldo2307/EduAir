@@ -7,9 +7,9 @@ import 'package:edu_air/src/features/admin/staff/application/admin_staff_provide
 import 'admin_staff_edit_page.dart';
 
 class AdminStaffListPage extends ConsumerStatefulWidget {
-  const AdminStaffListPage({super.key, required this.onBackToHome});
+  const AdminStaffListPage({super.key, this.onBackToHome});
 
-  final VoidCallback onBackToHome;
+  final VoidCallback? onBackToHome;
 
   @override
   ConsumerState<AdminStaffListPage> createState() => _AdminStaffListPageState();
@@ -68,10 +68,12 @@ class _AdminStaffListPageState extends ConsumerState<AdminStaffListPage> {
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: widget.onBackToHome,
-        ),
+        leading: widget.onBackToHome != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBackToHome,
+              )
+            : null,
         title: Text(
           'Manage Staff',
           style: TextStyle(

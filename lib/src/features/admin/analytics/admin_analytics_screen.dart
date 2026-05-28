@@ -11,11 +11,11 @@ import 'package:edu_air/src/features/admin/analytics/widget/export_sf4_button.da
 class AdminAnalyticsPage extends ConsumerWidget {
   const AdminAnalyticsPage({
     super.key,
-    required this.onBackToHome,
+    this.onBackToHome,
     this.onOpenDrawer,
   });
 
-  final VoidCallback onBackToHome;
+  final VoidCallback? onBackToHome;
   final VoidCallback? onOpenDrawer;
 
   BoxDecoration _cardDecoration(ColorScheme cs) => BoxDecoration(
