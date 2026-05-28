@@ -136,10 +136,10 @@ class _ClassCard extends StatelessWidget {
     final cs           = Theme.of(context).colorScheme;
     final name         = data['name']             as String? ?? '—';
     final gradeLevel   = data['grade_level']      as String? ?? '';
-    final studentCount = (data['student_count']   as num?)?.toInt() ?? 0;
-    final capacity     = (data['capacity']        as num?)?.toInt() ?? 40;
+    final studentCount = int.tryParse(data['student_count']?.toString() ?? '') ?? 0;
+    final capacity     = int.tryParse(data['capacity']?.toString() ?? '') ?? 40;
     final teacher      = data['homeroom_teacher'] as String?;
-    final todayRate    = (data['today_rate']      as num?)?.toInt();
+    final todayRate    = int.tryParse(data['today_rate']?.toString() ?? '');
     final isFull       = studentCount >= capacity;
 
     return GestureDetector(
