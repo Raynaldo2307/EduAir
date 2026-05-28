@@ -259,12 +259,16 @@ class _RecordTile extends StatelessWidget {
     final name      = '$firstName $lastName'.trim();
     final initials  = _initials(firstName, lastName);
 
-    final clockIn  = _formatTime(record['clock_in']  as String?);
-    final clockOut = _formatTime(record['clock_out'] as String?);
-    final duration = _duration(record['clock_in'] as String?, record['clock_out'] as String?);
-    final status   = record['status'] as String? ?? 'absent';
-    final source   = record['source'] as String? ?? '';
-    final classId  = record['class_id'];
+    final clockIn   = _formatTime(record['clock_in']  as String?);
+    final clockOut  = _formatTime(record['clock_out'] as String?);
+    final duration  = _duration(record['clock_in'] as String?, record['clock_out'] as String?);
+    final status    = record['status']     as String? ?? 'absent';
+    final source    = record['source']     as String? ?? '';
+    final shiftType = record['shift_type'] as String?;
+
+    final timeLabel = duration != null
+        ? '$clockIn → $clockOut  ·  $duration'
+        : '$clockIn → $clockOut';
 
     return ListTile(
       contentPadding:
@@ -296,28 +300,13 @@ class _RecordTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 4),
+          Text(timeLabel, style: _subtitleStyle(cs)),
           const SizedBox(height: 3),
           Row(
             children: [
-              Icon(Icons.login, size: 12, color: cs.onSurface.withValues(alpha: 0.5)),
-              const SizedBox(width: 4),
-              Text(clockIn, style: _subtitleStyle(cs)),
-              const Text('  →  '),
-              Icon(Icons.logout, size: 12, color: cs.onSurface.withValues(alpha: 0.5)),
-              const SizedBox(width: 4),
-              Text(clockOut, style: _subtitleStyle(cs)),
-              if (duration != null) ...[
-                const Text('  ·  '),
-                Text(duration, style: _subtitleStyle(cs)),
-              ],
-            ],
-          ),
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              if (classId != null)
-                Text('Class $classId', style: _subtitleStyle(cs)),
-              const SizedBox(width: 8),
+              if (shiftType != null) _ShiftPill(shift: shiftType),
+              if (shiftType != null) const SizedBox(width: 6),
               _SourceBadge(source: source),
             ],
           ),
@@ -398,6 +387,32 @@ class _StatusChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+class _ShiftPill extends StatelessWidget {
+  const _ShiftPill({required this.shift});
+  final String shift;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (shift) {
+      'morning'   => 'Morning',
+      'afternoon' => 'Afternoon',
+      'whole_day' => 'Whole Day',
+      _           => shift,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, color: Colors.blueGrey.shade600),
       ),
     );
   }

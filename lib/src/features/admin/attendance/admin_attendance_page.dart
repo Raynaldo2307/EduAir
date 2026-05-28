@@ -179,11 +179,9 @@ class _AttendanceList extends ConsumerWidget {
 
   final List<Map<String, dynamic>> records;
 
-  void _showEditSheet(
-    BuildContext context,
-    WidgetRef ref,
-    Map<String, dynamic> record,
-  ) {
+  static const _order = ['present', 'early', 'late', 'excused', 'absent'];
+
+  void _showEditSheet(BuildContext context, WidgetRef ref, Map<String, dynamic> record) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -197,14 +195,182 @@ class _AttendanceList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ListView.separated(
+    // Group records by status
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final r in records) {
+      final s = r['status'] as String? ?? 'absent';
+      grouped.putIfAbsent(s, () => []).add(r);
+    }
+
+    // Build a flat list: summary row → section headers + tiles
+    final items = <_ListItem>[];
+    items.add(_SummaryItem(grouped: grouped));
+    for (final status in _order) {
+      final group = grouped[status];
+      if (group == null || group.isEmpty) continue;
+      items.add(_HeaderItem(status: status, count: group.length));
+      for (final r in group) {
+        items.add(_RecordItem(record: r));
+      }
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: records.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _AttendanceTile(
-        record: records[i],
-        onEdit: () => _showEditSheet(context, ref, records[i]),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final item = items[i];
+        if (item is _SummaryItem) return _SummaryRow(grouped: item.grouped);
+        if (item is _HeaderItem) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 6),
+            child: _SectionHeader(status: item.status, count: item.count),
+          );
+        }
+        if (item is _RecordItem) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _AttendanceTile(
+              record: item.record,
+              onEdit: () => _showEditSheet(context, ref, item.record),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+// ─── List item types (sealed-style via marker interface) ─────────────────────
+
+abstract class _ListItem {}
+class _SummaryItem extends _ListItem { final Map<String, List<Map<String, dynamic>>> grouped; _SummaryItem({required this.grouped}); }
+class _HeaderItem  extends _ListItem { final String status; final int count; _HeaderItem({required this.status, required this.count}); }
+class _RecordItem  extends _ListItem { final Map<String, dynamic> record; _RecordItem({required this.record}); }
+
+// ─── Summary row ──────────────────────────────────────────────────────────────
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.grouped});
+  final Map<String, List<Map<String, dynamic>>> grouped;
+
+  @override
+  Widget build(BuildContext context) {
+    final total     = grouped.values.fold(0, (a, b) => a + b.length);
+    final present   = (grouped['present']?.length ?? 0) + (grouped['early']?.length ?? 0);
+    final late      = grouped['late']?.length    ?? 0;
+    final absent    = grouped['absent']?.length  ?? 0;
+    final excused   = grouped['excused']?.length ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          _SummaryPill(label: 'Total',   value: total,   color: Colors.grey),
+          const SizedBox(width: 8),
+          _SummaryPill(label: 'Present', value: present, color: Colors.green),
+          const SizedBox(width: 8),
+          _SummaryPill(label: 'Late',    value: late,    color: Colors.orange),
+          const SizedBox(width: 8),
+          _SummaryPill(label: 'Absent',  value: absent,  color: Colors.red),
+          if (excused > 0) ...[
+            const SizedBox(width: 8),
+            _SummaryPill(label: 'Excused', value: excused, color: Colors.blue),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({required this.label, required this.value, required this.color});
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: '$value ',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+            TextSpan(
+              text: label,
+              style: TextStyle(
+                fontSize: 11,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.status, required this.count});
+  final String status;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, label, icon) = switch (status) {
+      'present' || 'early' => (Colors.green,  'Present',  Icons.check_circle_outline),
+      'late'               => (Colors.orange, 'Late',     Icons.schedule_outlined),
+      'absent'             => (Colors.red,    'Absent',   Icons.cancel_outlined),
+      'excused'            => (Colors.blue,   'Excused',  Icons.info_outline),
+      _                    => (Colors.grey,   status,     Icons.circle_outlined),
+    };
+
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Divider(color: color.withValues(alpha: 0.2))),
+      ],
     );
   }
 }

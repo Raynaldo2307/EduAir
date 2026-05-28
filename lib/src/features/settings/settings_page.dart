@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,27 +36,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _pickAndUploadPhoto() async {
-    // Let the user choose: camera or gallery.
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Take a photo'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-          ],
+    // On web, camera is not available — go straight to file picker.
+    ImageSource? source;
+    if (kIsWeb) {
+      source = ImageSource.gallery;
+    } else {
+      source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      ),
-    );
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Update Profile Photo',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  tileColor: Colors.grey.shade100,
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Take a photo'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  tileColor: Colors.grey.shade100,
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose from gallery'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (source == null || !mounted) return;
 
     final file = await ImagePicker().pickImage(source: source, imageQuality: 85);

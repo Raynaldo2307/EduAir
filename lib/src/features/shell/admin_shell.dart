@@ -75,6 +75,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           AdminHomeScreen(
             onSelectTab: _onSelectTab,
             onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+            onViewAuditLog: isDesktop ? () => _onSelectTab(6) : null,
           ),
           // 1 — Analytics
           AdminAnalyticsPage(

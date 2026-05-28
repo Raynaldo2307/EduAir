@@ -18,11 +18,17 @@ import 'package:shimmer/shimmer.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
 
-  const AdminHomeScreen({super.key, required this.onSelectTab, this.onOpenDrawer});
+  const AdminHomeScreen({
+    super.key,
+    required this.onSelectTab,
+    this.onOpenDrawer,
+    this.onViewAuditLog,
+  });
 
   final void Function(int index) onSelectTab;
-
   final VoidCallback? onOpenDrawer;
+  // Desktop passes () => onSelectTab(6) so sidebar highlights Audit & Logs.
+  final VoidCallback? onViewAuditLog;
 
 
  
@@ -247,7 +253,7 @@ class AdminHomeScreen extends ConsumerWidget {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(child: AuditLogCard(logs: auditLogs)),
+                        Flexible(child: AuditLogCard(logs: auditLogs, onViewAll: onViewAuditLog)),
                         const SizedBox(width: 16),
                         Flexible(child: AttendanceTrendCard(trendData: trendData, trendLabel: trendLabel)),
                         const SizedBox(width: 16),
@@ -257,7 +263,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   }
                   return Column(
                     children: [
-                      AuditLogCard(logs: auditLogs),
+                      AuditLogCard(logs: auditLogs, onViewAll: onViewAuditLog),
                       const SizedBox(height: 16),
                       const NoticeBoardCard(),
                       const SizedBox(height: 16),

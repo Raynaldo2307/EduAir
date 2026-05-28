@@ -4,9 +4,12 @@ import 'package:edu_air/src/features/admin/home/widgets/dashboard_card.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 
 class AuditLogCard extends StatelessWidget {
-  const AuditLogCard({super.key, required this.logs});
+  const AuditLogCard({super.key, required this.logs, this.onViewAll});
 
   final List<AuditLogEntry> logs;
+  // Desktop: calls onSelectTab(6) so sidebar highlights correctly.
+  // Mobile: null → falls back to Navigator.pushNamed('/adminAuditLog').
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class AuditLogCard extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/adminAuditLog'),
+                onPressed: onViewAll ?? () => Navigator.pushNamed(context, '/adminAuditLog'),
                 child: Text(
                   'View Full Log',
                   style: TextStyle(fontSize: 12, color: cs.primary),
