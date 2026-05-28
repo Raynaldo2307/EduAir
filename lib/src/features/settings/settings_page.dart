@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
@@ -17,7 +18,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  bool _notifications = true;
+  bool _notifications  = true;
+  bool _uploadingPhoto = false;
 
   String _schoolName(String? schoolId) {
     switch (schoolId) {
@@ -29,6 +31,58 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         return 'St. Catherine High School';
       default:
         return 'EduAir School';
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    // Let the user choose: camera or gallery.
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
+    if (file == null || !mounted) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final repo     = ref.read(uploadApiRepositoryProvider);
+      final photoUrl = await repo.uploadProfilePhoto(file);
+
+      // Update the in-memory user so the avatar refreshes immediately.
+      final current = ref.read(userProvider);
+      if (current != null) {
+        ref.read(userProvider.notifier).state =
+            current.copyWith(photoUrl: photoUrl);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
     }
   }
 
@@ -119,30 +173,49 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Column(
                     children: [
-                      Stack(
-                        children: [
-                          UserAvatar(
-                            initials: user?.initials ?? 'U',
-                            photoUrl: user?.photoUrl,
-                            radius: 40,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppTheme.primaryColor,
-                                shape: BoxShape.circle,
+                      GestureDetector(
+                        onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                        child: Stack(
+                          children: [
+                            UserAvatar(
+                              initials: user?.initials ?? 'U',
+                              photoUrl: user?.photoUrl,
+                              radius: 40,
+                            ),
+                            if (_uploadingPhoto)
+                              Positioned.fill(
+                                child: CircleAvatar(
+                                  radius: 40,
+                                  backgroundColor:
+                                      Colors.black.withValues(alpha: 0.4),
+                                  child: const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt_outlined,
-                                size: 14,
-                                color: Colors.white,
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(

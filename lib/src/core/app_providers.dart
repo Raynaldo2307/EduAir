@@ -14,6 +14,7 @@ import 'package:edu_air/src/features/admin/students/data/students_api_repository
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
+import 'package:edu_air/src/features/upload/data/upload_api_repository.dart';
 
 
 // Schoool + Geofencing
@@ -153,6 +154,10 @@ final staffApiRepositoryProvider = Provider<StaffApiRepository>((ref) {
 /// Reports API — SF4 PDF export and future report types.
 final reportsApiRepositoryProvider = Provider<ReportsApiRepository>((ref) {
   return ReportsApiRepository(ref.read(apiClientProvider));
+});
+
+final uploadApiRepositoryProvider = Provider<UploadApiRepository>((ref) {
+  return UploadApiRepository(ref.read(apiClientProvider));
 });
 
 /// Classes API — returns all classes for the school (used in admin dropdowns).

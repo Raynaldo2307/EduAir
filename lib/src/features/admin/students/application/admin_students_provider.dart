@@ -21,6 +21,7 @@ AppUser nodeStudentToAppUser(Map<String, dynamic> d) {
     classId:      d['homeroom_class_id']?.toString(),
     className:    d['class_name'],
     gradeLevel:   d['grade_level']?.toString(),
+    photoUrl:     d['photo_url'],
   );
 }
 
