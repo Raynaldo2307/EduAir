@@ -171,7 +171,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       ),
                                       _NavItems(
                                         icon: Icons.school_outlined,
-                                        label: 'Classes & Subjects',
+                                        label: 'Classes',
                                         isActive: _currentIndex == 8,
                                         onTap: () => _onSelectTab(8),
                                       ),

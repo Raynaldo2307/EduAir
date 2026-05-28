@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/features/admin/classes/application/admin_classes_provider.dart';
+import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 
 class AdminClassesScreen extends ConsumerWidget {
   const AdminClassesScreen({super.key, this.onBackToHome});
@@ -16,7 +17,7 @@ class AdminClassesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: AppBar(
-        title: const Text('Classes & Subjects'),
+        title: const Text('Classes'),
         centerTitle: true,
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
@@ -93,15 +94,30 @@ class _ClassCard extends StatelessWidget {
   const _ClassCard({required this.data});
   final Map<String, dynamic> data;
 
+  void _openStudents(BuildContext context) {
+    final classId   = data['id']?.toString();
+    final className = data['name'] as String?;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AdminStudentListPage(
+          filterClassId:   classId,
+          filterClassName: className,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs           = Theme.of(context).colorScheme;
     final name         = data['name']             as String? ?? '—';
     final gradeLevel   = data['grade_level']      as String? ?? '';
-    final studentCount = data['student_count']    ?? 0;
+    final studentCount = (data['student_count'] as num?)?.toInt() ?? 0;
     final teacher      = data['homeroom_teacher']  as String?;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _openStudents(context),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
@@ -172,7 +188,7 @@ class _ClassCard extends StatelessWidget {
             children: [
               _StatPill(
                 icon: Icons.people_outline,
-                label: '$studentCount students',
+                label: '$studentCount ${studentCount == 1 ? 'student' : 'students'}',
               ),
             ],
           ),
@@ -207,7 +223,8 @@ class _ClassCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),   // Container
+    );   // GestureDetector
   }
 
   String _classInitial(String name) =>

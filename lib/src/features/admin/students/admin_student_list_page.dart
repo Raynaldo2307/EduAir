@@ -7,9 +7,17 @@ import 'package:edu_air/src/features/admin/students/application/admin_students_p
 import 'admin_student_edit_page.dart';
 
 class AdminStudentListPage extends ConsumerStatefulWidget {
-  const AdminStudentListPage({super.key, this.onBackToHome});
+  const AdminStudentListPage({
+    super.key,
+    this.onBackToHome,
+    this.filterClassId,
+    this.filterClassName,
+  });
 
   final VoidCallback? onBackToHome;
+  // When set, only students whose classId matches are shown.
+  final String? filterClassId;
+  final String? filterClassName;
 
   @override
   ConsumerState<AdminStudentListPage> createState() =>
@@ -27,9 +35,14 @@ class _AdminStudentListPageState extends ConsumerState<AdminStudentListPage> {
   }
 
   List<AppUser> _filter(List<AppUser> students) {
-    if (_query.isEmpty) return students;
+    var list = students;
+    // Class filter — applied when navigating from the Classes screen.
+    if (widget.filterClassId != null) {
+      list = list.where((s) => s.classId == widget.filterClassId).toList();
+    }
+    if (_query.isEmpty) return list;
     final q = _query.toLowerCase();
-    return students.where((s) {
+    return list.where((s) {
       return s.displayName.toLowerCase().contains(q) ||
           (s.className?.toLowerCase().contains(q) ?? false) ||
           (s.gradeLevel?.toLowerCase().contains(q) ?? false);
@@ -74,9 +87,16 @@ class _AdminStudentListPageState extends ConsumerState<AdminStudentListPage> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBackToHome,
               )
-            : null,
+            : widget.filterClassId != null
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                : null,
         title: Text(
-          'Manage Students',
+          widget.filterClassName != null
+              ? 'Class ${widget.filterClassName}'
+              : 'Manage Students',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
