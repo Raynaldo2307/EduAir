@@ -102,6 +102,7 @@ final adminAuditLogsProvider =
     final m = row as Map<String, dynamic>;
     return AuditLogEntry(
       changedByName:  m['changed_by_name']  as String? ?? 'Unknown',
+      changedByPhoto: m['changed_by_photo'] as String?,
       source:         m['source']           as String? ?? 'studentSelf',
       newStatus:      m['new_status']       as String? ?? '',
       previousStatus: m['previous_status']  as String?,
@@ -743,7 +744,7 @@ class _AuditTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          UserAvatar(initials: log.initials, radius: 22),
+          UserAvatar(initials: log.initials, photoUrl: log.changedByPhoto, radius: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

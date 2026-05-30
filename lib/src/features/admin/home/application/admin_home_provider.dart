@@ -77,6 +77,7 @@ class StaffConsistency {
 // One row from the attendance_history table joined with the user who made the change.
 class AuditLogEntry {
   final String changedByName;    // full name of the user who triggered the change
+  final String? changedByPhoto;  // profile photo URL of the user who made the change
   final String source;           // studentSelf | teacherBatch | adminEdit
   final String newStatus;        // early | late | present | absent | excused
   final String? previousStatus;  // null on first write; set on corrections
@@ -97,6 +98,7 @@ class AuditLogEntry {
     required this.shiftType,
     required this.attendanceDate,
     required this.recordType,
+    this.changedByPhoto,
     this.previousStatus,
   });
 
@@ -254,6 +256,7 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
     final m = row as Map<String, dynamic>;
     return AuditLogEntry(
       changedByName:  m['changed_by_name']  as String? ?? 'Unknown',
+      changedByPhoto: m['changed_by_photo'] as String?,
       source:         m['source']           as String? ?? 'studentSelf',
       newStatus:      m['new_status']       as String? ?? '',
       previousStatus: m['previous_status']  as String?,

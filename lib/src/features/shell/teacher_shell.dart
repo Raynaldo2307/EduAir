@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/features/notices/notice_board_screen.dart';
 import 'package:edu_air/src/features/teacher/home/teacher_home_screen.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 import 'package:edu_air/src/features/teacher/student_info_page.dart';
@@ -28,15 +29,16 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
   Widget build(BuildContext context) {
     
     
-    final pages = 
+    final pages =
          <Widget>[
             TeacherHomeScreen(onSelectTab: _onSelectTab),
             StudentInfoPage(onBackToHome: () => _onSelectTab(0)),
             const TeacherAttendancePage(),
+            const NoticeBoardScreen(),
             const SettingsPage(),
           ];
 
-    final navItems = 
+    final navItems =
          const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
@@ -49,6 +51,10 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
             BottomNavigationBarItem(
               icon: Icon(Icons.fact_check_outlined),
               label: 'Attendance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.campaign_outlined),
+              label: 'Notices',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings_outlined),

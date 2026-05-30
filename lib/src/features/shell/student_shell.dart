@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/features/notices/notice_board_screen.dart';
 import 'package:edu_air/src/features/student/home/student_home_page.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 import 'package:edu_air/src/features/attendance/presentation/student/student_attendance_page.dart';
@@ -36,8 +37,7 @@ class _StudentShellState extends ConsumerState<StudentShell> {
   ///
   /// Order MUST match [BottomNavigationBarItem]s.
   late final List<Widget> _pages = [
-    // 0 → Home: pass a callback so tapping the "Attendance" quick link
-    // switches the shell to the Calendar tab instead of pushing a new route.
+    // 0 → Home
     StudentHomePage(onTapAttendance: _goToCalendarTab),
 
     // 1 → Calendar / Attendance
@@ -46,7 +46,10 @@ class _StudentShellState extends ConsumerState<StudentShell> {
     // 2 → Messages
     const StudentMessagesPage(),
 
-    // 3 → Settings
+    // 3 → Notices
+    const NoticeBoardScreen(),
+
+    // 4 → Settings
     const SettingsPage(),
   ];
 
@@ -81,6 +84,10 @@ class _StudentShellState extends ConsumerState<StudentShell> {
         BottomNavigationBarItem(
           icon: Icon(Icons.chat_bubble_outline),
           label: 'Messages',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.campaign_outlined),
+          label: 'Notices',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.settings_outlined),
