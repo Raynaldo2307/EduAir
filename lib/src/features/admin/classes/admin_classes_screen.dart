@@ -175,9 +175,9 @@ class _ClassCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      _avatarLabel(gradeLevel, name),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: _avatarLabel(gradeLevel, name).length > 2 ? 12 : 15,
                         fontWeight: FontWeight.bold,
                         color: _gradeColor(gradeLevel),
                       ),
@@ -278,6 +278,16 @@ class _ClassCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Extracts the grade number from grade_level ("Grade 10" → "10", "Grade 9" → "9").
+  // Falls back to the class name if no number found ("Form 1A" → "1A" stripped).
+  String _avatarLabel(String gradeLevel, String className) {
+    final nums = RegExp(r'\d+').allMatches(gradeLevel).map((m) => m.group(0)!).toList();
+    if (nums.isNotEmpty) return nums.last;
+    final classNums = RegExp(r'\d+').allMatches(className).map((m) => m.group(0)!).toList();
+    if (classNums.isNotEmpty) return classNums.first;
+    return className.isNotEmpty ? className[0].toUpperCase() : '?';
   }
 
   Color _gradeColor(String grade) {
