@@ -15,6 +15,7 @@ import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart'
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
 import 'package:edu_air/src/features/upload/data/upload_api_repository.dart';
+import 'package:edu_air/src/features/notices/data/notices_api_repository.dart';
 
 
 // Schoool + Geofencing
@@ -169,6 +170,15 @@ final classesApiRepositoryProvider = Provider<ClassesApiRepository>((ref) {
 /// School classes list — loaded once per admin session for class dropdowns.
 final schoolClassesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.read(classesApiRepositoryProvider).getAll();
+});
+
+final noticesApiRepositoryProvider = Provider<NoticesApiRepository>((ref) {
+  return NoticesApiRepository(ref.read(apiClientProvider));
+});
+
+/// Active notices for this school — auto-disposes when admin leaves the dashboard.
+final noticesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.read(noticesApiRepositoryProvider).getAll();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
