@@ -85,6 +85,9 @@ class AuditLogEntry {
   final String shiftType;        // morning | afternoon | whole_day
   final String attendanceDate;   // YYYY-MM-DD
 
+  // 'student' for student attendance changes, 'staff' for staff attendance changes.
+  final String recordType;
+
   const AuditLogEntry({
     required this.changedByName,
     required this.source,
@@ -93,6 +96,7 @@ class AuditLogEntry {
     required this.studentName,
     required this.shiftType,
     required this.attendanceDate,
+    required this.recordType,
     this.previousStatus,
   });
 
@@ -257,6 +261,7 @@ final adminHomeProvider = FutureProvider.autoDispose<AdminHomeData>((ref) async 
       studentName:    m['student_name']     as String? ?? '',
       shiftType:      m['shift_type']       as String? ?? '',
       attendanceDate: m['attendance_date']  as String? ?? '',
+      recordType:     m['record_type']      as String? ?? 'student',
     );
   }).toList();
 

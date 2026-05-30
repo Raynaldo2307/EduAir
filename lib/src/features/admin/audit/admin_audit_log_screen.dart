@@ -109,6 +109,7 @@ final adminAuditLogsProvider =
       studentName:    m['student_name']     as String? ?? '',
       shiftType:      m['shift_type']       as String? ?? '',
       attendanceDate: m['attendance_date']  as String? ?? '',
+      recordType:     m['record_type']      as String? ?? 'student',
     );
   }).toList();
 });
@@ -757,10 +758,10 @@ class _AuditTile extends StatelessWidget {
                       color: cs.primary),
                 ),
                 const SizedBox(height: 2),
-                // Student name
+                // Subject name — "Student:" for student records, "Staff:" for staff records
                 if (log.studentName.isNotEmpty)
                   Text(
-                    'Student: ${log.studentName}',
+                    '${log.recordType == 'staff' ? 'Staff' : 'Student'}: ${log.studentName}',
                     style: TextStyle(
                         fontSize: 12,
                         color: cs.onSurface.withValues(alpha: 0.7)),
@@ -1020,9 +1021,10 @@ String _toFileSlug(String name) =>
 
 String _sourceLabel(String source) {
   switch (source) {
-    case 'teacherBatch': return 'Teacher Batch';
-    case 'adminEdit':    return 'Admin Edit';
-    default:             return 'Student Self';
+    case 'teacherBatch':    return 'Teacher Batch';
+    case 'adminEdit':       return 'Admin Edit';
+    case 'staffAttendance': return 'Staff Attendance';
+    default:                return 'Student Self';
   }
 }
 
