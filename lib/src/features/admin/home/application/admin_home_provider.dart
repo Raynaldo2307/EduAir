@@ -104,9 +104,10 @@ class AuditLogEntry {
 
   String get actionLabel {
     switch (source) {
-      case 'teacherBatch': return 'Teacher Batch';
-      case 'adminEdit':    return 'Admin Edit';
-      default:             return 'Student Self';
+      case 'teacherBatch':    return 'Teacher Batch';
+      case 'adminEdit':       return 'Admin Edit';
+      case 'staffAttendance': return 'Staff Attendance';
+      default:                return 'Student Self';
     }
   }
 

@@ -53,7 +53,7 @@ class AuditLogCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    UserAvatar(initials: log.initials, radius: 18),
+                    UserAvatar(initials: log.initials, photoUrl: log.changedByPhoto, radius: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
