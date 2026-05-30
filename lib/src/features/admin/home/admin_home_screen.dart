@@ -59,6 +59,18 @@ class AdminHomeScreen extends ConsumerWidget {
     final totalStudents  = homeAsync.whenOrNull(data: (d) => d.totalStudents)    ?? 0;
     final auditLogs      = homeAsync.whenOrNull(data: (d) => d.recentAuditLogs)  ?? const [];
 
+    // Rates for StatsCard — 0.0 to 1.0 (computed once, passed to both desktop + mobile).
+    final presentToday   = homeAsync.whenOrNull(data: (d) => d.presentToday) ?? 0;
+    final absentToday    = homeAsync.whenOrNull(data: (d) => d.absentToday)  ?? 0;
+    final attendanceRate = totalStudents > 0 ? presentToday / totalStudents : 0.0;
+    final absenceRate    = totalStudents > 0 ? absentToday  / totalStudents : 0.0;
+    final weekAvgRate    = homeAsync.whenOrNull(data: (d) {
+      if (d.trendData.length < 7 || d.totalStudents == 0) return null;
+      final last7 = d.trendData.sublist(d.trendData.length - 7);
+      final sumPresent = last7.fold<int>(0, (s, p) => s + p.totalPresent);
+      return sumPresent / (d.totalStudents * 7);
+    });
+
     // Week-over-week deltas — null when < 7 days of history available.
     final presentTrend = homeAsync.whenOrNull(
       data: (d) => _weekDelta(d.presentToday, trendData, 'present'),
@@ -229,7 +241,7 @@ class AdminHomeScreen extends ConsumerWidget {
                       children: [
                         Flexible(flex: 3, child: AttendanceChartCard(trendData: trendData, totalStudents: totalStudents)),
                         const SizedBox(width: 16),
-                        const Flexible(flex: 2, child: StatsCard()),
+                        Flexible(flex: 2, child: StatsCard(attendanceRate: attendanceRate, absenceRate: absenceRate, weekAvgRate: weekAvgRate)),
                       ],
                     );
                   }
@@ -237,7 +249,7 @@ class AdminHomeScreen extends ConsumerWidget {
                     children: [
                       AttendanceChartCard(trendData: trendData, totalStudents: totalStudents),
                       const SizedBox(height: 16),
-                      const StatsCard(),
+                      StatsCard(attendanceRate: attendanceRate, absenceRate: absenceRate, weekAvgRate: weekAvgRate),
                     ],
                   );
                 },

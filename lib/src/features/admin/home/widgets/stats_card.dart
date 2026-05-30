@@ -2,12 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
 class StatsCard extends StatelessWidget {
-  const StatsCard({super.key});
+  const StatsCard({
+    super.key,
+    required this.attendanceRate,
+    required this.absenceRate,
+    this.weekAvgRate,
+  });
+
+  // presentToday / totalStudents — 0.0 to 1.0
+  final double attendanceRate;
+  // absentToday / totalStudents — 0.0 to 1.0 (lower is better)
+  final double absenceRate;
+  // Average of last 7 trend days / totalStudents — null when < 7 days of history
+  final double? weekAvgRate;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs     = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -20,7 +33,7 @@ class StatsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PERFORMANCE',
+            'ATTENDANCE',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w900,
@@ -30,30 +43,50 @@ class StatsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _StatBar(
-            icon: Icons.emoji_events_outlined,
-            label: 'Academic Achievement',
-            value: 0.82,
-            color: const Color(0xFF0059BA),
+            icon: Icons.check_circle_outline,
+            label: 'Today\'s Attendance',
+            value: attendanceRate.clamp(0.0, 1.0),
+            color: _attendanceColor(attendanceRate),
           ),
           const SizedBox(height: 14),
-          _StatBar(
-            icon: Icons.people_alt_outlined,
-            label: 'Student Retention',
-            value: 0.64,
-            color: const Color(0xFFFF9F43),
-          ),
+          weekAvgRate != null
+              ? _StatBar(
+                  icon: Icons.calendar_month_outlined,
+                  label: '7-Day Average',
+                  value: weekAvgRate!.clamp(0.0, 1.0),
+                  color: _attendanceColor(weekAvgRate!),
+                )
+              : _NoDataRow(
+                  icon: Icons.calendar_month_outlined,
+                  label: '7-Day Average',
+                  cs: cs,
+                ),
           const SizedBox(height: 14),
           _StatBar(
-            icon: Icons.schedule_outlined,
-            label: 'Staff Punctuality',
-            value: 0.78,
-            color: const Color(0xFF9B51E0),
+            icon: Icons.person_off_outlined,
+            label: 'Absence Rate',
+            value: absenceRate.clamp(0.0, 1.0),
+            color: _absenceColor(absenceRate),
           ),
         ],
       ),
     );
   }
+
+  Color _attendanceColor(double rate) {
+    if (rate >= 0.80) return const Color(0xFF2E7D32);
+    if (rate >= 0.60) return const Color(0xFFF59E0B);
+    return const Color(0xFFE65D7B);
+  }
+
+  Color _absenceColor(double rate) {
+    if (rate <= 0.10) return const Color(0xFF2E7D32);
+    if (rate <= 0.20) return const Color(0xFFF59E0B);
+    return const Color(0xFFE65D7B);
+  }
 }
+
+// ─── Stat bar row ─────────────────────────────────────────────────────────────
 
 class _StatBar extends StatelessWidget {
   const _StatBar({
@@ -64,13 +97,13 @@ class _StatBar extends StatelessWidget {
   });
 
   final IconData icon;
-  final String label;
-  final double value;
-  final Color color;
+  final String   label;
+  final double   value;
+  final Color    color;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs      = Theme.of(context).colorScheme;
     final percent = '${(value * 100).toInt()}%';
 
     return Column(
@@ -134,4 +167,51 @@ class _StatBar extends StatelessWidget {
       ],
     );
   }
+}
+
+// Shown in place of a bar when there isn't enough historical data yet.
+class _NoDataRow extends StatelessWidget {
+  const _NoDataRow({
+    required this.icon,
+    required this.label,
+    required this.cs,
+  });
+
+  final IconData    icon;
+  final String      label;
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: cs.onSurface.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16,
+                color: cs.onSurface.withValues(alpha: 0.3)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+          Text(
+            'Not enough data',
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurface.withValues(alpha: 0.35),
+            ),
+          ),
+        ],
+      );
 }
