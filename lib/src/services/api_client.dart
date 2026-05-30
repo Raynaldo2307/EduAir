@@ -31,12 +31,9 @@ class ApiClient {
       ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
-        // ASSESSOR POINT C — JWT Injection (Security)
-        // Before EVERY request, we read the JWT from secure storage
-        // and attach it to the Authorization header as a Bearer token.
-        // The server reads this header on every route to verify identity.
-        // If there is no token (user not logged in), the header is skipped
-        // and the server will return 401 for protected routes.
+        // Before every request, read the JWT from secure storage and attach it
+        // as a Bearer token. If there is no token the header is skipped and the
+        // server returns 401 for protected routes.
         onRequest: (options, handler) async {
           final token = await tokenStorage.read();
           if (token != null) {
@@ -44,15 +41,14 @@ class ApiClient {
           }
           handler.next(options);
         },
-        // ASSESSOR POINT D — Automatic Token Expiry Handling
-        // If the server returns 401 (Unauthorized), the token is invalid or expired.
-        // We delete it from secure storage immediately.
-        // Next app startup: getMe() fails → user is sent to login screen.
-        // The app never crashes — it handles this gracefully.
-        onError: (DioException error, handler) async {
-          if (error.response?.statusCode == 401) {
-            await tokenStorage.delete();
-          }
+        // Pass 401 errors through without touching the stored token.
+        // Deleting the token here causes a cascading failure: the first 401
+        // wipes the token, every subsequent concurrent request also gets 401
+        // (no token → no header → server rejects), and the session is destroyed
+        // mid-use for no reason.
+        // Real token expiry is detected by startupRouteProvider calling getMe()
+        // on app start — if that returns 401, the user is sent to login cleanly.
+        onError: (DioException error, handler) {
           handler.next(error);
         },
       ),
