@@ -29,45 +29,28 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
   Widget build(BuildContext context) {
     
     
-    final pages =
-         <Widget>[
-            TeacherHomeScreen(onSelectTab: _onSelectTab),
-            StudentInfoPage(onBackToHome: () => _onSelectTab(0)),
-            const TeacherAttendancePage(),
-            const NoticeBoardScreen(),
-            const SettingsPage(),
-          ];
+    const navItems = [
+      BottomNavigationBarItem(icon: Icon(Icons.home_outlined),        label: 'Home'),
+      BottomNavigationBarItem(icon: Icon(Icons.people_outline),       label: 'Students'),
+      BottomNavigationBarItem(icon: Icon(Icons.fact_check_outlined),  label: 'Attendance'),
+      BottomNavigationBarItem(icon: Icon(Icons.campaign_outlined),    label: 'Notices'),
+      BottomNavigationBarItem(icon: Icon(Icons.settings_outlined),    label: 'Settings'),
+    ];
 
-    final navItems =
-         const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              label: 'Students',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.fact_check_outlined),
-              label: 'Attendance',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.campaign_outlined),
-              label: 'Notices',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: 'Settings',
-            ),
-          ];
-
-    // Clamp index synchronously so the assertion never fires, regardless of
-    // when userProvider changes relative to this build frame.
     final safeIndex = _currentIndex < navItems.length ? _currentIndex : 0;
 
+    Widget currentPage() {
+      switch (safeIndex) {
+        case 1:  return StudentInfoPage(onBackToHome: () => _onSelectTab(0));
+        case 2:  return const TeacherAttendancePage();
+        case 3:  return const NoticeBoardScreen();
+        case 4:  return const SettingsPage();
+        default: return TeacherHomeScreen(onSelectTab: _onSelectTab);
+      }
+    }
+
     return Scaffold(
-      body: IndexedStack(index: safeIndex, children: pages),
+      body: currentPage(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: safeIndex,
         selectedItemColor: Theme.of(context).colorScheme.primary,

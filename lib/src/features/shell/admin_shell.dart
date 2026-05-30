@@ -71,38 +71,31 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 900;
 
-        // Build pages here so desktop can omit back callbacks.
-        final pages = <Widget>[
-          // 0 — Dashboard
-          AdminHomeScreen(
-            onSelectTab: _onSelectTab,
-            onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
-            onViewAuditLog: isDesktop ? () => _onSelectTab(6) : null,
-          ),
-          // 1 — Analytics
-          AdminAnalyticsPage(
-            onBackToHome: isDesktop ? null : () => _onSelectTab(0),
-            onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
-          ),
-          // 2 — Students
-          AdminStudentListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 3 — Staff
-          AdminStaffListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 4 — Settings
-          const SettingsPage(),
-          // 5 — Attendance
-          AdminAttendancePage(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 6 — Audit & Logs (desktop sidebar only)
-          const AdminAuditLogScreen(),
-          // 7 — Clock-in Records
-          AdminClockinRecordsScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 8 — Classes & Subjects
-          AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 9 — Staff Attendance
-          AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-          // 10 — Notice Board
-          AdminNoticeBoardScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
-        ];
+        // Only build the currently selected page — nothing else lives in memory.
+        // Each switch case constructs exactly one widget. When _currentIndex changes,
+        // Flutter disposes the old page and mounts the new one fresh.
+        Widget currentPage() {
+          switch (_currentIndex) {
+            case 1:  return AdminAnalyticsPage(
+              onBackToHome: isDesktop ? null : () => _onSelectTab(0),
+              onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+            );
+            case 2:  return AdminStudentListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 3:  return AdminStaffListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 4:  return const SettingsPage();
+            case 5:  return AdminAttendancePage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 6:  return const AdminAuditLogScreen();
+            case 7:  return AdminClockinRecordsScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 8:  return AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 9:  return AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 10: return AdminNoticeBoardScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            default: return AdminHomeScreen(
+              onSelectTab: _onSelectTab,
+              onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+              onViewAuditLog: isDesktop ? () => _onSelectTab(6) : null,
+            );
+          }
+        }
 
         if (isDesktop) {
           // ── Desktop / tablet layout ──────────────────────────────
@@ -329,9 +322,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                   ),
                 ),
 
-                Expanded(
-                  child: IndexedStack(index: _currentIndex, children: pages),
-                ),
+                Expanded(child: currentPage()),
               ],
             ),
           );
@@ -406,7 +397,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
               ],
             ),
           ),
-          body: IndexedStack(index: _currentIndex, children: pages),
+          body: currentPage(),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: safeIndex,
             selectedItemColor: Theme.of(context).colorScheme.primary,

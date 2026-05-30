@@ -36,27 +36,20 @@ class _StudentShellState extends ConsumerState<StudentShell> {
   /// Pages for each tab.
   ///
   /// Order MUST match [BottomNavigationBarItem]s.
-  late final List<Widget> _pages = [
-    // 0 → Home
-    StudentHomePage(onTapAttendance: _goToCalendarTab),
-
-    // 1 → Calendar / Attendance
-    const StudentAttendancePage(),
-
-    // 2 → Messages
-    const StudentMessagesPage(),
-
-    // 3 → Notices
-    const NoticeBoardScreen(),
-
-    // 4 → Settings
-    const SettingsPage(),
-  ];
+  Widget _currentPage() {
+    switch (_tabIndex) {
+      case 1:  return const StudentAttendancePage();
+      case 2:  return const StudentMessagesPage();
+      case 3:  return const NoticeBoardScreen();
+      case 4:  return const SettingsPage();
+      default: return StudentHomePage(onTapAttendance: _goToCalendarTab);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _tabIndex, children: _pages),
+      body: _currentPage(),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
