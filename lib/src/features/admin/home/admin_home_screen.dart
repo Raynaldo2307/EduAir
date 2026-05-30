@@ -346,7 +346,7 @@ class AdminHomeScreen extends ConsumerWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => onSelectTab(1),
+                    onPressed: () => onSelectTab(2),
                     child: Text(
                       'View all',
                       style: TextStyle(color: cs.primary),
