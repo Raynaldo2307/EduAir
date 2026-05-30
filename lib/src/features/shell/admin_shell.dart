@@ -11,6 +11,7 @@ import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
 import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
 import 'package:edu_air/src/features/admin/staff_attendance/admin_staff_attendance_screen.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
+import 'package:edu_air/src/features/notices/admin_notice_board_screen.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 
 class AdminResponsiveShell extends ConsumerStatefulWidget {
@@ -99,6 +100,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
           // 9 — Staff Attendance
           AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 10 — Notice Board
+          AdminNoticeBoardScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
         ];
 
         if (isDesktop) {
@@ -235,8 +238,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.campaign_outlined,
                                         label: 'Notice Board',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 10,
+                                        onTap: () => _onSelectTab(10),
                                       ),
                                       _NavItems(
                                         icon: Icons.notifications_outlined,
@@ -385,6 +388,14 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _onSelectTab(9);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.campaign_outlined),
+                  title: const Text('Notice Board'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _onSelectTab(10);
                   },
                 ),
                 ListTile(
