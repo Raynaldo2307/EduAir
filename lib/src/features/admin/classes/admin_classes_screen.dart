@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/features/admin/classes/admin_class_detail_page.dart';
 import 'package:edu_air/src/features/admin/classes/admin_class_edit_page.dart';
 import 'package:edu_air/src/features/admin/classes/application/admin_classes_provider.dart';
-import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 
 class AdminClassesScreen extends ConsumerWidget {
   const AdminClassesScreen({super.key, this.onBackToHome});
@@ -183,13 +183,10 @@ class _ClassCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback onEdit;
 
-  void _openStudents(BuildContext context) {
+  void _openDetail(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AdminStudentListPage(
-          filterClassId:   data['id']?.toString(),
-          filterClassName: data['name'] as String?,
-        ),
+        builder: (_) => AdminClassDetailPage(classData: data),
       ),
     );
   }
@@ -206,7 +203,7 @@ class _ClassCard extends StatelessWidget {
     final isFull       = studentCount >= capacity;
 
     return GestureDetector(
-      onTap:      () => _openStudents(context),
+      onTap:      () => _openDetail(context),
       onLongPress: onEdit,
       child: Container(
         padding: const EdgeInsets.all(14),
