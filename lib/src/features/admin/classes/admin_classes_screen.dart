@@ -72,40 +72,103 @@ class AdminClassesScreen extends ConsumerWidget {
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────
 
-class _ClassGrid extends StatelessWidget {
+class _ClassGrid extends StatefulWidget {
   const _ClassGrid({required this.classes, required this.onEdit});
   final List<Map<String, dynamic>> classes;
   final void Function(Map<String, dynamic>) onEdit;
 
   @override
+  State<_ClassGrid> createState() => _ClassGridState();
+}
+
+class _ClassGridState extends State<_ClassGrid> {
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    if (_query.isEmpty) return widget.classes;
+    final q = _query.toLowerCase();
+    return widget.classes.where((c) {
+      final name  = (c['name']        as String? ?? '').toLowerCase();
+      final grade = (c['grade_level'] as String? ?? '').toLowerCase();
+      final teacher = (c['homeroom_teacher'] as String? ?? '').toLowerCase();
+      return name.contains(q) || grade.contains(q) || teacher.contains(q);
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final cs       = Theme.of(context).colorScheme;
+    final filtered = _filtered;
+    final total    = widget.classes.length;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80), // 80 = FAB clearance
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${classes.length} class${classes.length == 1 ? '' : 'es'}',
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          // ── Search bar ────────────────────────────────────────────
+          TextField(
+            controller: _search,
+            onChanged: (v) => setState(() => _query = v.trim()),
+            decoration: InputDecoration(
+              hintText: 'Search by class name, grade or teacher…',
+              hintStyle: TextStyle(fontSize: 13, color: cs.onSurface.withValues(alpha: 0.4)),
+              prefixIcon: Icon(Icons.search, size: 20, color: cs.onSurface.withValues(alpha: 0.4)),
+              suffixIcon: _query.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close, size: 18, color: cs.onSurface.withValues(alpha: 0.4)),
+                      onPressed: () { _search.clear(); setState(() => _query = ''); },
+                    )
+                  : null,
+              filled: true,
+              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 12),
+
+          // ── Count label ───────────────────────────────────────────
+          Text(
+            _query.isEmpty
+                ? '$total class${total == 1 ? '' : 'es'}'
+                : '${filtered.length} of $total class${total == 1 ? '' : 'es'}',
+            style: TextStyle(fontSize: 13, color: cs.onSurface.withValues(alpha: 0.5)),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Grid ──────────────────────────────────────────────────
           Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 280,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
-              ),
-              itemCount: classes.length,
-              itemBuilder: (context, i) => _ClassCard(
-                data: classes[i],
-                onEdit: () => onEdit(classes[i]),
-              ),
-            ),
+            child: filtered.isEmpty
+                ? Center(
+                    child: Text(
+                      'No classes match "$_query"',
+                      style: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
+                    ),
+                  )
+                : GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 280,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.2,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) => _ClassCard(
+                      data: filtered[i],
+                      onEdit: () => widget.onEdit(filtered[i]),
+                    ),
+                  ),
           ),
         ],
       ),
