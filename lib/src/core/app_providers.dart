@@ -16,6 +16,7 @@ import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.d
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
 import 'package:edu_air/src/features/upload/data/upload_api_repository.dart';
 import 'package:edu_air/src/features/notices/data/notices_api_repository.dart';
+import 'package:edu_air/src/features/admin/staff_attendance/data/staff_attendance_api_repository.dart';
 
 
 // Schoool + Geofencing
@@ -174,6 +175,16 @@ final schoolClassesProvider = FutureProvider.autoDispose<List<Map<String, dynami
 
 final noticesApiRepositoryProvider = Provider<NoticesApiRepository>((ref) {
   return NoticesApiRepository(ref.read(apiClientProvider));
+});
+
+final staffAttendanceApiRepositoryProvider = Provider<StaffAttendanceApiRepository>((ref) {
+  return StaffAttendanceApiRepository(ref.read(apiClientProvider));
+});
+
+/// Staff attendance list keyed by date string 'YYYY-MM-DD'.
+final staffAttendanceProvider =
+    FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, date) {
+  return ref.read(staffAttendanceApiRepositoryProvider).getForDate(date);
 });
 
 /// Active notices for this school — auto-disposes when admin leaves the dashboard.

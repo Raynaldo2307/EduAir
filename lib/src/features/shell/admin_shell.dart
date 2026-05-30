@@ -9,6 +9,7 @@ import 'package:edu_air/src/features/admin/classes/admin_classes_screen.dart';
 import 'package:edu_air/src/features/admin/clockin/admin_clockin_records_screen.dart';
 import 'package:edu_air/src/features/admin/home/admin_home_screen.dart';
 import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
+import 'package:edu_air/src/features/admin/staff_attendance/admin_staff_attendance_screen.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 
@@ -96,6 +97,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
           AdminClockinRecordsScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
           // 8 — Classes & Subjects
           AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
+          // 9 — Staff Attendance
+          AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0)),
         ];
 
         if (isDesktop) {
@@ -220,8 +223,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.how_to_reg_outlined,
                                         label: 'Staff Attendance',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 9,
+                                        onTap: () => _onSelectTab(9),
                                       ),
                                     ],
                                   ),
@@ -374,6 +377,14 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _onSelectTab(7);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.how_to_reg_outlined),
+                  title: const Text('Staff Attendance'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _onSelectTab(9);
                   },
                 ),
                 ListTile(
