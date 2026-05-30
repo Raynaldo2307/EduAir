@@ -24,7 +24,14 @@ class AdminResponsiveShell extends ConsumerStatefulWidget {
 
 class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
   int _currentIndex = 0;
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _scaffoldKey        = GlobalKey<ScaffoldState>();
+  final _sidebarScrollCtrl  = ScrollController();
+
+  @override
+  void dispose() {
+    _sidebarScrollCtrl.dispose();
+    super.dispose();
+  }
 
   void _onSelectTab(int index) => setState(() => _currentIndex = index);
 
@@ -147,7 +154,9 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                             ),
                           ),
                           child: Scrollbar(
+                            controller: _sidebarScrollCtrl,
                             child: SingleChildScrollView(
+                              controller: _sidebarScrollCtrl,
                               padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
