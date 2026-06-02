@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/features/admin/analytics/admin_analytics_screen.dart';
-import 'package:edu_air/src/features/admin/attendance/admin_attendance_page.dart';
 import 'package:edu_air/src/features/admin/audit/admin_audit_log_screen.dart';
 import 'package:edu_air/src/features/admin/classes/admin_classes_screen.dart';
 import 'package:edu_air/src/features/admin/clockin/admin_clockin_records_screen.dart';
@@ -90,7 +89,6 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
             case 2:  return AdminStudentListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 3:  return AdminStaffListPage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 4:  return const SettingsPage();
-            case 5:  return AdminAttendancePage(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 6:  return const AdminAuditLogScreen();
             case 7:  return AdminClockinRecordsScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 8:  return AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
@@ -197,13 +195,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                     children: [
                                       _NavItems(
                                         icon: Icons.fact_check_outlined,
-                                        label: 'Attendance & Overview',
-                                        isActive: _currentIndex == 5,
-                                        onTap: () => _onSelectTab(5),
-                                      ),
-                                      _NavItems(
-                                        icon: Icons.schedule_outlined,
-                                        label: 'Clock-in Records',
+                                        label: 'Attendance',
                                         isActive: _currentIndex == 7,
                                         onTap: () => _onSelectTab(7),
                                       ),
@@ -369,14 +361,6 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                 ListTile(
                   leading: const Icon(Icons.fact_check_outlined),
                   title: const Text('Attendance'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _onSelectTab(5);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.schedule_outlined),
-                  title: const Text('Clock-in Records'),
                   onTap: () {
                     Navigator.pop(context);
                     _onSelectTab(7);

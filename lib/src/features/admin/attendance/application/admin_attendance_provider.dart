@@ -1,42 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
-
-// ─── Date filter ──────────────────────────────────────────────────────────────
-
-/// Holds the currently selected filter date for the attendance report.
-final attendanceDateProvider = StateProvider<DateTime>(
-  (ref) => DateTime.now(),
-);
-
-// ─── Shift filter ─────────────────────────────────────────────────────────────
-
-/// Shift is locked to the school's configured default shift type.
-/// Uses watch (not read) so it stays in sync after login/logout.
-final attendanceShiftProvider = Provider<String>(
-  (ref) => ref.watch(userProvider)?.defaultShiftType ?? 'whole_day',
-);
-
-// ─── Results ──────────────────────────────────────────────────────────────────
-
-/// Fetches school-wide attendance from the Node API for the selected date + shift.
-/// autoDispose — discards cache when the admin leaves the attendance tab.
-final adminAttendanceResultProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final date  = ref.watch(attendanceDateProvider);
-  final shift = ref.watch(attendanceShiftProvider);
-  final repo  = ref.read(attendanceApiRepositoryProvider);
-
-  final dateKey =
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  return repo.getByDateAndShift(date: dateKey, shiftType: shift);
-});
+import 'package:edu_air/src/features/admin/clockin/application/clockin_records_provider.dart';
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
-/// Handles admin corrections to individual attendance records.
-/// On success invalidates [adminAttendanceResultProvider] so the list refreshes.
+/// Handles admin/principal corrections to individual attendance records.
+/// On success it invalidates [clockinRecordsProvider] so the merged Attendance
+/// list refreshes with the corrected status.
 class AdminAttendanceNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
 
@@ -57,7 +28,7 @@ class AdminAttendanceNotifier extends StateNotifier<AsyncValue<void>> {
         lateReasonCode: lateReasonCode,
         note: note,
       );
-      _ref.invalidate(adminAttendanceResultProvider);
+      _ref.invalidate(clockinRecordsProvider);
       state = const AsyncValue.data(null);
       return true;
     } catch (e, st) {
