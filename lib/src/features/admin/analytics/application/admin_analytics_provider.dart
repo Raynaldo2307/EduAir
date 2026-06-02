@@ -54,18 +54,27 @@ class AdminAnalyticsData {
 
 // ─── Providers ────────────────────────────────────────────────────────────────
 
+// The time window selected on the analytics control panel. Drives every card.
+// Values match the backend ?days= contract: '30' | '90' | 'term'.
+// autoDispose: resets to the 30-day default each time the admin opens the screen.
+final analyticsRangeProvider =
+    StateProvider.autoDispose<String>((ref) => '30');
+
 // Fetches all analytics screen data in 5 parallel calls.
 // autoDispose: destroyed when admin leaves the analytics tab — never shows stale numbers.
+// Watches analyticsRangeProvider, so changing the window re-runs every call.
 final adminAnalyticsProvider =
     FutureProvider.autoDispose<AdminAnalyticsData>((ref) async {
   final client = ref.read(apiClientProvider);
+  final days   = ref.watch(analyticsRangeProvider);
+  final query  = {'days': days};
 
   final results = await Future.wait([
-    client.dio.get('/api/analytics/summary'),           // results[0]
-    client.dio.get('/api/analytics/top-absent'),        // results[1]
-    client.dio.get('/api/analytics/class-performance'), // results[2]
-    client.dio.get('/api/analytics/day-of-week'),       // results[3]
-    client.dio.get('/api/analytics/staff-consistency'), // results[4]
+    client.dio.get('/api/analytics/summary',           queryParameters: query), // results[0]
+    client.dio.get('/api/analytics/top-absent',        queryParameters: query), // results[1]
+    client.dio.get('/api/analytics/class-performance', queryParameters: query), // results[2]
+    client.dio.get('/api/analytics/day-of-week',       queryParameters: query), // results[3]
+    client.dio.get('/api/analytics/staff-consistency', queryParameters: query), // results[4]
   ]);
 
   // ── Summary ──────────────────────────────────────────────────────────────

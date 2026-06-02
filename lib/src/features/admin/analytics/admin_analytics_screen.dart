@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 import 'package:edu_air/src/features/admin/analytics/application/admin_analytics_provider.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/admin_analytics_header.dart';
+import 'package:edu_air/src/features/admin/analytics/widget/analytics_range_selector.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/staff_consistency_card.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/day_of_week_card.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/export_sf4_button.dart';
@@ -41,8 +42,10 @@ class AdminAnalyticsPage extends ConsumerWidget {
     final schoolName     = homeAsync.whenOrNull(data: (d) => d.schoolName) ?? 'EduAir School';
     final totalStudents  = homeAsync.whenOrNull(data: (d) => d.totalStudents) ?? 0;
 
-    final chronicAbsentees = analyticsAsync.whenOrNull(data: (d) => d.chronicAbsentees) ?? 0;
-    final avgAttendance    = analyticsAsync.whenOrNull(data: (d) => d.avgAttendance) ?? 0.0;
+    // valueOrNull (not whenOrNull) so the numbers hold their last value while a
+    // range switch refetches, instead of flashing back to 0 / 0.0% mid-load.
+    final chronicAbsentees = analyticsAsync.valueOrNull?.chronicAbsentees ?? 0;
+    final avgAttendance    = analyticsAsync.valueOrNull?.avgAttendance ?? 0.0;
 
     return Scaffold(
       body: SafeArea(
@@ -55,7 +58,11 @@ class AdminAnalyticsPage extends ConsumerWidget {
                 schoolName: schoolName,
                 onOpenDrawer: onOpenDrawer,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // ── Control panel: 30D / 90D / Term drives every card below ───
+              const AnalyticsRangeSelector(),
+              const SizedBox(height: 16),
 
               // ── Summary stat chips ────────────────────────────────────────
               Row(
@@ -264,9 +271,10 @@ class AdminAnalyticsPage extends ConsumerWidget {
 }
 
 // ─── Attendance Trends Card ────────────────────────────────────────────────────
-// ConsumerStatefulWidget so it can watch analyticsTrendsProvider with the
-// selected days key and rebuild when the user taps a tab.
-class _AttendanceTrendsCard extends ConsumerStatefulWidget {
+// ConsumerWidget: it no longer owns a range toggle. The window is chosen once on
+// the screen-level control panel (analyticsRangeProvider); this card just watches
+// it, so the chart re-scopes together with every other card.
+class _AttendanceTrendsCard extends ConsumerWidget {
   const _AttendanceTrendsCard({
     required this.totalStudents,
     required this.cs,
@@ -275,32 +283,21 @@ class _AttendanceTrendsCard extends ConsumerStatefulWidget {
   final int totalStudents;
   final ColorScheme cs;
 
-  @override
-  ConsumerState<_AttendanceTrendsCard> createState() =>
-      _AttendanceTrendsCardState();
-}
-
-class _AttendanceTrendsCardState extends ConsumerState<_AttendanceTrendsCard> {
-  int _selected = 0; // 0=30D, 1=90D, 2=Term
-
-  static const _ranges    = ['30D', '90D', 'Term'];
-  static const _daysKeys  = ['30',  '90',  'term'];
-
-  static const _barColors = [
-    Color(0xFF0059BA), // 30D — blue
-    Color(0xFF2E7D32), // 90D — green
-    Color(0xFF9B51E0), // Term — purple
-  ];
+  // Bar colour keyed by the selected window: 30D blue, 90D green, Term purple.
+  static const _barColorByRange = {
+    '30':   Color(0xFF0059BA),
+    '90':   Color(0xFF2E7D32),
+    'term': Color(0xFF9B51E0),
+  };
 
   static const _dayNames = [
     'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final cs       = widget.cs;
-    final barColor = _barColors[_selected];
-    final daysKey  = _daysKeys[_selected];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final daysKey  = ref.watch(analyticsRangeProvider);
+    final barColor = _barColorByRange[daysKey] ?? _barColorByRange['30']!;
 
     final trendsAsync = ref.watch(analyticsTrendsProvider(daysKey));
 
@@ -321,50 +318,13 @@ class _AttendanceTrendsCardState extends ConsumerState<_AttendanceTrendsCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Attendance Trends',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface,
-                ),
-              ),
-              Row(
-                children: List.generate(_ranges.length, (i) {
-                  final active = _selected == i;
-                  return Padding(
-                    padding: EdgeInsets.only(left: i > 0 ? 4 : 0),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selected = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? _barColors[i]
-                              : cs.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _ranges[i],
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: active ? Colors.white : cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ],
+          Text(
+            'Attendance Trends',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -384,14 +344,19 @@ class _AttendanceTrendsCardState extends ConsumerState<_AttendanceTrendsCard> {
                         style: TextStyle(color: cs.onSurfaceVariant),
                       ),
                     )
-                  : Row(
+                  // Horizontal scroll: 90D/Term can return 60–100+ daily bars,
+                  // far wider than any screen. Scrolling keeps the row from
+                  // overflowing instead of clipping bars off the edge.
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: List.generate(data.length, (i) {
                         final point = data[i];
-                        final barHeight = widget.totalStudents > 0
+                        final barHeight = totalStudents > 0
                             ? (point.totalPresent /
-                                    widget.totalStudents *
+                                    totalStudents *
                                     130)
                                 .clamp(0, 130)
                                 .toDouble()
@@ -425,6 +390,7 @@ class _AttendanceTrendsCardState extends ConsumerState<_AttendanceTrendsCard> {
                           ),
                         );
                       }),
+                      ),
                     ),
             ),
           ),

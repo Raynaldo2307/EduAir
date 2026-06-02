@@ -166,9 +166,12 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
         onPressed: _loading ? null : _pickMonth,
         icon: _loading
             ? SizedBox(
@@ -193,7 +196,18 @@ class _ExportSf4ButtonState extends ConsumerState<ExportSf4Button> {
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-      ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // The SF4 is a Ministry form filed per calendar month — it does NOT
+        // follow the 30/90/Term control above. This line stops the admin
+        // expecting the range selector to change what gets exported.
+        Text(
+          'SF4 is submitted by calendar month — not the range above.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
+      ],
     );
   }
 }

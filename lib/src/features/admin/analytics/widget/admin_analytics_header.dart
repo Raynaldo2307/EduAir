@@ -79,10 +79,6 @@ class AdminAnalyticsHeader extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () {},
-          icon: Icon(Icons.calendar_today_outlined, color: cs.onSurface),
-        ),
       ],
     );
   }
