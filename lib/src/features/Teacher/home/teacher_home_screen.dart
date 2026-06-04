@@ -24,6 +24,7 @@ import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_gri
 import 'package:edu_air/src/features/common/widgets/today_classes_section.dart';
 import 'package:edu_air/src/features/common/widgets/upcoming_events_section.dart';
 import 'package:edu_air/src/models/class_session.dart';
+import 'package:edu_air/src/features/timetable/presentation/teacher_timetable_screen.dart';
 
 // Attendance awareness
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
@@ -250,6 +251,10 @@ class TeacherHomeScreen extends ConsumerWidget {
                       Navigator.of(context).pushNamed('/teacherAttendance');
                     } else if (item.label == 'Student Info') {
                       onSelectTab(1);
+                    } else if (item.label == 'Time Table') {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const TeacherTimetableScreen(),
+                      ));
                     }
                   },
                 ),

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
-import 'package:edu_air/src/features/attendance/application/timetable_provider.dart';
 
 /// Time Table tab — shown when the student switches to the "Time Table" tab
 /// on the Calendar screen. Design mirrors the FlutterFlow template reference.
@@ -28,7 +27,12 @@ class TimetableTab extends ConsumerWidget {
     final weekday = now.weekday; // 1 = Mon … 7 = Sun
 
     final className = user?.className ?? 'Your Class';
-    final entries = ref.watch(timetableProvider(weekday));
+
+    // The student's homeroom class id (sent by the API as a string).
+    final classId = int.tryParse(user?.classId ?? '');
+    // Map DateTime.weekday (1=Mon..7=Sun) to the API's day_of_week enum.
+    const dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    final todayKey = dayKeys[weekday - 1];
 
     final dateLabel =
         '${now.day} ${_monthNames[now.month - 1]} ${now.year}';
@@ -112,24 +116,62 @@ class TimetableTab extends ConsumerWidget {
 
         // ── Timeline list or empty state ─────────────────────────────
         Expanded(
-          child: entries.isEmpty
-              ? _buildWeekendState(context, _dayNames[weekday])
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  itemCount: entries.length,
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    final isLast = index == entries.length - 1;
-                    return _TimetableRow(
-                      time: entry.time,
-                      subject: entry.subject,
-                      className: className,
-                      isLast: isLast,
+          child: classId == null
+              ? _buildMessageState(context, Icons.school_outlined,
+                  'No class assigned yet')
+              : ref.watch(timetableByClassProvider(classId)).when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => _buildMessageState(context,
+                      Icons.error_outline, 'Could not load timetable'),
+                  data: (all) {
+                    // Only today's periods, earliest first.
+                    final entries = all
+                        .where((e) => e.dayOfWeek == todayKey)
+                        .toList()
+                      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+                    if (entries.isEmpty) {
+                      return _buildWeekendState(context, _dayNames[weekday]);
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+                        return _TimetableRow(
+                          time: entry.startTime,
+                          subject: entry.subject,
+                          className: className,
+                          isLast: index == entries.length - 1,
+                        );
+                      },
                     );
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  // Generic centred icon + message — for "no class" and load errors.
+  Widget _buildMessageState(BuildContext context, IconData icon, String text) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: cs.onSurface.withValues(alpha: 0.3)),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

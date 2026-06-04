@@ -21,12 +21,17 @@ class AuditLogCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'System Audit Logs',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
+              // Expanded so the title ellipsizes on narrow cards (desktop
+              // 2-column layout) instead of overflowing the Row.
+              Expanded(
+                child: Text(
+                  'System Audit Logs',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
                 ),
               ),
               TextButton(

@@ -13,6 +13,8 @@ import 'package:edu_air/src/features/attendance/data/attendance_api_repository.d
 import 'package:edu_air/src/features/admin/students/data/students_api_repository.dart';
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
+import 'package:edu_air/src/features/timetable/data/timetable_api_repository.dart';
+import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
 import 'package:edu_air/src/features/upload/data/upload_api_repository.dart';
 import 'package:edu_air/src/features/notices/data/notices_api_repository.dart';
@@ -171,6 +173,18 @@ final classesApiRepositoryProvider = Provider<ClassesApiRepository>((ref) {
 /// School classes list — loaded once per admin session for class dropdowns.
 final schoolClassesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.read(classesApiRepositoryProvider).getAll();
+});
+
+/// Timetable API — per-class weekly periods. Admin manages; student/teacher view.
+final timetableApiRepositoryProvider = Provider<TimetableApiRepository>((ref) {
+  return TimetableApiRepository(client: ref.read(apiClientProvider));
+});
+
+/// One class's weekly timetable. Family keyed by class id; autoDispose so it
+/// re-fetches fresh each time a class is opened. Every shell reads this.
+final timetableByClassProvider =
+    FutureProvider.autoDispose.family<List<TimetableEntry>, int>((ref, classId) {
+  return ref.read(timetableApiRepositoryProvider).getByClass(classId);
 });
 
 final noticesApiRepositoryProvider = Provider<NoticesApiRepository>((ref) {

@@ -11,6 +11,7 @@ import 'package:edu_air/src/features/admin/staff/admin_staff_list_page.dart';
 import 'package:edu_air/src/features/admin/staff_attendance/admin_staff_attendance_screen.dart';
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 import 'package:edu_air/src/features/notices/admin_notice_board_screen.dart';
+import 'package:edu_air/src/features/timetable/presentation/admin_timetable_screen.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 
 class AdminResponsiveShell extends ConsumerStatefulWidget {
@@ -94,6 +95,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
             case 8:  return AdminClassesScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 9:  return AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 10: return AdminNoticeBoardScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 11: return AdminTimetableScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             default: return AdminHomeScreen(
               onSelectTab: _onSelectTab,
               onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
@@ -184,8 +186,8 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                       _NavItems(
                                         icon: Icons.calendar_month_outlined,
                                         label: 'Timetable',
-                                        isActive: false,
-                                        onTap: () {},
+                                        isActive: _currentIndex == 11,
+                                        onTap: () => _onSelectTab(11),
                                       ),
                                     ],
                                   ),
