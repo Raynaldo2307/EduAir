@@ -1,12 +1,9 @@
-import 'dart:io';
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html show Blob, Url, AnchorElement;
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
+import 'package:edu_air/src/shared/utils/file_export.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
@@ -176,24 +173,12 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
       final dateStr    = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
       final fileName   = 'AuditLog_${schoolSlug}_$dateStr.csv';
 
-      if (kIsWeb) {
-        // Web: create a blob URL and click an invisible anchor to download.
-        final blob = html.Blob([buf.toString()], 'text/csv');
-        final url  = html.Url.createObjectUrlFromBlob(blob);
-        (html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..click());
-        html.Url.revokeObjectUrl(url);
-      } else {
-        // Mobile: write to temp file and open share sheet.
-        final dir  = await getTemporaryDirectory();
-        final file = File('${dir.path}/$fileName');
-        await file.writeAsString(buf.toString());
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'text/csv')],
-          subject: 'EduAir Audit Log — ${raw.length} records',
-        );
-      }
+      await exportFile(
+        bytes: utf8.encode(buf.toString()),
+        fileName: fileName,
+        mimeType: 'text/csv',
+        subject: 'EduAir Audit Log — ${raw.length} records',
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _exporting = false);
