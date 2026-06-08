@@ -8,6 +8,7 @@ import 'package:edu_air/src/models/app_user.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart';
 import 'package:edu_air/src/features/common/widgets/profile_field.dart';
+import 'package:edu_air/src/shared/utils/profile_photo.dart';
 
 /// Role-aware profile view page.
 ///
@@ -90,9 +91,7 @@ class SharedProfilePage extends ConsumerWidget {
                 name: name,
                 subtitle: subtitle,
                 isDark: isDark,
-                onEditPhoto: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Change photo — coming soon')),
-                ),
+                onEditPhoto: () => pickAndUploadProfilePhoto(context, ref),
               ),
 
               const SizedBox(height: 16),

@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/shared/utils/profile_photo.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart';
@@ -36,87 +35,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _pickAndUploadPhoto() async {
-    // On web, camera is not available — go straight to file picker.
-    ImageSource? source;
-    if (kIsWeb) {
-      source = ImageSource.gallery;
-    } else {
-      source = await showModalBottomSheet<ImageSource>(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  'Update Profile Photo',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  tileColor: Colors.grey.shade100,
-                  leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Take a photo'),
-                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  tileColor: Colors.grey.shade100,
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Choose from gallery'),
-                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    if (source == null || !mounted) return;
-
-    final file = await ImagePicker().pickImage(source: source, imageQuality: 85);
-    if (file == null || !mounted) return;
-
+    // Whole flow (sheet + pick + upload) lives in the shared helper; here we
+    // just drive the avatar's upload spinner around it.
     setState(() => _uploadingPhoto = true);
     try {
-      final repo     = ref.read(uploadApiRepositoryProvider);
-      final photoUrl = await repo.uploadProfilePhoto(file);
-
-      // Update the in-memory user so the avatar refreshes immediately.
-      final current = ref.read(userProvider);
-      if (current != null) {
-        ref.read(userProvider.notifier).state =
-            current.copyWith(photoUrl: photoUrl);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      await pickAndUploadProfilePhoto(context, ref);
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
