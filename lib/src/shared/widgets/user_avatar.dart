@@ -45,9 +45,19 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (photoUrl != null && photoUrl!.isNotEmpty) {
+      // Decode the photo at roughly its on-screen size, NOT full resolution.
+      // A 3000x3000 upload shown in a 40px circle would otherwise decode to
+      // ~36 MB of RAM *each* — across a list of avatars that OOM-kills the app
+      // on a real device. ResizeImage caps the decoded bitmap to the display
+      // size (× devicePixelRatio so it stays crisp on retina screens).
+      final cap = (radius * 2 * MediaQuery.of(context).devicePixelRatio).round();
       return CircleAvatar(
         radius: radius,
-        backgroundImage: NetworkImage(photoUrl!),
+        backgroundImage: ResizeImage(
+          NetworkImage(photoUrl!),
+          width: cap,
+          height: cap,
+        ),
         // Falls back to initials if the image fails to load
         onBackgroundImageError: (_, __) {},
         child: null,

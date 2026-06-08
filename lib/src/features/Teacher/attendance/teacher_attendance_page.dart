@@ -997,7 +997,13 @@ class _StudentAttendanceRow extends StatelessWidget {
     final avatar = student.photoUrl != null && student.photoUrl!.isNotEmpty
         ? CircleAvatar(
             radius: 20,
-            backgroundImage: NetworkImage(student.photoUrl!),
+            // Cap decode to display size (40pt × dpr) so a list of student
+            // photos doesn't OOM the app on a real device.
+            backgroundImage: ResizeImage(
+              NetworkImage(student.photoUrl!),
+              width: (40 * MediaQuery.of(context).devicePixelRatio).round(),
+              height: (40 * MediaQuery.of(context).devicePixelRatio).round(),
+            ),
           )
         : CircleAvatar(
             radius: 20,

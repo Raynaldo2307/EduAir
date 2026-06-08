@@ -164,6 +164,8 @@ Widget _buildEventImage(UpcomingEvent event) {
     return Image.network(
       path,
       fit: BoxFit.cover,
+      // Cap decode width — an event thumbnail never needs full-res in RAM.
+      cacheWidth: 600,
       errorBuilder: (_, __, ___) => _EventFallback(color: event.fallbackColor),
     );
   } else {

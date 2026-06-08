@@ -237,6 +237,8 @@ class _InfoCard extends StatelessWidget {
       return Image.network(
         url,
         fit: BoxFit.cover,
+        // Cap decode width — a card image never needs full-res in RAM.
+        cacheWidth: 600,
         errorBuilder: (_, __, ___) =>
             _FallbackImage(color: card.backgroundColor),
       );

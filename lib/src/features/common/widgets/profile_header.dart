@@ -50,6 +50,11 @@ class ProfileHeader extends StatelessWidget {
               ? Image.network(
                   photoUrl!,
                   fit: BoxFit.cover,
+                  // Decode at the avatar's display size, not full resolution.
+                  cacheWidth:
+                      (avatarSize * MediaQuery.of(context).devicePixelRatio).round(),
+                  cacheHeight:
+                      (avatarSize * MediaQuery.of(context).devicePixelRatio).round(),
                   errorBuilder: (_, __, ___) => const _DefaultAvatar(),
                 )
               : const _DefaultAvatar(),
