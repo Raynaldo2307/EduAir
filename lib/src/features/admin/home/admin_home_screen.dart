@@ -269,7 +269,8 @@ class AdminHomeScreen extends ConsumerWidget {
                         const SizedBox(width: 16),
                         Flexible(child: AttendanceTrendCard(trendData: trendData, trendLabel: trendLabel)),
                         const SizedBox(width: 16),
-                        const Flexible(child: NoticeBoardCard()),
+                        // Desktop: tap the card → Notice Board (Communication, tab 10).
+                        Flexible(child: NoticeBoardCard(onTap: () => onSelectTab(10))),
                       ],
                     );
                   }

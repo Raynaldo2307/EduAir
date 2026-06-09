@@ -5,14 +5,22 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/features/admin/home/widgets/dashboard_card.dart';
 
 class NoticeBoardCard extends ConsumerWidget {
-  const NoticeBoardCard({super.key});
+  const NoticeBoardCard({super.key, this.onTap});
+
+  /// Tapping the card opens the full Notice Board (Communication tab).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs           = Theme.of(context).colorScheme;
     final noticesAsync = ref.watch(noticesProvider);
 
-    return DashboardCard(
+    return GestureDetector(
+      onTap: onTap,
+      // opaque so taps on empty space inside the card still register
+      // (the refresh IconButton keeps its own tap — child wins).
+      behavior: HitTestBehavior.opaque,
+      child: DashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -142,6 +150,7 @@ class NoticeBoardCard extends ConsumerWidget {
             },
           ),
         ],
+      ),
       ),
     );
   }

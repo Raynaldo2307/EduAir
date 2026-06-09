@@ -17,12 +17,14 @@ class NoticesApiRepository {
     required String title,
     required String body,
     required String category,
+    required String targetAudience,
     String? expiresAt,
   }) async {
     final response = await _dio.post('/api/notices', data: {
-      'title':      title,
-      'body':       body,
-      'category':   category,
+      'title':           title,
+      'body':            body,
+      'category':        category,
+      'target_audience': targetAudience,
       if (expiresAt != null) 'expires_at': expiresAt,
     });
     return response.data['id'] as int;

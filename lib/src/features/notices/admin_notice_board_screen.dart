@@ -332,6 +332,7 @@ class _PostNoticeSheetState extends ConsumerState<_PostNoticeSheet> {
   final _titleCtrl = TextEditingController();
   final _bodyCtrl  = TextEditingController();
   String   _category  = 'general';
+  String   _audience  = 'all';
   DateTime? _expiresAt;
   bool     _saving    = false;
   String?  _error;
@@ -342,6 +343,14 @@ class _PostNoticeSheetState extends ConsumerState<_PostNoticeSheet> {
     'event':    'Event',
     'reminder': 'Reminder',
   };
+
+  // "Send to" options — label + icon for the audience cards.
+  static const _audiences = [
+    (key: 'all',      label: 'Everyone', icon: Icons.groups_outlined),
+    (key: 'teachers', label: 'Teachers', icon: Icons.co_present_outlined),
+    (key: 'parents',  label: 'Parents',  icon: Icons.family_restroom_outlined),
+    (key: 'students', label: 'Students', icon: Icons.backpack_outlined),
+  ];
 
   @override
   void dispose() {
@@ -361,9 +370,10 @@ class _PostNoticeSheetState extends ConsumerState<_PostNoticeSheet> {
     setState(() { _saving = true; _error = null; });
     try {
       await ref.read(noticesApiRepositoryProvider).create(
-        title:     title,
-        body:      body,
-        category:  _category,
+        title:          title,
+        body:           body,
+        category:       _category,
+        targetAudience: _audience,
         expiresAt: _expiresAt != null
             ? DateFormat('yyyy-MM-dd').format(_expiresAt!)
             : null,
@@ -484,6 +494,56 @@ class _PostNoticeSheetState extends ConsumerState<_PostNoticeSheet> {
                           color: selected
                               ? cs.onPrimary
                               : cs.onSurface),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Send to (audience) — also picks the FCM push topic later.
+            Text('Send to',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface)),
+            const SizedBox(height: 8),
+            Row(
+              children: _audiences.map((a) {
+                final selected = _audience == a.key;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _audience = a.key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? cs.primary
+                            : cs.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color:
+                                selected ? cs.primary : cs.outlineVariant),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(a.icon,
+                              size: 22,
+                              color: selected
+                                  ? cs.onPrimary
+                                  : cs.onSurfaceVariant),
+                          const SizedBox(height: 6),
+                          Text(a.label,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: selected
+                                      ? cs.onPrimary
+                                      : cs.onSurface)),
+                        ],
+                      ),
                     ),
                   ),
                 );
