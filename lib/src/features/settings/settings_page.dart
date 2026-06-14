@@ -9,6 +9,7 @@ import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart';
 import 'package:edu_air/src/features/common/pages/shared_profile_page.dart';
 import 'package:edu_air/src/features/auth/reset_password_page.dart';
+import 'package:edu_air/src/features/bell_schedule/presentation/bell_schedule_config_screen.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -269,7 +270,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       iconBg: const Color(0xFFF8F2DC),
                       iconColor: const Color(0xFFB7791F),
                       label: 'Shift Settings',
-                      onTap: () => _showComingSoon(context, 'Shift Settings'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BellScheduleConfigScreen(),
+                        ),
+                      ),
                     ),
                   ],
                 ),

@@ -12,6 +12,7 @@ import 'package:edu_air/src/features/admin/staff_attendance/admin_staff_attendan
 import 'package:edu_air/src/features/admin/students/admin_student_list_page.dart';
 import 'package:edu_air/src/features/notices/admin_notice_board_screen.dart';
 import 'package:edu_air/src/features/timetable/presentation/admin_timetable_screen.dart';
+import 'package:edu_air/src/features/bell_schedule/presentation/bell_schedule_config_screen.dart';
 import 'package:edu_air/src/features/settings/settings_page.dart';
 
 class AdminResponsiveShell extends ConsumerStatefulWidget {
@@ -96,6 +97,7 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
             case 9:  return AdminStaffAttendanceScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 10: return AdminNoticeBoardScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             case 11: return AdminTimetableScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
+            case 12: return BellScheduleConfigScreen(onBackToHome: isDesktop ? null : () => _onSelectTab(0));
             default: return AdminHomeScreen(
               onSelectTab: _onSelectTab,
               onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
@@ -188,6 +190,12 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                                         label: 'Timetable',
                                         isActive: _currentIndex == 11,
                                         onTap: () => _onSelectTab(11),
+                                      ),
+                                      _NavItems(
+                                        icon: Icons.schedule_outlined,
+                                        label: 'Bell Schedule',
+                                        isActive: _currentIndex == 12,
+                                        onTap: () => _onSelectTab(12),
                                       ),
                                     ],
                                   ),
@@ -374,6 +382,14 @@ class _AdminResponsiveShellState extends ConsumerState<AdminResponsiveShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _onSelectTab(9);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule_outlined),
+                  title: const Text('Bell Schedule'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _onSelectTab(12);
                   },
                 ),
                 ListTile(

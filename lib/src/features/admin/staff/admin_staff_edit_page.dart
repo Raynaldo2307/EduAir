@@ -279,6 +279,8 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
     final cs     = theme.colorScheme;
 
     final classesAsync = ref.watch(schoolClassesProvider);
+    // Whole-day schools have no shifts — hide the Morning/Afternoon picker.
+    final isShiftSchool = ref.watch(userProvider)?.isShiftSchool ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -398,26 +400,31 @@ class _AdminStaffEditPageState extends ConsumerState<AdminStaffEditPage> {
                   const SizedBox(height: 28),
 
                   // ── Shift & Employment ───────────────────────────────
-                  _SectionHeader(title: 'Shift & Employment'),
+                  // Whole-day schools have no shifts, so the section is just
+                  // "Employment" and the shift picker is hidden.
+                  _SectionHeader(
+                      title: isShiftSchool ? 'Shift & Employment' : 'Employment'),
                   const SizedBox(height: 12),
 
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedShift,
-                    decoration: _decoration('Shift'),
-                    dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: cs.onSurface),
-                    items: _shiftOptions.entries
-                        .map((e) => DropdownMenuItem(
-                              value: e.value,
-                              child: Text(e.key),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedShift = v);
-                    },
-                  ),
-                  const SizedBox(height: 14),
+                  if (isShiftSchool) ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedShift,
+                      decoration: _decoration('Shift'),
+                      dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: cs.onSurface),
+                      items: _shiftOptions.entries
+                          .map((e) => DropdownMenuItem(
+                                value: e.value,
+                                child: Text(e.key),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _selectedShift = v);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   DropdownButtonFormField<String>(
                     initialValue: _selectedEmploymentType,

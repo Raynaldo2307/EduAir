@@ -246,6 +246,9 @@ class _AdminStudentEditPageState extends ConsumerState<AdminStudentEditPage> {
     final cs     = theme.colorScheme;
 
     final classesAsync = ref.watch(schoolClassesProvider);
+    // Whole-day schools have no shifts — never show a Morning/Afternoon picker.
+    // The student stays 'whole_day' (the default set in initState).
+    final isShiftSchool = ref.watch(userProvider)?.isShiftSchool ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -361,28 +364,28 @@ class _AdminStudentEditPageState extends ConsumerState<AdminStudentEditPage> {
                     },
                   ),
 
-                  const SizedBox(height: 28),
-
-                  // ── Attendance Shift ─────────────────────────────────
-                  _SectionHeader(title: 'Attendance Shift'),
-                  const SizedBox(height: 12),
-
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedShift,
-                    decoration: _decoration('Shift'),
-                    dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: cs.onSurface),
-                    items: _shiftOptions.entries
-                        .map((e) => DropdownMenuItem<String>(
-                              value: e.value,
-                              child: Text(e.key),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedShift = v);
-                    },
-                  ),
+                  // ── Attendance Shift (shift schools only) ────────────
+                  if (isShiftSchool) ...[
+                    const SizedBox(height: 28),
+                    _SectionHeader(title: 'Attendance Shift'),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedShift,
+                      decoration: _decoration('Shift'),
+                      dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: cs.onSurface),
+                      items: _shiftOptions.entries
+                          .map((e) => DropdownMenuItem<String>(
+                                value: e.value,
+                                child: Text(e.key),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _selectedShift = v);
+                      },
+                    ),
+                  ],
 
                   // In edit mode show current student code (read-only)
                   if (!_isCreateMode &&
