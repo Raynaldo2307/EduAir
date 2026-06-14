@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/data/teacher_attendance_repository.dart';
 import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/data/teacher_attendance_data_source.dart';
@@ -73,12 +72,12 @@ final teacherClassStudentsProvider = FutureProvider.family
       );
     });
 
-/// Loads the attendance status map for a given (school, class, date, shift).
+/// Loads the attendance mark map for a given (school, class, date, shift).
 ///
 /// Returns:
-///   `Map<studentUid, AttendanceStatus>`
+///   `Map<studentUid, TeacherAttendanceMark>` — status + recorded late reason.
 final teacherAttendanceForDateProvider = FutureProvider.family
-    .autoDispose<Map<String, AttendanceStatus>, TeacherAttendanceQuery>((
+    .autoDispose<Map<String, TeacherAttendanceMark>, TeacherAttendanceQuery>((
       ref,
       query,
     ) async {

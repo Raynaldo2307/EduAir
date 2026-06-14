@@ -102,6 +102,33 @@ class TeacherAttendanceStudent {
   }
 }
 
+/// A student's EXISTING attendance mark, loaded from the backend to pre-fill
+/// the teacher roll.
+///
+/// Unlike a bare status, this also carries the late reason and its source so
+/// the UI can show a student's self-reported reason as read-only — a teacher
+/// must not silently overwrite a student's own word (DPA "no silent edits").
+class TeacherAttendanceMark {
+  const TeacherAttendanceMark({
+    required this.status,
+    this.lateReason,
+    this.source,
+  });
+
+  /// Status already on record (present/late/absent/excused).
+  final AttendanceStatus status;
+
+  /// MoEYI late reason code on the existing record, if any.
+  final String? lateReason;
+
+  /// Who set the record: 'studentSelf', 'teacherBatch', 'adminEdit'.
+  final String? source;
+
+  /// True when a reason is already recorded — show it locked, don't edit it
+  /// from the daily roll.
+  bool get hasReason => lateReason != null && lateReason!.isNotEmpty;
+}
+
 /// One row in the teacher's roll for a single student on a specific day.
 ///
 /// This is what the UI builds when the teacher taps "Save Attendance".

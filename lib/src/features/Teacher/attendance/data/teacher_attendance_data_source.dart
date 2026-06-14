@@ -35,8 +35,11 @@ class TeacherAttendanceDataSource {
 
   /// GET /api/attendance?date=&class_id=&shift_type=
   ///
-  /// Returns a map of studentId → AttendanceStatus for pre-filling the roll.
-  Future<Map<String, AttendanceStatus>> fetchAttendanceForClassDate({
+  /// Returns a map of studentId → [TeacherAttendanceMark] for pre-filling the
+  /// roll. The mark carries the existing status AND any late reason + its
+  /// source, so the teacher can SEE a student's self-reported reason instead
+  /// of an empty dropdown.
+  Future<Map<String, TeacherAttendanceMark>> fetchAttendanceForClassDate({
     required String schoolId,
     required TeacherClassOption classOption,
     required String dateKey,
@@ -52,11 +55,15 @@ class TeacherAttendanceDataSource {
     final response = await _dio.get('/api/attendance', queryParameters: params);
     final data = response.data['data'] as List<dynamic>;
 
-    final result = <String, AttendanceStatus>{};
+    final result = <String, TeacherAttendanceMark>{};
     for (final item in data) {
       final studentId = (item['student_id'] ?? '').toString();
       if (studentId.isEmpty) continue;
-      result[studentId] = _statusFromString(item['status'] as String?);
+      result[studentId] = TeacherAttendanceMark(
+        status:     _statusFromString(item['status'] as String?),
+        lateReason: item['late_reason_code']?.toString(),
+        source:     item['source']?.toString(),
+      );
     }
     return result;
   }
@@ -82,6 +89,11 @@ class TeacherAttendanceDataSource {
       return <String, dynamic>{
         'student_id': int.tryParse(e.student.uid) ?? e.student.uid,
         'status':     e.status.name,
+        // Only send a reason when the teacher actually picked one. Sending null
+        // lets the backend's COALESCE preserve a student's self-reported reason
+        // on untouched rows (no silent wipe on Save).
+        if (e.lateReason != null && e.lateReason!.isNotEmpty)
+          'late_reason_code': e.lateReason,
       };
     }).toList();
 

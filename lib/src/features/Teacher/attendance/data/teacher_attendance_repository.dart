@@ -1,4 +1,3 @@
-import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/data/teacher_attendance_data_source.dart';
 import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
 
@@ -32,12 +31,13 @@ class TeacherAttendanceRepository {
     );
   }
 
-  /// Returns a map of studentUid -> AttendanceStatus for a given
+  /// Returns a map of studentUid -> [TeacherAttendanceMark] for a given
   /// school + class + date (+ optional shift).
   ///
-  /// Used to pre-fill the teacher roll screen so existing marks
-  /// are shown as Present/Absent/Late/Excused.
-  Future<Map<String, AttendanceStatus>> getAttendanceForDate({
+  /// Used to pre-fill the teacher roll screen so existing marks are shown as
+  /// Present/Absent/Late/Excused — and so a late student's recorded reason is
+  /// surfaced to the teacher.
+  Future<Map<String, TeacherAttendanceMark>> getAttendanceForDate({
     required String schoolId,
     required TeacherClassOption classOption,
     required String dateKey,

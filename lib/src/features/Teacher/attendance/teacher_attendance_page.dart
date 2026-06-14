@@ -18,7 +18,7 @@ class TeacherAttendancePage extends ConsumerStatefulWidget {
 }
 
 class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
-  static const double _statusColumnWidth = 56;
+  static const double _statusColumnWidth = 44;
   static const List<TeacherClassOption> _fallbackClasses = [
     TeacherClassOption(classId: '7th A', className: '7th A'),
     TeacherClassOption(classId: '7th B', className: '7th B'),
@@ -193,12 +193,12 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
 
   AttendanceStatus? _effectiveStatusForStudent(
     String studentUid,
-    Map<String, AttendanceStatus> attendanceMap,
+    Map<String, TeacherAttendanceMark> attendanceMap,
   ) {
     if (_selectedStatuses.containsKey(studentUid)) {
       return _selectedStatuses[studentUid];
     }
-    final existing = attendanceMap[studentUid];
+    final existing = attendanceMap[studentUid]?.status;
     if (existing == AttendanceStatus.early) {
       return AttendanceStatus.present;
     }
@@ -216,7 +216,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     required String teacherUid,
     required TeacherClassOption classOption,
     required List<TeacherAttendanceStudent> students,
-    required Map<String, AttendanceStatus> existingStatuses,
+    required Map<String, TeacherAttendanceMark> existingStatuses,
   }) async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -231,7 +231,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       for (final student in students) {
         final override = _selectedStatuses[student.uid];
         final existing = existingStatuses[student.uid];
-        final status = override ?? existing ?? AttendanceStatus.absent;
+        final status = override ?? existing?.status ?? AttendanceStatus.absent;
 
         entries.add(
           TeacherAttendanceEntry(
@@ -294,7 +294,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     final selectedClass = _selectedClass;
 
     AsyncValue<List<TeacherAttendanceStudent>>? studentsAsync;
-    AsyncValue<Map<String, AttendanceStatus>>? attendanceAsync;
+    AsyncValue<Map<String, TeacherAttendanceMark>>? attendanceAsync;
 
     if (_selectedTab == 0 &&
         user != null &&
@@ -351,7 +351,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
                                 const <TeacherAttendanceStudent>[],
                             existingStatuses:
                                 attendanceAsync!.value ??
-                                    const <String, AttendanceStatus>{},
+                                    const <String, TeacherAttendanceMark>{},
                           ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
@@ -501,7 +501,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     List<TeacherClassOption> classOptions,
     TeacherClassOption? selectedClass,
     AsyncValue<List<TeacherAttendanceStudent>>? studentsAsync,
-    AsyncValue<Map<String, AttendanceStatus>>? attendanceAsync,
+    AsyncValue<Map<String, TeacherAttendanceMark>>? attendanceAsync,
   ) {
     if (user == null) {
       return const Center(child: Text('Please sign in to view attendance.'));
@@ -545,7 +545,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
 
     final students = studentsAsync.value ?? const <TeacherAttendanceStudent>[];
     final attendanceMap =
-        attendanceAsync.value ?? const <String, AttendanceStatus>{};
+        attendanceAsync.value ?? const <String, TeacherAttendanceMark>{};
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -703,7 +703,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
   Widget _buildTableHeader() {
     final cs = Theme.of(context).colorScheme;
     TextStyle headerStyle = TextStyle(
-      fontSize: 11,
+      fontSize: 10,
       color: cs.onSurface.withValues(alpha: 0.7),
       fontWeight: FontWeight.w600,
     );
@@ -742,7 +742,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
 
   Widget _buildStudentsList(
     List<TeacherAttendanceStudent> students,
-    Map<String, AttendanceStatus> attendanceMap,
+    Map<String, TeacherAttendanceMark> attendanceMap,
   ) {
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 12),
@@ -750,13 +750,22 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final student = students[index];
+        final mark = attendanceMap[student.uid];
         final status = _effectiveStatusForStudent(student.uid, attendanceMap);
+
+        // A reason already on record is shown locked — the teacher must not
+        // silently overwrite a student's self-reported reason from the roll.
+        // Only show the editable dropdown when no reason exists yet.
+        final recordedReason = mark != null && mark.hasReason
+            ? mark.lateReason
+            : null;
 
         return _StudentAttendanceRow(
           student: student,
           status: status,
           statusColumnWidth: _statusColumnWidth,
           lateReason: _lateReasons[student.uid],
+          recordedReason: recordedReason,
           lateReasonOptions: _lateReasonOptions,
           onStatusSelected: (selected) => _toggleStatus(student.uid, selected),
           onLateReasonChanged: (reason) {
@@ -979,6 +988,7 @@ class _StudentAttendanceRow extends StatelessWidget {
     required this.onStatusSelected,
     required this.lateReasonOptions,
     this.lateReason,
+    this.recordedReason,
     this.onLateReasonChanged,
   });
 
@@ -987,8 +997,64 @@ class _StudentAttendanceRow extends StatelessWidget {
   final double statusColumnWidth;
   final ValueChanged<AttendanceStatus> onStatusSelected;
   final String? lateReason;
+
+  /// A late reason already on the student's record (e.g. self-reported at
+  /// clock-in). When set, it's shown locked instead of an editable dropdown.
+  final String? recordedReason;
   final List<Map<String, String>> lateReasonOptions;
   final ValueChanged<String?>? onLateReasonChanged;
+
+  /// Human-readable MoEYI label for a stored reason code.
+  String _labelForCode(String code) {
+    for (final option in lateReasonOptions) {
+      if (option['code'] == code) return option['label'] ?? code;
+    }
+    return code;
+  }
+
+  /// Locked, read-only view of a reason already on the student's record.
+  Widget _buildRecordedReason(BuildContext context, String code) {
+    final cs = Theme.of(context).colorScheme;
+    const accent = Color(0xFFE68A00);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, size: 14, color: accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Late Reason (MoEYI)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: cs.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _labelForCode(code),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1034,6 +1100,8 @@ class _StudentAttendanceRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   student.displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1083,11 +1151,17 @@ class _StudentAttendanceRow extends StatelessWidget {
               ),
             ],
           ),
-          // ASSESSOR POINT 5: This dropdown only appears when status == Late.
-          // Forces the teacher to select a MoEYI reason before saving.
+          // ASSESSOR POINT 5: The late-reason area only appears when status == Late.
+          // If a reason is already on record (e.g. the student self-reported it
+          // at clock-in), it is shown LOCKED — the teacher sees why the student
+          // is late and cannot silently overwrite it (DPA: no silent edits).
+          // Otherwise an editable dropdown forces a MoEYI reason before saving.
           if (status == AttendanceStatus.late) ...[
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
+            if (recordedReason != null)
+              _buildRecordedReason(context, recordedReason!)
+            else
+              DropdownButtonFormField<String>(
               initialValue: lateReason,
               isExpanded: true,
               decoration: InputDecoration(

@@ -61,14 +61,14 @@ class TeacherHomeScreen extends ConsumerWidget {
     // class today.  The provider is a FutureProvider.family.autoDispose, so it:
     //   • reacts automatically when the query key changes
     //   • disposes itself when this widget leaves the tree
-    //   • returns Map<studentUid, AttendanceStatus> — empty = no roll yet
+    //   • returns Map<studentUid, TeacherAttendanceMark> — empty = no roll yet
     //
     final homeroomClassId = user?.homeroomClassId;
     final homeroomClassName = user?.homeroomClassName;
     final schoolId = user?.schoolId;
     final todayKey = AttendanceDay.dateKeyFor(DateTime.now());
 
-    AsyncValue<Map<String, AttendanceStatus>>? rollAsync;
+    AsyncValue<Map<String, TeacherAttendanceMark>>? rollAsync;
 
     final hasHomeroom = homeroomClassId != null &&
         homeroomClassId.isNotEmpty &&
@@ -295,7 +295,7 @@ class TeacherHomeScreen extends ConsumerWidget {
 // Card 2 is always static (homework placeholder).
 
 List<InfoCardData> _buildTeacherHeroCards({
-  required AsyncValue<Map<String, AttendanceStatus>>? rollAsync,
+  required AsyncValue<Map<String, TeacherAttendanceMark>>? rollAsync,
   required String? homeroomClassName,
   required VoidCallback onGoToAttendance,
 }) {
@@ -347,7 +347,7 @@ List<InfoCardData> _buildTeacherHeroCards({
     } else {
       // Roll submitted — count present-like vs total
       final presentCount =
-          rollMap.values.where((s) => s.isPresentLike).length;
+          rollMap.values.where((m) => m.status.isPresentLike).length;
       final totalCount = rollMap.length;
 
       rollCard = InfoCardData(
