@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/splash_page/splash_screen.dart';
 import '../features/onboard_page/onboard_screen.dart';
 import '../features/auth/sign_in_form.dart';
-import '../features/auth/sign_up_form.dart';
+import '../features/registration/presentation/register_institution_page.dart';
 import '../features/shell/select_role.dart';
 import '../features/shell/student_shell.dart';
 import '../features/shell/teacher_shell.dart';
@@ -40,8 +40,8 @@ class AppRouter {
       case '/signin':
         return _fadeRoute(const SignInPage());
 
-      case '/signup':
-        return MaterialPageRoute(builder: (_) => const SignUpPage());
+      case '/register':
+        return _fadeRoute(const RegisterInstitutionPage());
 
       // After user signs in but before we know role
       case '/selectRole':

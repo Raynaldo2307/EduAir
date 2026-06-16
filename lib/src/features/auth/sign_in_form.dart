@@ -1,9 +1,16 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import 'package:edu_air/src/features/auth/sign_up_form.dart';
 import 'package:edu_air/src/features/auth/reset_password_page.dart';
 import 'package:edu_air/src/features/auth/application/auth_notifier.dart';
+import 'package:edu_air/src/features/registration/presentation/register_institution_page.dart';
+
+/// Where the "Register your institution" link sends a principal. School setup is
+/// web-first (D5 in the registration blueprint) — never a thumb-typed mobile
+/// form. NOTE: eduair.com isn't deployed yet (Phase 3); placeholder until then.
+const String _registerInstitutionUrl = 'https://eduair.com/register';
 
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
@@ -24,6 +31,29 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Opens the web registration portal in an external browser. We deliberately
+  /// do NOT build the multi-step school-setup form on mobile — it belongs on a
+  /// laptop (D5). url_launcher hands off to the device's browser.
+  Future<void> _openRegistration() async {
+    // DEV: in debug builds, open the wizard locally so we can review it on a
+    // device without a deployed website. Release builds always redirect to web.
+    if (kDebugMode) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RegisterInstitutionPage()),
+      );
+      return;
+    }
+    final uri = Uri.parse(_registerInstitutionUrl);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open the registration page. Visit eduair.com/register in your browser.'),
+        ),
+      );
+    }
   }
 
   InputDecoration _inputDecoration(
@@ -292,35 +322,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-                      // Sign up row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Don't have an account?",
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: cs.onSurface.withValues(alpha: 0.7),
-                            ),
+                      // ── Register an institution (the only onboarding path) ──
+                      // EduAir accounts are admin-created — users never self-
+                      // register. The single sign-up path is a principal
+                      // onboarding a whole school, and that's web-first, so it
+                      // hands off to the browser rather than a mobile form.
+                      TextButton.icon(
+                        onPressed: _openRegistration,
+                        icon: Icon(Icons.school_outlined,
+                            size: 18, color: cs.onSurface.withValues(alpha: 0.6)),
+                        label: Text(
+                          'School not listed? Register your institution',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SignUpPage(),
-                              ),
-                            ),
-                            child: Text(
-                              'Sign up',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: cs.primary,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
