@@ -82,8 +82,9 @@ class ApiClient {
    //static const _devIp = '192.168.0.112';
    //static const _devIp = '10.0.1.207';
    //static const _devIp = '10.0.1.204';
-   // current network (Mac en1 = 10.0.1.205)
-   static const _devIp = '10.0.1.205';
+   //static const _devIp = '10.0.1.205';
+   // current network (Mac en1 = 192.168.40.171 — home wifi)
+   static const _devIp = '192.168.40.171';
 
 
 
