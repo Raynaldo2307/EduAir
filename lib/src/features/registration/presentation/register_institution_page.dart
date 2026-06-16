@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 
 /// Public school-registration wizard (web-first — see D5 in the registration
@@ -11,19 +14,21 @@ import 'package:edu_air/src/core/app_theme.dart';
 /// motion between steps, and a celebratory payoff at the end.
 ///
 /// MOCK ONLY — answers live in local state; nothing is sent to a backend yet.
-class RegisterInstitutionPage extends StatefulWidget {
+class RegisterInstitutionPage extends ConsumerStatefulWidget {
   const RegisterInstitutionPage({super.key});
 
   @override
-  State<RegisterInstitutionPage> createState() =>
+  ConsumerState<RegisterInstitutionPage> createState() =>
       _RegisterInstitutionPageState();
 }
 
-class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
+class _RegisterInstitutionPageState
+    extends ConsumerState<RegisterInstitutionPage> {
   static const _totalSteps = 3;
 
   int _step = 0;
   bool _done = false;
+  bool _submitting = false;
 
   // ── Step 1: identity ──
   final _schoolName = TextEditingController();
@@ -31,7 +36,8 @@ class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
   String? _parish;
 
   // ── Step 2: operating model ──
-  String _institutionType = 'high_school';
+  // Default to the most common type; value matches the backend enum.
+  String _institutionType = 'secondary';
   String _operatingModel = 'whole_day';
 
   // ── Step 3: campus ──
@@ -44,12 +50,17 @@ class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
     'St. Ann', 'St. Mary', 'Portland', 'St. Thomas',
   ];
 
+  // Wire values MUST match the backend `schools.school_type` enum
+  // (ALLOWED_SCHOOL_TYPES) so they join with no translation — the same
+  // wire-value discipline as the bell slot-types.
   static const _institutionTypes = [
+    (v: 'basic', l: 'Basic School'),
     (v: 'primary', l: 'Primary School'),
-    (v: 'high_school', l: 'High School'),
-    (v: 'tertiary', l: 'Tertiary'),
-    (v: 'vocational', l: 'Vocational / HEART'),
-    (v: 'private', l: 'Private Academy'),
+    (v: 'prep', l: 'Preparatory School'),
+    (v: 'secondary', l: 'High / Secondary School'),
+    (v: 'all_age', l: 'All-Age School'),
+    (v: 'heart_nta', l: 'Vocational / HEART NSTA'),
+    (v: 'other', l: 'Other'),
   ];
 
   static const _operatingModels = [
@@ -77,7 +88,19 @@ class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
     }
   }
 
-  void _next() {
+  // The schema stores a boolean + a default shift, not a 3-way model.
+  // TODO: add an `operating_model` column so Flexible/Block is first-class —
+  // for now it folds into whole-day (but is captured here, not lost silently).
+  (bool isShift, String defaultShift) _shiftFromModel() {
+    switch (_operatingModel) {
+      case 'multi_shift':
+        return (true, 'morning');
+      default: // whole_day + flexible
+        return (false, 'whole_day');
+    }
+  }
+
+  Future<void> _next() async {
     if (!_stepValid()) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please fill in your school name, parish and a valid email.'),
@@ -86,9 +109,42 @@ class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
     }
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
-    } else {
-      setState(() => _done = true); // mock submit
+      return;
     }
+    await _submit(); // last step
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    final (isShift, defaultShift) = _shiftFromModel();
+    try {
+      await ref.read(registrationApiRepositoryProvider).registerSchool(
+            name: _schoolName.text.trim(),
+            parish: _parish!,
+            schoolType: _institutionType,
+            isShiftSchool: isShift,
+            defaultShiftType: defaultShift,
+            radiusMeters: _geofenceRadius.round(),
+          );
+      if (mounted) setState(() { _done = true; _submitting = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errMessage(e))),
+        );
+      }
+    }
+  }
+
+  // Surface the server's {message} (e.g. duplicate-school 409) when present.
+  String _errMessage(Object e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) return data['message'].toString();
+      return 'Could not reach the server. Check your connection and try again.';
+    }
+    return 'Something went wrong. Please try again.';
   }
 
   void _back() {
@@ -311,19 +367,23 @@ class _RegisterInstitutionPageState extends State<RegisterInstitutionPage> {
     final isLast = _step == _totalSteps - 1;
     return Row(
       children: [
-        if (_step > 0)
+        if (_step > 0 && !_submitting)
           TextButton(onPressed: _back, child: const Text('Back')),
         const Spacer(),
         SizedBox(
           height: 50,
           child: FilledButton(
-            onPressed: _next,
+            onPressed: _submitting ? null : _next,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text(isLast ? 'Finish setup' : 'Continue',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: _submitting
+                ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text(isLast ? 'Finish setup' : 'Continue',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
       ],
@@ -603,7 +663,9 @@ class _SuccessPanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              "Your school is ready. We've sent setup details to your administrator email.",
+              // TODO(2b-2): once the secure setup-link email is wired (D6),
+              // restore "We've sent setup details to your administrator email."
+              'Your school is registered. The next step is setting up your administrator login.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, height: 1.4),
             ),

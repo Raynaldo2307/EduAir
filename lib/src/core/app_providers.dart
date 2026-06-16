@@ -14,6 +14,7 @@ import 'package:edu_air/src/features/admin/students/data/students_api_repository
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
 import 'package:edu_air/src/features/timetable/data/timetable_api_repository.dart';
+import 'package:edu_air/src/features/registration/data/registration_api_repository.dart';
 import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
 import 'package:edu_air/src/features/upload/data/upload_api_repository.dart';
@@ -185,6 +186,11 @@ final timetableApiRepositoryProvider = Provider<TimetableApiRepository>((ref) {
 final timetableByClassProvider =
     FutureProvider.autoDispose.family<List<TimetableEntry>, int>((ref, classId) {
   return ref.read(timetableApiRepositoryProvider).getByClass(classId);
+});
+
+/// Public school-registration endpoint (no auth). Used by the onboarding wizard.
+final registrationApiRepositoryProvider = Provider<RegistrationApiRepository>((ref) {
+  return RegistrationApiRepository(client: ref.read(apiClientProvider));
 });
 
 final noticesApiRepositoryProvider = Provider<NoticesApiRepository>((ref) {
