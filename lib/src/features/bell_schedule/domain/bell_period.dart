@@ -1,95 +1,72 @@
-/// The kind of bell a slot is. A school day is not just "periods" — it has
-/// devotion, breaks, lunch and a dismissal bell, and each one needs to say
-/// something different when it notifies ("It's lunch" vs "Devotion starting").
+/// The kind of bell a slot is. Wire values MUST match the backend
+/// `bell_periods.kind` enum exactly (the DB is the source of truth) so they
+/// join with no translation — the same wire-value discipline as before.
 ///
-/// String-backed (`wire`) so it joins the backend later with no translation;
-/// `label` is what the UI shows. `break` is a Dart keyword, hence `breakTime`.
+/// Backend VALID_KINDS = teaching · devotion · assembly · break · lunch · dismissal
 enum BellSlotType {
-  period('period', 'Period'),
+  teaching('teaching', 'Class period'),
+  devotion('devotion', 'Devotion'),
+  assembly('assembly', 'Assembly'),
   breakTime('break', 'Break'),
   lunch('lunch', 'Lunch'),
-  devotion('devotion', 'Devotion'),
   dismissal('dismissal', 'Dismissal');
 
   const BellSlotType(this.wire, this.label);
 
-  final String wire;  // backend / storage value
+  final String wire;  // backend `kind` value
   final String label; // UI text
 
-  /// Only real periods hold a subject. The timetable skips everything else
-  /// (you don't teach Math during lunch).
-  bool get holdsSubject => this == BellSlotType.period;
+  /// Only teaching periods hold a subject; the timetable skips the rest.
+  bool get holdsSubject => this == BellSlotType.teaching;
 
+  /// Parse a backend `kind`. Defaults to teaching so a new/unknown value never
+  /// silently mismaps real seeded data into a break.
   static BellSlotType fromWire(String? w) => BellSlotType.values
-      .firstWhere((t) => t.wire == w, orElse: () => BellSlotType.period);
+      .firstWhere((t) => t.wire == w, orElse: () => BellSlotType.teaching);
 }
 
-/// One slot in a school's bell schedule — a single "bell".
+/// One slot in a shift's bell schedule — a row in the backend `bell_periods`.
 ///
-/// This is the SKELETON the timetable hangs on. A timetable entry does not
-/// store its own times; it points at a [BellPeriod] and says "Monday, this
-/// period = Math". So the times live here, once, and every class that uses
-/// Period 1 shares the exact same 07:00–07:40 — they can never drift.
-///
-/// Designed to JOIN the existing `TimetableEntry` later:
-///   • [shiftType] uses the SAME vocabulary as TimetableEntry / AttendanceDay
-///     ('morning' | 'afternoon' | 'whole_day') — no translation layer needed.
-///   • [startTime]/[endTime] are 'HH:mm' strings, identical to TimetableEntry —
-///     zero-padded so plain string compare also sorts them correctly.
-///   • [id] is the stable key a future TimetableEntry will reference.
-///
-/// There is deliberately NO dayOfWeek here: the bell schedule repeats every
-/// day. Which day a subject is taught lives on the timetable, not the bell.
+/// Belongs to a [shiftId] (NOT a shift string) — the schedule is per-shift.
+/// [position] orders the slots within the shift; [startTime]/[endTime] are
+/// 'HH:mm' strings (the API trims TIME columns for us).
 class BellPeriod {
   const BellPeriod({
     required this.id,
-    required this.shiftType,
-    required this.periodNumber,
+    required this.shiftId,
+    required this.position,
     required this.label,
     required this.startTime,
     required this.endTime,
-    this.type = BellSlotType.period,
+    this.kind = BellSlotType.teaching,
   });
 
-  /// Stable identity. The timetable will reference this.
   final int id;
-
-  /// 'morning' | 'afternoon' | 'whole_day' — matches TimetableEntry exactly.
-  final String shiftType;
-
-  /// Ordinal within the shift (Period 1, 2, 3…). Only meaningful for real
-  /// periods; breaks/devotion/dismissal ignore it.
-  final int periodNumber;
-
-  /// Human label: 'Period 1', 'Devotion', 'Lunch'.
+  final int shiftId;
+  final int position;
   final String label;
-
   final String startTime; // 'HH:mm'
   final String endTime;   // 'HH:mm'
+  final BellSlotType kind;
 
-  /// What kind of bell this is — drives both the notification text and whether
-  /// the timetable can put a subject in it.
-  final BellSlotType type;
-
-  /// "07:00 – 07:40" (matches TimetableEntry.timeRange).
+  /// "07:00 – 07:40"
   String get timeRange => '$startTime – $endTime';
 
-  BellPeriod copyWith({
-    String? shiftType,
-    int? periodNumber,
-    String? label,
-    String? startTime,
-    String? endTime,
-    BellSlotType? type,
-  }) {
+  factory BellPeriod.fromMap(Map<String, dynamic> m) {
+    // API sends TIME as 'HH:mm' already, but trim defensively.
+    String hhmm(Object? t) {
+      final s = (t ?? '').toString();
+      return s.length >= 5 ? s.substring(0, 5) : s;
+    }
+
     return BellPeriod(
-      id: id,
-      shiftType: shiftType ?? this.shiftType,
-      periodNumber: periodNumber ?? this.periodNumber,
-      label: label ?? this.label,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      type: type ?? this.type,
+      id: (m['id'] as num).toInt(),
+      shiftId: (m['shift_id'] as num).toInt(),
+      position: (m['position'] as num?)?.toInt() ?? 0,
+      label: (m['label'] ?? '').toString(),
+      startTime: hhmm(m['start_time']),
+      endTime: hhmm(m['end_time']),
+      kind: BellSlotType.fromWire(m['kind']?.toString()),
     );
   }
 }
