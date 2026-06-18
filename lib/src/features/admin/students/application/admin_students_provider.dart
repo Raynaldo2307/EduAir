@@ -30,7 +30,14 @@ AppUser nodeStudentToAppUser(Map<String, dynamic> d) {
 /// Fetches all active students for the admin's school via the Node API.
 /// Invalidate this provider after any create / update / delete operation
 /// so the list refreshes automatically.
-final schoolStudentsProvider = FutureProvider<List<AppUser>>((ref) async {
+///
+/// autoDispose for multi-tenancy: this list belongs to ONE school (the JWT's).
+/// Without it, the cache outlives the user — log out, log into another school
+/// on the same device, and that school would see the previous school's
+/// students. autoDispose drops the cache when the screen unmounts (tab switch
+/// or logout), so each visit refetches the current school's data.
+final schoolStudentsProvider =
+    FutureProvider.autoDispose<List<AppUser>>((ref) async {
   final repo = ref.read(studentsApiRepositoryProvider);
   final raw  = await repo.getAll();
   return raw.map(nodeStudentToAppUser).toList();
