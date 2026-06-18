@@ -21,6 +21,10 @@ class RegistrationApiRepository {
     required bool isShiftSchool,
     required String defaultShiftType, // 'morning' | 'afternoon' | 'whole_day'
     required int radiusMeters,
+    required String adminFirstName,
+    required String adminLastName,
+    required String adminEmail,
+    required String password,
   }) async {
     await _dio.post('/api/schools', data: {
       'name': name,
@@ -29,6 +33,10 @@ class RegistrationApiRepository {
       'is_shift_school': isShiftSchool,
       'default_shift_type': defaultShiftType,
       'radius_meters': radiusMeters,
+      'admin_first_name': adminFirstName,
+      'admin_last_name': adminLastName,
+      'admin_email': adminEmail,
+      'password': password,
     });
   }
 }

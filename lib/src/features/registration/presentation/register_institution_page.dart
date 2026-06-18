@@ -24,15 +24,15 @@ class RegisterInstitutionPage extends ConsumerStatefulWidget {
 
 class _RegisterInstitutionPageState
     extends ConsumerState<RegisterInstitutionPage> {
-  static const _totalSteps = 3;
+  static const _totalSteps = 4;
 
   int _step = 0;
   bool _done = false;
   bool _submitting = false;
+  bool _obscurePassword = true;
 
-  // ── Step 1: identity ──
+  // ── Step 1: school ──
   final _schoolName = TextEditingController();
-  final _adminEmail = TextEditingController();
   String? _parish;
 
   // ── Step 2: operating model ──
@@ -42,6 +42,13 @@ class _RegisterInstitutionPageState
 
   // ── Step 3: campus ──
   double _geofenceRadius = 200;
+
+  // ── Step 4: administrator account ──
+  final _adminFirstName = TextEditingController();
+  final _adminLastName = TextEditingController();
+  final _adminEmail = TextEditingController();
+  final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
 
   // Jamaica's 14 parishes — a principal picks theirs.
   static const _parishes = [
@@ -72,7 +79,11 @@ class _RegisterInstitutionPageState
   @override
   void dispose() {
     _schoolName.dispose();
+    _adminFirstName.dispose();
+    _adminLastName.dispose();
     _adminEmail.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -80,9 +91,13 @@ class _RegisterInstitutionPageState
   bool _stepValid() {
     switch (_step) {
       case 0:
-        return _schoolName.text.trim().isNotEmpty &&
-            _parish != null &&
-            _adminEmail.text.contains('@');
+        return _schoolName.text.trim().isNotEmpty && _parish != null;
+      case 3: // administrator account
+        return _adminFirstName.text.trim().isNotEmpty &&
+            _adminLastName.text.trim().isNotEmpty &&
+            _adminEmail.text.contains('@') &&
+            _password.text.length >= 8 &&
+            _password.text == _confirmPassword.text;
       default:
         return true; // steps 2 & 3 have sensible defaults
     }
@@ -102,9 +117,10 @@ class _RegisterInstitutionPageState
 
   Future<void> _next() async {
     if (!_stepValid()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please fill in your school name, parish and a valid email.'),
-      ));
+      final msg = _step == 0
+          ? 'Please enter your school name and parish.'
+          : 'Complete all fields — password must be 8+ characters and match.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
     if (_step < _totalSteps - 1) {
@@ -125,6 +141,10 @@ class _RegisterInstitutionPageState
             isShiftSchool: isShift,
             defaultShiftType: defaultShift,
             radiusMeters: _geofenceRadius.round(),
+            adminFirstName: _adminFirstName.text.trim(),
+            adminLastName: _adminLastName.text.trim(),
+            adminEmail: _adminEmail.text.trim(),
+            password: _password.text,
           );
       if (mounted) setState(() { _done = true; _submitting = false; });
     } catch (e) {
@@ -162,7 +182,10 @@ class _RegisterInstitutionPageState
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 900;
             final form = _done
-                ? _SuccessPanel(schoolName: _schoolName.text.trim())
+                ? _SuccessPanel(
+                    schoolName: _schoolName.text.trim(),
+                    adminEmail: _adminEmail.text.trim(),
+                  )
                 : _formPanel(cs);
 
             if (!isWide) {
@@ -239,7 +262,8 @@ class _RegisterInstitutionPageState
     switch (_step) {
       case 0:  return _step1Identity(cs);
       case 1:  return _step2Model(cs);
-      default: return _step3Campus(cs);
+      case 2:  return _step3Campus(cs);
+      default: return _step4Admin(cs);
     }
   }
 
@@ -267,13 +291,6 @@ class _RegisterInstitutionPageState
               .map((p) => DropdownMenuItem(value: p, child: Text(p)))
               .toList(),
           onChanged: (v) => setState(() => _parish = v),
-        ),
-        const SizedBox(height: 14),
-        _Field(
-          controller: _adminEmail,
-          label: 'Administrator email',
-          icon: Icons.email_outlined,
-          keyboardType: TextInputType.emailAddress,
         ),
       ],
     );
@@ -358,6 +375,54 @@ class _RegisterInstitutionPageState
         ),
         Text('How far from the centre still counts as "on campus".',
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+      ],
+    );
+  }
+
+  // ── Step 4: administrator account ──
+  Widget _step4Admin(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepTitle(title: 'Your administrator account',
+            subtitle: "This is the login you'll use to run the school."),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(child: _Field(
+              controller: _adminFirstName, label: 'First name',
+              icon: Icons.person_outline,
+              textCapitalization: TextCapitalization.words,
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: _Field(
+              controller: _adminLastName, label: 'Last name',
+              icon: Icons.person_outline,
+              textCapitalization: TextCapitalization.words,
+            )),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _Field(
+          controller: _adminEmail, label: 'Administrator email',
+          icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 14),
+        _Field(
+          controller: _password, label: 'Password (8+ characters)',
+          icon: Icons.lock_outline, obscureText: _obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(_obscurePassword
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined, size: 20),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _Field(
+          controller: _confirmPassword, label: 'Confirm password',
+          icon: Icons.lock_outline, obscureText: _obscurePassword,
+        ),
       ],
     );
   }
@@ -550,6 +615,8 @@ class _Field extends StatelessWidget {
     required this.icon,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
+    this.obscureText = false,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
@@ -561,15 +628,21 @@ class _Field extends StatelessWidget {
   /// school name. We never FORCE caps; we just help the user type it cleanly.
   final TextCapitalization textCapitalization;
 
+  /// Masks input (passwords). The show/hide toggle is passed as [suffixIcon].
+  final bool obscureText;
+  final Widget? suffixIcon;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
+      obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffixIcon,
         filled: true,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -638,8 +711,9 @@ class _RadioCard extends StatelessWidget {
 // ─── Success payoff ───────────────────────────────────────────────────────────
 
 class _SuccessPanel extends StatelessWidget {
-  const _SuccessPanel({required this.schoolName});
+  const _SuccessPanel({required this.schoolName, required this.adminEmail});
   final String schoolName;
+  final String adminEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -653,19 +727,18 @@ class _SuccessPanel extends StatelessWidget {
             Container(
               width: 88, height: 88,
               decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.10), shape: BoxShape.circle),
-              child: Icon(Icons.check_rounded, size: 48, color: cs.primary),
+              child: Icon(Icons.mark_email_unread_outlined, size: 46, color: cs.primary),
             ),
             const SizedBox(height: 24),
             Text(
-              schoolName.isEmpty ? 'Welcome to EduAir' : 'Welcome to EduAir,\n$schoolName',
+              'Check your email',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface, height: 1.2),
             ),
             const SizedBox(height: 12),
             Text(
-              // TODO(2b-2): once the secure setup-link email is wired (D6),
-              // restore "We've sent setup details to your administrator email."
-              'Your school is registered. The next step is setting up your administrator login.',
+              "We've sent an activation link to $adminEmail. Click it to activate "
+              "${schoolName.isEmpty ? 'your school' : schoolName} — then log in and you're ready.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant, height: 1.4),
             ),
