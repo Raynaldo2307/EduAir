@@ -10,6 +10,7 @@ import 'package:edu_air/src/features/common/pages/shared_profile_edit_page.dart'
 import 'package:edu_air/src/features/common/pages/shared_profile_page.dart';
 import 'package:edu_air/src/features/auth/reset_password_page.dart';
 import 'package:edu_air/src/features/bell_schedule/presentation/bell_schedule_config_screen.dart';
+import 'package:edu_air/src/features/academic_terms/presentation/academic_terms_screen.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -273,6 +274,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const BellScheduleConfigScreen(),
+                        ),
+                      ),
+                    ),
+                    const _Divider(),
+                    _SettingsRow(
+                      icon: Icons.event_outlined,
+                      iconBg: const Color(0xFFEDE7F6),
+                      iconColor: const Color(0xFF6A4FB6),
+                      label: 'Academic Terms',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AcademicTermsScreen(),
                         ),
                       ),
                     ),
