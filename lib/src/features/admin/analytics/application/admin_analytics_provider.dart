@@ -54,11 +54,27 @@ class AdminAnalyticsData {
 
 // ─── Providers ────────────────────────────────────────────────────────────────
 
-// The time window selected on the analytics control panel. Drives every card.
-// Values match the backend ?days= contract: '30' | '90' | 'term'.
+// The time window selected on the analytics control panel. Drives the tab UI
+// and the bar colour. Base values: '30' | '90' | 'term'.
 // autoDispose: resets to the 30-day default each time the admin opens the screen.
 final analyticsRangeProvider =
     StateProvider.autoDispose<String>((ref) => '30');
+
+// Which term the admin picked from the dropdown (only meaningful when the range
+// is 'term'). null = the CURRENT term (the default). autoDispose with the screen.
+final selectedAnalyticsTermProvider =
+    StateProvider.autoDispose<int?>((ref) => null);
+
+// The exact value sent to the backend ?days=. For 30/90 it's just the range;
+// for 'term' it folds in the picked term id ('term:5'), or stays 'term' for the
+// current term. ONE place builds the wire value so every card agrees on the
+// window — change the term and all cards re-fetch together.
+final analyticsDaysParamProvider = Provider.autoDispose<String>((ref) {
+  final range = ref.watch(analyticsRangeProvider);
+  if (range != 'term') return range;
+  final termId = ref.watch(selectedAnalyticsTermProvider);
+  return termId == null ? 'term' : 'term:$termId';
+});
 
 // Fetches all analytics screen data in 5 parallel calls.
 // autoDispose: destroyed when admin leaves the analytics tab — never shows stale numbers.
@@ -66,7 +82,7 @@ final analyticsRangeProvider =
 final adminAnalyticsProvider =
     FutureProvider.autoDispose<AdminAnalyticsData>((ref) async {
   final client = ref.read(apiClientProvider);
-  final days   = ref.watch(analyticsRangeProvider);
+  final days   = ref.watch(analyticsDaysParamProvider);
   final query  = {'days': days};
 
   final results = await Future.wait([

@@ -5,6 +5,7 @@ import 'package:edu_air/src/features/admin/home/application/admin_home_provider.
 import 'package:edu_air/src/features/admin/analytics/application/admin_analytics_provider.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/admin_analytics_header.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/analytics_range_selector.dart';
+import 'package:edu_air/src/features/admin/analytics/widget/analytics_term_picker.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/staff_consistency_card.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/day_of_week_card.dart';
 import 'package:edu_air/src/features/admin/analytics/widget/export_sf4_button.dart';
@@ -62,6 +63,8 @@ class AdminAnalyticsPage extends ConsumerWidget {
 
               // ── Control panel: 30D / 90D / Term drives every card below ───
               const AnalyticsRangeSelector(),
+              // Term picker — appears only under the Term tab (pick which term).
+              const AnalyticsTermPicker(),
               const SizedBox(height: 16),
 
               // ── Summary stat chips ────────────────────────────────────────
@@ -296,10 +299,14 @@ class _AttendanceTrendsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final daysKey  = ref.watch(analyticsRangeProvider);
-    final barColor = _barColorByRange[daysKey] ?? _barColorByRange['30']!;
+    // Colour keys off the base range (30/90/term); the data key carries the
+    // picked term id ('term:5') so the chart scopes to the same term as the
+    // other cards.
+    final daysKey   = ref.watch(analyticsRangeProvider);
+    final daysParam = ref.watch(analyticsDaysParamProvider);
+    final barColor  = _barColorByRange[daysKey] ?? _barColorByRange['30']!;
 
-    final trendsAsync = ref.watch(analyticsTrendsProvider(daysKey));
+    final trendsAsync = ref.watch(analyticsTrendsProvider(daysParam));
 
     return Container(
       padding: const EdgeInsets.all(16),
