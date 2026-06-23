@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
+import 'package:edu_air/src/features/admin/staff/application/admin_staff_provider.dart';
 import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
 import 'package:edu_air/src/features/timetable/presentation/widgets/timetable_week_view.dart';
 
@@ -171,6 +172,7 @@ class _PeriodFormSheetState extends ConsumerState<_PeriodFormSheet> {
   late final TextEditingController _room;
   late String _day;
   late String _shift;
+  int? _teacherId; // teachers.id — null means unassigned
   String? _start; // 'HH:mm'
   String? _end;
   bool _saving = false;
@@ -192,10 +194,11 @@ class _PeriodFormSheetState extends ConsumerState<_PeriodFormSheet> {
     final e = widget.existing;
     _subject = TextEditingController(text: e?.subject ?? '');
     _room    = TextEditingController(text: e?.room ?? '');
-    _day     = e?.dayOfWeek ?? 'mon';
-    _shift   = e?.shiftType ?? 'whole_day';
-    _start   = e?.startTime;
-    _end     = e?.endTime;
+    _day      = e?.dayOfWeek ?? 'mon';
+    _shift    = e?.shiftType ?? 'whole_day';
+    _teacherId = e?.teacherId;
+    _start    = e?.startTime;
+    _end      = e?.endTime;
   }
 
   @override
@@ -228,12 +231,14 @@ class _PeriodFormSheetState extends ConsumerState<_PeriodFormSheet> {
         await repo.update(
           id: widget.existing!.id, subject: subject, dayOfWeek: _day,
           startTime: _start!, endTime: _end!, shiftType: _shift,
+          teacherId: _teacherId,
           room: room.isEmpty ? null : room,
         );
       } else {
         await repo.create(
           classId: widget.classId, subject: subject, dayOfWeek: _day,
           startTime: _start!, endTime: _end!, shiftType: _shift,
+          teacherId: _teacherId,
           room: room.isEmpty ? null : room,
         );
       }
@@ -290,6 +295,36 @@ class _PeriodFormSheetState extends ConsumerState<_PeriodFormSheet> {
               const SizedBox(width: 12),
               Expanded(child: _TimeField(label: 'End', value: _end, onTap: () => _pickTime(isStart: false))),
             ],
+          ),
+          const SizedBox(height: 12),
+
+          // Teacher picker — options come from this school's staff. The dropdown
+          // value is teachers.id (AppUser.uid for staff); null = Unassigned.
+          ref.watch(schoolStaffProvider).when(
+            loading: () => const LinearProgressIndicator(),
+            error: (_, __) => Text('Could not load teachers',
+                style: TextStyle(color: cs.error, fontSize: 13)),
+            data: (staff) {
+              // Guard against an assigned teacher who is no longer in the list
+              // (e.g. soft-deleted) so the Dropdown value stays valid.
+              final ids = staff.map((t) => int.tryParse(t.uid)).toSet();
+              final value = ids.contains(_teacherId) ? _teacherId : null;
+              return DropdownButtonFormField<int?>(
+                initialValue: value,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                    labelText: 'Teacher', border: OutlineInputBorder()),
+                items: [
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('Unassigned')),
+                  ...staff.map((t) => DropdownMenuItem<int?>(
+                        value: int.tryParse(t.uid),
+                        child: Text(t.displayName),
+                      )),
+                ],
+                onChanged: (v) => setState(() => _teacherId = v),
+              );
+            },
           ),
           const SizedBox(height: 12),
 

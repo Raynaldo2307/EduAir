@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
-import 'package:edu_air/src/features/timetable/presentation/widgets/timetable_week_view.dart';
+import 'package:edu_air/src/features/timetable/presentation/widgets/timetable_bubble_week.dart';
 
 /// Read-only weekly timetable for the teacher's homeroom class.
-/// Pushed from the teacher Home "Time Table" tile. No edit/delete — the same
-/// shared [TimetableWeekView] the admin uses, just without action callbacks.
+/// Pushed from the teacher Home "Time Table" tile. Uses the shared
+/// [TimetableBubbleWeek] — the same Mon–Fri bubble view the student sees, so the
+/// two can never drift, with the school's bell events (lunch, break…) woven in.
 class TeacherTimetableScreen extends ConsumerWidget {
   const TeacherTimetableScreen({super.key});
 
@@ -41,7 +42,7 @@ class TeacherTimetableScreen extends ConsumerWidget {
                 ),
               ),
             )
-          : TimetableWeekView(classId: classId),
+          : TimetableBubbleWeek(classId: classId),
     );
   }
 }
