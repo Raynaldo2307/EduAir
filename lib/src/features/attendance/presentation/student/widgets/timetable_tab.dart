@@ -56,7 +56,12 @@ class TimetableTab extends ConsumerWidget {
             ],
           ),
         ),
-        Expanded(child: TimetableBubbleWeek(classId: classId)),
+        Expanded(
+          child: TimetableBubbleWeek(
+            timetableAsync: ref.watch(timetableByClassProvider(classId)),
+            lens: TimetableLens.classView,
+          ),
+        ),
       ],
     );
   }

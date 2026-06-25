@@ -1,5 +1,6 @@
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/utils/initials.dart';
 
 /// Represents a specific class/form a teacher can take attendance for.
 ///
@@ -66,12 +67,9 @@ class TeacherAttendanceStudent {
   /// Sex/gender (expected "M" or "F" after normalization).
   final String? sex;
 
-  /// First letter of the student's name, for fallback avatars.
-  String get initials {
-    final trimmedName = displayName.trim();
-    if (trimmedName.isEmpty) return 'U';
-    return trimmedName.substring(0, 1).toUpperCase();
-  }
+  /// Avatar initials — the one shared rule (2-letter), so the same student gets
+  /// the same avatar colour here as on every other screen.
+  String get initials => initialsFromName(displayName);
 
   /// Build from the core [AppUser] model.
   factory TeacherAttendanceStudent.fromUser(AppUser user) {

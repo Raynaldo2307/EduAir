@@ -66,20 +66,10 @@ final startupRouteProvider = FutureProvider<String>((ref) async {
   try {
     final userData = await authRepo.getMe();
 
-    final profile = AppUser(
-      uid:               userData['id'].toString(),
-      firstName:         userData['firstName']        ?? '',
-      lastName:          userData['lastName']         ?? '',
-      email:             userData['email']            ?? '',
-      phone:             '',
-      role:              userData['role']             ?? '',
-      schoolId:          userData['schoolId']?.toString(),
-      defaultShiftType:  userData['defaultShiftType']  as String?,
-      isShiftSchool:     userData['isShiftSchool']   as bool? ?? false,
-      homeroomClassId:   userData['homeroomClassId']   as String?,
-      homeroomClassName: userData['homeroomClassName'] as String?,
-      photoUrl:          userData['photoUrl']          as String?,
-    );
+    // One parser for the Node user shape — shared with login (auth_notifier).
+    // Two hand-written constructors used to drift (a restored session dropped
+    // classId/currentShift → "No class assigned"); fromMap is the single source.
+    final profile = AppUser.fromMap(userData['id'].toString(), userData);
 
     userNotifier.state = profile;
     dev.log('Session restored for ${profile.email}', name: 'StartupProvider');
@@ -186,6 +176,23 @@ final timetableApiRepositoryProvider = Provider<TimetableApiRepository>((ref) {
 final timetableByClassProvider =
     FutureProvider.autoDispose.family<List<TimetableEntry>, int>((ref, classId) {
   return ref.read(timetableApiRepositoryProvider).getByClass(classId);
+});
+
+/// The logged-in teacher's own periods for one weekday, across all the classes
+/// they teach. Family keyed by weekday code ('mon'..'sun') — the caller passes
+/// the device weekday so the schedule is correct in the school's timezone.
+/// autoDispose so it re-fetches each time the home screen mounts.
+final teachingTodayProvider =
+    FutureProvider.autoDispose.family<List<TimetableEntry>, String>((ref, day) {
+  return ref.read(timetableApiRepositoryProvider).getTeachingToday(day);
+});
+
+/// The logged-in teacher's whole week, across every class they teach. Powers the
+/// teacher timetable screen — scoped to the teacher (by JWT), not a single
+/// class, so a subject teacher sees only her own periods. autoDispose.
+final teachingWeekProvider =
+    FutureProvider.autoDispose<List<TimetableEntry>>((ref) {
+  return ref.read(timetableApiRepositoryProvider).getTeachingWeek();
 });
 
 /// Public school-registration endpoint (no auth). Used by the onboarding wizard.

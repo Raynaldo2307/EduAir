@@ -5,6 +5,13 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/features/bell_schedule/application/bell_schedule_provider.dart';
 import 'package:edu_air/src/features/bell_schedule/domain/bell_period.dart';
 import 'package:edu_air/src/features/bell_schedule/domain/shift.dart';
+import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
+
+/// Which lens the week is rendered through — decides what a period's subtitle
+/// says. A student/admin viewing a class wants the TEACHER's name on each
+/// period; a teacher viewing her own week wants WHICH CLASS each period is (her
+/// own name would be useless on her own dashboard).
+enum TimetableLens { classView, teacherView }
 
 /// Read-only weekly timetable as a vertical-bubble timeline, Monday→Friday.
 ///
@@ -22,9 +29,20 @@ import 'package:edu_air/src/features/bell_schedule/domain/shift.dart';
 /// class's shift to the right bell set; until that migration lands they show
 /// classes only (never the wrong shift's bells).
 class TimetableBubbleWeek extends ConsumerWidget {
-  const TimetableBubbleWeek({super.key, required this.classId});
+  const TimetableBubbleWeek({
+    super.key,
+    required this.timetableAsync,
+    required this.lens,
+  });
 
-  final int classId;
+  /// The week's periods. Watched by the CALLER (each screen does its own
+  /// `ref.watch`) so this widget stays purely presentational — student, teacher
+  /// and admin all feed it through here and can never drift onto different
+  /// layouts. One source, three lenses; the layout is the one source.
+  final AsyncValue<List<TimetableEntry>> timetableAsync;
+
+  /// Whose-eyes lens — drives the per-period subtitle (see [TimetableLens]).
+  final TimetableLens lens;
 
   static const _dayOrder = ['mon', 'tue', 'wed', 'thu', 'fri'];
   static const _dayLabels = {
@@ -34,9 +52,8 @@ class TimetableBubbleWeek extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs            = Theme.of(context).colorScheme;
-    final timetableAsync = ref.watch(timetableByClassProvider(classId));
-    final bells          = _resolveNonTeachingBells(ref);
+    final cs    = Theme.of(context).colorScheme;
+    final bells = _resolveNonTeachingBells(ref);
 
     return timetableAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -53,10 +70,7 @@ class TimetableBubbleWeek extends ConsumerWidget {
                 start: e.startTime,
                 end: e.endTime,
                 title: e.subject,
-                subtitle: [
-                  e.teacherName ?? 'Unassigned',
-                  if (e.room != null && e.room!.isNotEmpty) 'Room ${e.room}',
-                ].join('  ·  '),
+                subtitle: _subtitleFor(e),
                 isBell: false,
               ),
           ];
@@ -97,6 +111,18 @@ class TimetableBubbleWeek extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 24), children: sections);
       },
     );
+  }
+
+  /// A period's secondary line, chosen by lens: the teacher's name when a class
+  /// is being viewed, the class name when a teacher views her own week. Room is
+  /// appended when present.
+  String _subtitleFor(TimetableEntry e) {
+    final lead = switch (lens) {
+      TimetableLens.classView   => e.teacherName ?? 'Unassigned',
+      TimetableLens.teacherView => e.className ?? 'Class',
+    };
+    final hasRoom = e.room != null && e.room!.isNotEmpty;
+    return [lead, if (hasRoom) 'Room ${e.room}'].join('  ·  ');
   }
 
   /// The school's non-teaching bell events for the viewer's shift, or empty when

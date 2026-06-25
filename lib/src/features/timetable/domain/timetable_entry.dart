@@ -14,6 +14,8 @@ class TimetableEntry {
     this.teacherId,
     this.room,
     this.teacherName,
+    this.className,
+    this.gradeLevel,
   });
 
   final int id;
@@ -27,6 +29,13 @@ class TimetableEntry {
   final String? room;
   final String? teacherName;
 
+  // Present only on the teacher lens (teaching-today / teaching-week), where a
+  // period needs to say WHICH class it is. Null on the student getByClass path
+  // (there the class is already the screen's context). gradeLevel is a textual
+  // label from the classes table ("Grade 10"), not a number.
+  final String? className;
+  final String? gradeLevel;
+
   /// "08:00 – 08:40"
   String get timeRange => '$startTime – $endTime';
 
@@ -38,6 +47,8 @@ class TimetableEntry {
     }
 
     final rawTeacher = (m['teacher_name'] as String?)?.trim();
+    final rawClass = (m['class_name'] as String?)?.trim();
+    final rawGrade = m['grade_level']?.toString().trim();
 
     return TimetableEntry(
       id:          (m['id'] as num).toInt(),
@@ -50,6 +61,8 @@ class TimetableEntry {
       shiftType:   (m['shift_type'] ?? 'whole_day').toString(),
       room:        m['room']?.toString(),
       teacherName: (rawTeacher == null || rawTeacher.isEmpty) ? null : rawTeacher,
+      className:   (rawClass == null || rawClass.isEmpty) ? null : rawClass,
+      gradeLevel:  (rawGrade == null || rawGrade.isEmpty) ? null : rawGrade,
     );
   }
 }

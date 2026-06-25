@@ -5,6 +5,7 @@ import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/models/app_user.dart';
 import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/shared/utils/initials.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -260,11 +261,7 @@ class _StudentTile extends StatelessWidget {
   final String? dateOfBirth;
 
   String get _displayName => '$firstName $lastName'.trim();
-  String get _initials {
-    final f = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
-    final l = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
-    return '$f$l'.isNotEmpty ? '$f$l' : '?';
-  }
+  String get _initials => initialsFromName(_displayName);
 
   @override
   Widget build(BuildContext context) {

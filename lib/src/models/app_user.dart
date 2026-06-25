@@ -1,5 +1,7 @@
 // lib/src/models/app_user.dart
 
+import 'package:edu_air/src/shared/utils/initials.dart';
+
 class AppUser {
   final String uid;
   final String firstName;
@@ -8,6 +10,11 @@ class AppUser {
   final String phone;
   final String role; // student | teacher | parent | admin
   final String? schoolId;
+
+  /// Human-readable school name from the schools table (via API join).
+  /// Shown in headers/settings. Replaces hardcoded id→name lookups so it works
+  /// for any registered school, not just the seeded ones.
+  final String? schoolName;
   final String? photoUrl;
 
   /// The school's default shift type — comes from the schools table via API.
@@ -60,6 +67,7 @@ class AppUser {
     required this.phone,
     required this.role,
     this.schoolId,
+    this.schoolName,
     this.photoUrl,
     this.defaultShiftType,
     this.isShiftSchool = false,
@@ -92,12 +100,9 @@ class AppUser {
     return "$firstName $lastName".trim();
   }
 
-  /// ✅ Initials
-  String get initials {
-    String a = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
-    String b = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
-    return (a + b).isNotEmpty ? (a + b) : 'U';
-  }
+  /// ✅ Initials — derived from the one shared rule so the avatar colour for a
+  /// user matches everywhere (see initialsFromName).
+  String get initials => initialsFromName(displayName);
 
   int? get gradeLevelNumber {
     final raw = gradeLevel;
@@ -166,19 +171,25 @@ class AppUser {
       email: (map['email'] ?? "").toString(),
       phone: (map['phone'] ?? "").toString(),
       role: (map['role'] ?? "student").toString(),
-      schoolId: map['schoolId'] as String?,
+      // Node sends ids as numbers; toString() handles both number and string
+      // sources (Firestore-era data was already string) so this is safe for all
+      // callers — never an 'int is not a String?' cast crash.
+      schoolId: map['schoolId']?.toString(),
+      schoolName: map['schoolName'] as String?,
       photoUrl: map['photoUrl'],
+      defaultShiftType: map['defaultShiftType'] as String?,
+      isShiftSchool: map['isShiftSchool'] as bool? ?? false,
       currentShift: normalizedShift,
       gender: map['gender'],
       sex: normalizedSex,
       bio: map['bio'],
       studentId: map['studentId'],
       gradeLevel: gradeLevel,
-      classId: map['classId'] as String?,
+      classId: map['classId']?.toString(),
       className: map['className'] as String?,
       teacherDepartment: map['teacherDepartment'],
       employmentType: map['employmentType'] as String?,
-      homeroomClassId: map['homeroomClassId'] as String?,
+      homeroomClassId: map['homeroomClassId']?.toString(),
       homeroomClassName: map['homeroomClassName'] as String?,
       subjectAssignments: subjectAssignments,
       childrenIds: map['childrenIds'] != null
@@ -207,6 +218,7 @@ class AppUser {
       'phone': phone,
       'role': role,
       'schoolId': schoolId,
+      'schoolName': schoolName,
       'photoUrl': photoUrl,
       'gender': gender,
       'sex': sex,
@@ -247,6 +259,7 @@ class AppUser {
     String? phone,
     String? role,
     String? schoolId,
+    String? schoolName,
     String? photoUrl,
     String? defaultShiftType,
     bool? isShiftSchool,
@@ -281,6 +294,7 @@ class AppUser {
       phone: phone ?? this.phone,
       role: role ?? this.role,
       schoolId: schoolId ?? this.schoolId,
+      schoolName: schoolName ?? this.schoolName,
       photoUrl: photoUrl ?? this.photoUrl,
       defaultShiftType: defaultShiftType ?? this.defaultShiftType,
       isShiftSchool: isShiftSchool ?? this.isShiftSchool,

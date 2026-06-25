@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_air/src/features/admin/home/application/admin_home_provider.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 
 class StaffConsistencyCard extends StatelessWidget {
   const StaffConsistencyCard({super.key, required this.staff});
@@ -55,17 +56,10 @@ class _StaffRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          CircleAvatar(
+          UserAvatar(
+            initials: member.initials,
+            photoUrl: member.photoUrl,
             radius: 20,
-            backgroundColor: cs.secondaryContainer,
-            child: Text(
-              member.initials,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: cs.onSecondaryContainer,
-              ),
-            ),
           ),
           const SizedBox(width: 12),
           Expanded(

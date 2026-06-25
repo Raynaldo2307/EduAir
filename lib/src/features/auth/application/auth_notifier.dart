@@ -50,26 +50,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final role     = userData['role']?.toString()    ?? '';
       final schoolId = userData['schoolId']?.toString();
 
-      _ref.read(userProvider.notifier).state = AppUser(
-        uid:               userData['id'].toString(),
-        firstName:         userData['firstName']        ?? '',
-        lastName:          userData['lastName']         ?? '',
-        email:             userData['email']            ?? '',
-        phone:             '',
-        role:              role,
-        schoolId:          schoolId,
-        defaultShiftType:  userData['defaultShiftType']  as String?,
-        isShiftSchool:     userData['isShiftSchool']     as bool? ?? false,
-        studentId:         userData['studentId']         as String?,
-        currentShift:      userData['currentShift']      as String?,
-        sex:               userData['sex']               as String?,
-        classId:           userData['classId']           as String?,
-        className:         userData['className']         as String?,
-        gradeLevel:        userData['gradeLevel']        as String?,
-        homeroomClassId:   userData['homeroomClassId']   as String?,
-        homeroomClassName: userData['homeroomClassName'] as String?,
-        photoUrl:          userData['photoUrl']          as String?,
-      );
+      // Same parser as startup (app_providers getMe) — single source of truth so
+      // the login and restored-session users can never drift apart again.
+      _ref.read(userProvider.notifier).state =
+          AppUser.fromMap(userData['id'].toString(), userData);
 
       state = state.copyWith(isLoading: false);
 

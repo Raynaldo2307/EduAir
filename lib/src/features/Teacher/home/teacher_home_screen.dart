@@ -22,8 +22,8 @@ import 'package:edu_air/src/shared/widgets/app_greeting_header.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/info_card.dart';
 import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_grid.dart';
 import 'package:edu_air/src/features/common/widgets/today_classes_section.dart';
-import 'package:edu_air/src/features/common/widgets/upcoming_events_section.dart';
 import 'package:edu_air/src/models/class_session.dart';
+import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
 import 'package:edu_air/src/features/timetable/presentation/teacher_timetable_screen.dart';
 
 // Attendance awareness
@@ -35,7 +35,7 @@ class TeacherHomeScreen extends ConsumerWidget {
   const TeacherHomeScreen({super.key, required this.onSelectTab});
 
   /// Callback from the shell to switch bottom nav tab.
-  /// Teacher: 0=Home  1=Students  2=Attendance  3=Settings
+  /// Teacher tabs: 0=Home  1=Students  2=Attendance  3=Notices  4=Settings
   final void Function(int index) onSelectTab;
 
   @override
@@ -51,9 +51,12 @@ class TeacherHomeScreen extends ConsumerWidget {
         ? user!.studentId!
         : '—';
 
-    final department = (user?.teacherDepartment?.trim().isNotEmpty ?? false)
-        ? user!.teacherDepartment!
-        : 'EduAir School';
+    // Header subtitle: real school name + role tag (e.g. "Papine High School ·
+    // Teacher"). schoolName comes from the API now — no hardcoded id→name table.
+    final schoolName = (user?.schoolName?.trim().isNotEmpty ?? false)
+        ? user!.schoolName!
+        : 'EduAir';
+    final subtitle = '$schoolName · ${_roleLabel(user?.role)}';
 
     // ── 2. Attendance-batch-aware roll status hook ────────────────────────────
     //
@@ -152,55 +155,19 @@ class TeacherHomeScreen extends ConsumerWidget {
       ),
     ];
 
-    // ── 5. Today's classes (still demo data) ─────────────────────────────────
-    final now = DateTime.now();
-    DateTime todayAt(int hour, int minute) =>
-        DateTime(now.year, now.month, now.day, hour, minute);
-
-    final todayClasses = [
-      ClassSession(
-        id: 'class-1',
-        subjectName: 'Maths',
-        groupName: '7th B',
-        teacherName: name,
-        startTime: todayAt(10, 30),
-        endTime: todayAt(11, 30),
-        room: 'Room 12',
-        isOnline: false,
-      ),
-      ClassSession(
-        id: 'class-2',
-        subjectName: 'Science',
-        groupName: '9th A',
-        teacherName: name,
-        startTime: todayAt(12, 0),
-        endTime: todayAt(12, 45),
-        room: 'Lab 2',
-        isOnline: true,
-      ),
-    ];
-
-    // ── 6. Upcoming events (shared widget, still demo) ────────────────────────
-    const upcomingEvents = [
-      UpcomingEvent(
-        title: 'Staff meeting',
-        dateLabel: 'Nov 22, 2024',
-        imageUrl: 'assets/images/event_staff_meeting.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-      UpcomingEvent(
-        title: 'Science fair',
-        dateLabel: 'Dec 1, 2024',
-        imageUrl: 'assets/images/event_science_fair.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-      UpcomingEvent(
-        title: 'Parent teacher conference',
-        dateLabel: 'Dec 5, 2024',
-        imageUrl: 'assets/images/event_parent_meeting.png',
-        fallbackColor: Color(0xFFE1F5FE),
-      ),
-    ];
+    // ── 5. Today's classes — the teacher's real periods for today ────────────
+    //
+    // teaching-today is scoped to THIS teacher server-side (by JWT user id),
+    // across every class she teaches. We pass the device weekday so the result
+    // stays correct in the school's timezone. Rows map onto ClassSession.
+    // loading / error / empty all collapse to an empty list — and
+    // TodayClassesSection hides itself on an empty list, so the section simply
+    // doesn't appear. Never demo data, never a broken card.
+    final todayWeekday = _weekdayCode(DateTime.now());
+    final todayClasses = ref.watch(teachingTodayProvider(todayWeekday)).maybeWhen(
+          data: (entries) => entries.map(_entryToSession).toList(),
+          orElse: () => const <ClassSession>[],
+        );
 
     // ── 7. Build the page ─────────────────────────────────────────────────────
     final cs = Theme.of(context).colorScheme;
@@ -217,7 +184,7 @@ class TeacherHomeScreen extends ConsumerWidget {
                 name: name,
                 id: teacherId,
                 initials: user?.initials ?? 'U',
-                subtitle: department,
+                subtitle: subtitle,
                 avatarUrl: user?.photoUrl,
               ),
 
@@ -247,14 +214,24 @@ class TeacherHomeScreen extends ConsumerWidget {
                 child: QuickLinksGrid(
                   links: quickLinks,
                   onItemTap: (context, item) {
-                    if (item.label == 'Attendance') {
-                      Navigator.of(context).pushNamed('/teacherAttendance');
-                    } else if (item.label == 'Student Info') {
-                      onSelectTab(1);
-                    } else if (item.label == 'Time Table') {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const TeacherTimetableScreen(),
-                      ));
+                    // Tiles that map to a bottom-nav tab switch to it (keeps the
+                    // nav bar). Time Table has no tab → push it. Unbuilt features
+                    // say "coming soon" instead of being dead taps.
+                    switch (item.label) {
+                      case 'Attendance':
+                        onSelectTab(2);
+                      case 'Student Info':
+                        onSelectTab(1);
+                      case 'Notice':
+                        onSelectTab(3);
+                      case 'Time Table':
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const TeacherTimetableScreen(),
+                        ));
+                      default:
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${item.label} is coming soon')),
+                        );
                     }
                   },
                 ),
@@ -268,18 +245,56 @@ class TeacherHomeScreen extends ConsumerWidget {
                 onViewAll: () {},
               ),
 
-              const SizedBox(height: 24),
-
-              // Upcoming events
-              UpcomingEventsSection(
-                events: upcomingEvents,
-                onViewAll: () {},
-              ),
+              // Upcoming Events intentionally removed — it showed hardcoded 2024
+              // demo data. Re-add once a real events/notices source exists.
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+// DateTime.weekday is Mon=1..Sun=7 — index into the API's day codes.
+String _weekdayCode(DateTime d) =>
+    const ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][d.weekday - 1];
+
+// Maps one of the teacher's own timetable periods onto the ClassSession the
+// Today's-classes tiles render. The teacher's name is left blank — it's her own
+// dashboard, so the useful label is the CLASS (groupName), not the teacher. The
+// API gives times as 'HH:mm'; we anchor them to today so the tile can show a
+// clock range. No online concept yet → isOnline stays false.
+ClassSession _entryToSession(TimetableEntry e) {
+  final now = DateTime.now();
+  DateTime at(String hhmm) {
+    final parts = hhmm.split(':');
+    final h = int.tryParse(parts.first) ?? 0;
+    final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    return DateTime(now.year, now.month, now.day, h, m);
+  }
+
+  return ClassSession(
+    id: e.id.toString(),
+    subjectName: e.subject,
+    groupName: e.className ?? 'Class',
+    teacherName: '',
+    startTime: at(e.startTime),
+    endTime: at(e.endTime),
+    room: e.room ?? '',
+    isOnline: false,
+  );
+}
+
+// Maps a role code to a display label for the header tag. Generic so the same
+// header reads correctly for any role if reused (student/teacher/admin/…).
+String _roleLabel(String? role) {
+  switch (role) {
+    case 'teacher':   return 'Teacher';
+    case 'admin':     return 'Admin';
+    case 'principal': return 'Principal';
+    case 'student':   return 'Student';
+    case 'parent':    return 'Parent';
+    default:          return 'Staff';
   }
 }
 

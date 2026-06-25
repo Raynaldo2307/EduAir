@@ -23,19 +23,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notifications  = true;
   bool _uploadingPhoto = false;
 
-  String _schoolName(String? schoolId) {
-    switch (schoolId) {
-      case '1':
-        return 'Papine High School';
-      case '2':
-        return 'Maggotty High School';
-      case '3':
-        return 'St. Catherine High School';
-      default:
-        return 'EduAir School';
-    }
-  }
-
   Future<void> _pickAndUploadPhoto() async {
     // Whole flow (sheet + pick + upload) lives in the shared helper; here we
     // just drive the avatar's upload spinner around it.
@@ -86,7 +73,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final isAdminOrPrincipal = user?.isAdminOrPrincipal ?? false;
     final name = user?.displayName ?? 'User';
     final email = user?.email ?? '—';
-    final school = _schoolName(user?.schoolId);
+    final school = (user?.schoolName?.trim().isNotEmpty ?? false)
+        ? user!.schoolName!
+        : 'EduAir School';
     final className = user?.className;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;

@@ -138,6 +138,9 @@ final adminAnalyticsProvider =
       firstName:  m['first_name']  as String? ?? '',
       lastName:   m['last_name']   as String? ?? '',
       department: m['department']  as String? ?? 'General',
+      // Wired forward: faces show once the analytics staff query returns
+      // photo_url (backend follow-up); null today → shared initials avatar.
+      photoUrl:   m['photo_url']   as String?,
     );
   }).toList();
 

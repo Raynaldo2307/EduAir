@@ -8,6 +8,7 @@ import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendanc
 import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_providers.dart';
 import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/widgets/user_avatar.dart';
 
 class TeacherAttendancePage extends ConsumerStatefulWidget {
   const TeacherAttendancePage({super.key});
@@ -1060,28 +1061,14 @@ class _StudentAttendanceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final avatar = student.photoUrl != null && student.photoUrl!.isNotEmpty
-        ? CircleAvatar(
-            radius: 20,
-            // Cap decode to display size (40pt × dpr) so a list of student
-            // photos doesn't OOM the app on a real device.
-            backgroundImage: ResizeImage(
-              NetworkImage(student.photoUrl!),
-              width: (40 * MediaQuery.of(context).devicePixelRatio).round(),
-              height: (40 * MediaQuery.of(context).devicePixelRatio).round(),
-            ),
-          )
-        : CircleAvatar(
-            radius: 20,
-            backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.4),
-            child: Text(
-              student.initials,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
-              ),
-            ),
-          );
+    // Shared avatar: photo when the student has one, else the same per-name
+    // coloured 2-letter initials used on every other screen (handles photo
+    // decode-capping internally to stay memory-safe on device).
+    final avatar = UserAvatar(
+      initials: student.initials,
+      photoUrl: student.photoUrl,
+      radius: 20,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

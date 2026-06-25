@@ -18,7 +18,8 @@ class TeacherShell extends ConsumerStatefulWidget {
 class _TeacherShellState extends ConsumerState<TeacherShell> {
   int _currentIndex = 0;
 
-  /// Allow children to switch tabs (0 = Home, 1 = Student Info, 2 = Messages, 3 = Profile).
+  /// Allow children to switch tabs.
+  /// 0 = Home, 1 = Students, 2 = Attendance, 3 = Notices, 4 = Settings.
   void _onSelectTab(int index) {
     setState(() {
       _currentIndex = index;

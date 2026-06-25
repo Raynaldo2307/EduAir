@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/models/app_user.dart';
+import 'package:edu_air/src/shared/utils/initials.dart';
 import 'package:edu_air/src/features/admin/students/application/admin_students_provider.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -67,11 +68,7 @@ class StaffConsistency {
     this.photoUrl,
   });
 
-  String get initials {
-    String a = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
-    String b = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
-    return (a + b).isNotEmpty ? (a + b) : 'U';
-  }
+  String get initials => initialsFromName('$firstName $lastName');
 }
 
 // One row from the attendance_history table joined with the user who made the change.
