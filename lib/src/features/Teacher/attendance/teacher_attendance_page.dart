@@ -8,7 +8,7 @@ import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendanc
 import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_providers.dart';
 import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
 import 'package:edu_air/src/models/app_user.dart';
-import 'package:edu_air/src/shared/widgets/user_avatar.dart';
+import 'package:edu_air/src/shared/common/attendance/attendance_marking.dart';
 
 class TeacherAttendancePage extends ConsumerStatefulWidget {
   const TeacherAttendancePage({super.key});
@@ -19,7 +19,6 @@ class TeacherAttendancePage extends ConsumerStatefulWidget {
 }
 
 class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
-  static const double _statusColumnWidth = 44;
   static const List<TeacherClassOption> _fallbackClasses = [
     TeacherClassOption(classId: '7th A', className: '7th A'),
     TeacherClassOption(classId: '7th B', className: '7th B'),
@@ -556,7 +555,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
           const SizedBox(height: 8),
           _buildShiftBadge(),
           const SizedBox(height: 8),
-          _buildTableHeader(),
+          const AttendanceColumnHeader(),
           const SizedBox(height: 8),
           Expanded(
             child: students.isEmpty
@@ -701,46 +700,6 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     );
   }
 
-  Widget _buildTableHeader() {
-    final cs = Theme.of(context).colorScheme;
-    TextStyle headerStyle = TextStyle(
-      fontSize: 10,
-      color: cs.onSurface.withValues(alpha: 0.7),
-      fontWeight: FontWeight.w600,
-    );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: cs.outline.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text('Name', style: headerStyle),
-          ),
-          SizedBox(
-            width: _statusColumnWidth,
-            child: Center(child: Text('Present', style: headerStyle)),
-          ),
-          SizedBox(
-            width: _statusColumnWidth,
-            child: Center(child: Text('Absent', style: headerStyle)),
-          ),
-          SizedBox(
-            width: _statusColumnWidth,
-            child: Center(child: Text('Late', style: headerStyle)),
-          ),
-          SizedBox(
-            width: _statusColumnWidth,
-            child: Center(child: Text('Excused', style: headerStyle)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStudentsList(
     List<TeacherAttendanceStudent> students,
     Map<String, TeacherAttendanceMark> attendanceMap,
@@ -761,10 +720,14 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
             ? mark.lateReason
             : null;
 
-        return _StudentAttendanceRow(
-          student: student,
+        return AttendanceStatusRow(
+          data: AttendanceRowData(
+            id: student.uid,
+            displayName: student.displayName,
+            initials: student.initials,
+            photoUrl: student.photoUrl,
+          ),
           status: status,
-          statusColumnWidth: _statusColumnWidth,
           lateReason: _lateReasons[student.uid],
           recordedReason: recordedReason,
           lateReasonOptions: _lateReasonOptions,
@@ -977,232 +940,6 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StudentAttendanceRow extends StatelessWidget {
-  const _StudentAttendanceRow({
-    required this.student,
-    required this.status,
-    required this.statusColumnWidth,
-    required this.onStatusSelected,
-    required this.lateReasonOptions,
-    this.lateReason,
-    this.recordedReason,
-    this.onLateReasonChanged,
-  });
-
-  final TeacherAttendanceStudent student;
-  final AttendanceStatus? status;
-  final double statusColumnWidth;
-  final ValueChanged<AttendanceStatus> onStatusSelected;
-  final String? lateReason;
-
-  /// A late reason already on the student's record (e.g. self-reported at
-  /// clock-in). When set, it's shown locked instead of an editable dropdown.
-  final String? recordedReason;
-  final List<Map<String, String>> lateReasonOptions;
-  final ValueChanged<String?>? onLateReasonChanged;
-
-  /// Human-readable MoEYI label for a stored reason code.
-  String _labelForCode(String code) {
-    for (final option in lateReasonOptions) {
-      if (option['code'] == code) return option['label'] ?? code;
-    }
-    return code;
-  }
-
-  /// Locked, read-only view of a reason already on the student's record.
-  Widget _buildRecordedReason(BuildContext context, String code) {
-    final cs = Theme.of(context).colorScheme;
-    const accent = Color(0xFFE68A00);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_outline, size: 14, color: accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Late Reason (MoEYI)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _labelForCode(code),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Shared avatar: photo when the student has one, else the same per-name
-    // coloured 2-letter initials used on every other screen (handles photo
-    // decode-capping internally to stay memory-safe on device).
-    final avatar = UserAvatar(
-      initials: student.initials,
-      photoUrl: student.photoUrl,
-      radius: 20,
-    );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : AppTheme.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              avatar,
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  student.displayName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: statusColumnWidth,
-                child: Center(
-                  child: _AttendanceIndicator(
-                    selected: status == AttendanceStatus.present,
-                    activeColor: AppTheme.primaryColor,
-                    onTap: () => onStatusSelected(AttendanceStatus.present),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: statusColumnWidth,
-                child: Center(
-                  child: _AttendanceIndicator(
-                    selected: status == AttendanceStatus.absent,
-                    activeColor: AppTheme.danger,
-                    onTap: () => onStatusSelected(AttendanceStatus.absent),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: statusColumnWidth,
-                child: Center(
-                  child: _AttendanceIndicator(
-                    selected: status == AttendanceStatus.late,
-                    activeColor: const Color(0xFFE68A00),
-                    onTap: () => onStatusSelected(AttendanceStatus.late),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: statusColumnWidth,
-                child: Center(
-                  child: _AttendanceIndicator(
-                    selected: status == AttendanceStatus.excused,
-                    activeColor: const Color(0xFFF2B233),
-                    onTap: () => onStatusSelected(AttendanceStatus.excused),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // ASSESSOR POINT 5: The late-reason area only appears when status == Late.
-          // If a reason is already on record (e.g. the student self-reported it
-          // at clock-in), it is shown LOCKED — the teacher sees why the student
-          // is late and cannot silently overwrite it (DPA: no silent edits).
-          // Otherwise an editable dropdown forces a MoEYI reason before saving.
-          if (status == AttendanceStatus.late) ...[
-            const SizedBox(height: 8),
-            if (recordedReason != null)
-              _buildRecordedReason(context, recordedReason!)
-            else
-              DropdownButtonFormField<String>(
-              initialValue: lateReason,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: 'Late Reason (MoEYI)',
-                labelStyle: const TextStyle(fontSize: 12),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                filled: true,
-                fillColor: const Color(0xFFE68A00).withValues(alpha: 0.08),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: const Color(0xFFE68A00).withValues(alpha: 0.4)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: const Color(0xFFE68A00).withValues(alpha: 0.4)),
-                ),
-              ),
-              hint: const Text('Select reason', style: TextStyle(fontSize: 13)),
-              items: lateReasonOptions
-                  .map((option) => DropdownMenuItem<String>(
-                        value: option['code'],
-                        child: Text(option['label']!, style: const TextStyle(fontSize: 13)),
-                      ))
-                  .toList(),
-              onChanged: onLateReasonChanged,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AttendanceIndicator extends StatelessWidget {
-  const _AttendanceIndicator({
-    required this.selected,
-    required this.activeColor,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = selected ? Icons.check_circle : Icons.circle_outlined;
-    final color =
-        selected ? activeColor : AppTheme.outline.withValues(alpha: 0.6);
-
-    return InkResponse(
-      onTap: onTap,
-      radius: 18,
-      child: Icon(icon, size: 22, color: color),
     );
   }
 }
