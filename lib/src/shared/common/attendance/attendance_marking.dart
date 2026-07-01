@@ -41,13 +41,19 @@ const double kAttendanceStatusColumnWidth = 44;
 
 /// The four status columns, in the fixed order shared by every attendance
 /// screen: Present, Absent, Late, Excused.
+///
+/// Pass [counts] to show a live tally beneath each label (coloured to match the
+/// row circles) — the lesson roll does this. Leave it null to show labels only
+/// — the daily register does this. One widget, both behaviours.
 class AttendanceColumnHeader extends StatelessWidget {
   const AttendanceColumnHeader({
     super.key,
     this.columnWidth = kAttendanceStatusColumnWidth,
+    this.counts,
   });
 
   final double columnWidth;
+  final Map<AttendanceStatus, int>? counts;
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +64,25 @@ class AttendanceColumnHeader extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
 
-    Widget col(String label) => SizedBox(
+    Widget col(String label, AttendanceStatus status, Color color) => SizedBox(
           width: columnWidth,
-          child: Center(child: Text(label, style: headerStyle)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: headerStyle),
+              if (counts != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  '${counts![status] ?? 0}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ],
+          ),
         );
 
     return Container(
@@ -70,12 +92,13 @@ class AttendanceColumnHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: Text('Name', style: headerStyle)),
-          col('Present'),
-          col('Absent'),
-          col('Late'),
-          col('Excused'),
+          col('Present', AttendanceStatus.present, AppTheme.primaryColor),
+          col('Absent', AttendanceStatus.absent, AppTheme.danger),
+          col('Late', AttendanceStatus.late, const Color(0xFFE68A00)),
+          col('Excused', AttendanceStatus.excused, const Color(0xFFF2B233)),
         ],
       ),
     );
