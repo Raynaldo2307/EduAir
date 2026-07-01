@@ -24,6 +24,7 @@ import 'package:edu_air/src/features/teacher/home/widgets/teacher_quick_link_gri
 import 'package:edu_air/src/features/common/widgets/today_classes_section.dart';
 import 'package:edu_air/src/models/class_session.dart';
 import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
+import 'package:edu_air/src/features/Teacher/lesson_attendance/presentation/lesson_roll_page.dart';
 import 'package:edu_air/src/features/timetable/presentation/teacher_timetable_screen.dart';
 
 // Attendance awareness
@@ -164,10 +165,13 @@ class TeacherHomeScreen extends ConsumerWidget {
     // TodayClassesSection hides itself on an empty list, so the section simply
     // doesn't appear. Never demo data, never a broken card.
     final todayWeekday = _weekdayCode(DateTime.now());
-    final todayClasses = ref.watch(teachingTodayProvider(todayWeekday)).maybeWhen(
-          data: (entries) => entries.map(_entryToSession).toList(),
-          orElse: () => const <ClassSession>[],
+    // Keep the real periods (not just their display sessions) so a tapped tile
+    // can open THAT period's lesson roll — the tile index maps 1:1 to an entry.
+    final todayEntries = ref.watch(teachingTodayProvider(todayWeekday)).maybeWhen(
+          data: (entries) => entries,
+          orElse: () => const <TimetableEntry>[],
         );
+    final todayClasses = todayEntries.map(_entryToSession).toList();
 
     // ── 7. Build the page ─────────────────────────────────────────────────────
     final cs = Theme.of(context).colorScheme;
@@ -239,10 +243,15 @@ class TeacherHomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // Today's classes
+              // Today's classes — tap a period to open its lesson roll.
               TodayClassesSection(
                 sessions: todayClasses,
                 onViewAll: () {},
+                onTap: (i) {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => LessonRollPage(entry: todayEntries[i]),
+                  ));
+                },
               ),
 
               // Upcoming Events intentionally removed — it showed hardcoded 2024

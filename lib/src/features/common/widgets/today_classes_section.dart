@@ -7,6 +7,7 @@ class TodayClassesSection extends StatelessWidget {
     super.key,
     required this.sessions,
     this.onViewAll,
+    this.onTap,
     this.title = "Today's classes",
     this.showTeacherName =
         false, // you said you DON'T want teacher name for now
@@ -14,6 +15,10 @@ class TodayClassesSection extends StatelessWidget {
 
   final List<ClassSession> sessions;
   final VoidCallback? onViewAll;
+
+  /// Tapped a session — reports its index so the caller can open the matching
+  /// period (e.g. the teacher's lesson roll). Null = tiles are display-only.
+  final ValueChanged<int>? onTap;
   final String title;
   final bool showTeacherName;
 
@@ -65,6 +70,7 @@ class TodayClassesSection extends StatelessWidget {
             return _ClassSessionTile(
               session: session,
               showTeacherName: showTeacherName,
+              onTap: onTap == null ? null : () => onTap!(index),
             );
           },
         ),
@@ -77,10 +83,12 @@ class _ClassSessionTile extends StatelessWidget {
   const _ClassSessionTile({
     required this.session,
     required this.showTeacherName,
+    this.onTap,
   });
 
   final ClassSession session;
   final bool showTeacherName;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +100,10 @@ class _ClassSessionTile extends StatelessWidget {
       elevation: 2,
       borderRadius: BorderRadius.circular(14),
       color: isDark ? AppTheme.darkCard : Colors.white,
-      child: Container(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
@@ -210,6 +221,7 @@ class _ClassSessionTile extends StatelessWidget {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

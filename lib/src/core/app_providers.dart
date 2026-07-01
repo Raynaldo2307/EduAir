@@ -14,6 +14,7 @@ import 'package:edu_air/src/features/admin/students/data/students_api_repository
 import 'package:edu_air/src/features/admin/staff/data/staff_api_repository.dart';
 import 'package:edu_air/src/features/admin/classes/data/classes_api_repository.dart';
 import 'package:edu_air/src/features/timetable/data/timetable_api_repository.dart';
+import 'package:edu_air/src/features/Teacher/lesson_attendance/data/lesson_attendance_api_repository.dart';
 import 'package:edu_air/src/features/registration/data/registration_api_repository.dart';
 import 'package:edu_air/src/features/timetable/domain/timetable_entry.dart';
 import 'package:edu_air/src/features/admin/reports/data/reports_api_repository.dart';
@@ -176,6 +177,14 @@ final timetableApiRepositoryProvider = Provider<TimetableApiRepository>((ref) {
 final timetableByClassProvider =
     FutureProvider.autoDispose.family<List<TimetableEntry>, int>((ref, classId) {
   return ref.read(timetableApiRepositoryProvider).getByClass(classId);
+});
+
+/// Lesson (subject) attendance API — a subject teacher marks one timetable
+/// period. Distinct from the daily register. The roster + prefill providers land
+/// with the lesson-roll screen (next step); this exposes the client.
+final lessonAttendanceApiRepositoryProvider =
+    Provider<LessonAttendanceApiRepository>((ref) {
+  return LessonAttendanceApiRepository(client: ref.read(apiClientProvider));
 });
 
 /// The logged-in teacher's own periods for one weekday, across all the classes
