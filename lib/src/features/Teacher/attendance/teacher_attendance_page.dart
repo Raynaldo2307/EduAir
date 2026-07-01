@@ -547,6 +547,23 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     final attendanceMap =
         attendanceAsync.value ?? const <String, TeacherAttendanceMark>{};
 
+    // Live tally under each column label — a progress check for the teacher.
+    // The register starts unmarked, so an unmarked student counts in no column;
+    // the totals climb as she marks (they only sum to the roster once done).
+    final counts = <AttendanceStatus, int>{
+      for (final st in const [
+        AttendanceStatus.present,
+        AttendanceStatus.absent,
+        AttendanceStatus.late,
+        AttendanceStatus.excused,
+      ])
+        st: students
+            .where(
+              (s) => _effectiveStatusForStudent(s.uid, attendanceMap) == st,
+            )
+            .length,
+    };
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -555,7 +572,7 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
           const SizedBox(height: 8),
           _buildShiftBadge(),
           const SizedBox(height: 8),
-          const AttendanceColumnHeader(),
+          AttendanceColumnHeader(counts: counts),
           const SizedBox(height: 8),
           Expanded(
             child: students.isEmpty
