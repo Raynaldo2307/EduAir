@@ -14,6 +14,7 @@ import 'dart:developer' as dev;
 import 'package:edu_air/src/core/app_theme.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_error_handler.dart';
+import 'package:edu_air/src/features/attendance/domain/attendance_exceptions.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
 import 'package:edu_air/src/features/attendance/widgets/attendance_status_strip.dart';
 import 'package:edu_air/src/features/attendance/widgets/attendance_history_list.dart';
@@ -76,8 +77,12 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
   // ASSESSOR POINT A — Handle Clock In
   // Called when student taps the Clock In button.
   // Checks: is the user logged in? Do they have a school? Is today a school day?
-  // If the student is late, we show a MoEYI reason dialog BEFORE calling the API.
   // GPS location is captured silently — if it fails, we default to 0,0 and still clock in.
+  //
+  // The SERVER is the only judge of late (the device clock is student-fakeable,
+  // and each school's real start time lives in its bell_periods on the backend).
+  // So: submit with no reason → if the server answers LATE_REASON_REQUIRED,
+  // show the MoEYI dialog and resubmit with the chosen reason. On time = one call.
   Future<void> _handleClockIn() async {
     final user = ref.read(userProvider);
     if (user == null) {
@@ -97,30 +102,11 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       return;
     }
 
-    // Decide late status
-    final status = AttendanceDay.resolveStatusFromClockIn(
-      clockIn: now,
-      classStart: DateTime(now.year, now.month, now.day, 8, 0),
-      grace: const Duration(minutes: 30),
-    );
-
-    String? lateReason;
-
-    // If late, ask for a reason BEFORE calling the API
-    if (status == AttendanceStatus.late) {
-      lateReason = await _showLateReasonDialog();
-      if (lateReason == null || lateReason.trim().isEmpty) {
-        _showSnack('Clock in cancelled. Late reason is required.');
-        return;
-      }
-    }
-
     setState(() => _isSubmitting = true);
 
     try {
       dev.log(
-        'Clock-in requested | uid=${user.uid}, now=${now.toIso8601String()}, '
-        'status=${status.name}, lateReason="$lateReason"',
+        'Clock-in requested | uid=${user.uid}, now=${now.toIso8601String()}',
         name: 'StudentAttendance',
       );
 
@@ -136,12 +122,28 @@ class _StudentAttendancePageState extends ConsumerState<StudentAttendancePage> {
       final repo = ref.read(attendanceApiRepositoryProvider);
       final shiftType = AttendanceDay.normalizeShiftType(user.currentShift);
 
-      await repo.clockIn(
-        shiftType: shiftType,
-        lat: location.lat,
-        lng: location.lng,
-        lateReasonCode: lateReason,
-      );
+      try {
+        // First attempt — no reason. The server judges early vs late.
+        await repo.clockIn(
+          shiftType: shiftType,
+          lat: location.lat,
+          lng: location.lng,
+        );
+      } on LateReasonRequiredException {
+        // Server says late (no record written yet) → collect the MoEYI
+        // reason and resubmit the same clock-in with it.
+        final lateReason = await _showLateReasonDialog();
+        if (lateReason == null || lateReason.trim().isEmpty) {
+          _showSnack('Clock in cancelled. Late reason is required.');
+          return;
+        }
+        await repo.clockIn(
+          shiftType: shiftType,
+          lat: location.lat,
+          lng: location.lng,
+          lateReasonCode: lateReason,
+        );
+      }
 
       dev.log('Clock-in success', name: 'StudentAttendance');
 

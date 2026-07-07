@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:dio/dio.dart';
+import 'package:edu_air/src/features/attendance/domain/attendance_exceptions.dart';
 import 'package:edu_air/src/services/api_client.dart';
 
 // ASSESSOR POINT A — Attendance Repository
@@ -98,6 +99,12 @@ class AttendanceApiRepository {
   // The server determines early vs late using Jamaica server time — client cannot fake it.
   // studentId is optional: omit for student self-clock-in (server reads from JWT).
   // Pass studentId when a teacher clocks in on behalf of a student.
+  //
+  // The app does NOT decide late locally (device clocks are fakeable). It
+  // submits with no reason; if the SERVER judges the clock-in late, it answers
+  // 400 + code 'LATE_REASON_REQUIRED' (before writing anything), we throw the
+  // typed [LateReasonRequiredException], and the UI shows the MoEYI reason
+  // dialog and resubmits with the chosen reason.
   Future<Map<String, dynamic>> clockIn({
     int? studentId,
     required String shiftType,
@@ -106,18 +113,27 @@ class AttendanceApiRepository {
     String? lateReasonCode,
     String? deviceId,
   }) async {
-    final response = await _dio.post(
-      '/api/attendance/clock-in',
-      data: {
-        if (studentId != null) 'student_id': studentId,
-        'shift_type': shiftType,
-        'clock_in_lat': lat,
-        'clock_in_lng': lng,
-        if (lateReasonCode != null) 'late_reason_code': lateReasonCode,
-        if (deviceId != null) 'device_id': deviceId,
-      },
-    );
-    return Map<String, dynamic>.from(response.data as Map);
+    try {
+      final response = await _dio.post(
+        '/api/attendance/clock-in',
+        data: {
+          if (studentId != null) 'student_id': studentId,
+          'shift_type': shiftType,
+          'clock_in_lat': lat,
+          'clock_in_lng': lng,
+          if (lateReasonCode != null) 'late_reason_code': lateReasonCode,
+          if (deviceId != null) 'device_id': deviceId,
+        },
+      );
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (e) {
+      // Match on the machine-readable code, never the message text.
+      final data = e.response?.data;
+      if (data is Map && data['code'] == 'LATE_REASON_REQUIRED') {
+        throw const LateReasonRequiredException();
+      }
+      rethrow;
+    }
   }
 
   // ASSESSOR POINT E — Clock Out

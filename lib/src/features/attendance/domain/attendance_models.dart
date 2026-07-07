@@ -447,38 +447,11 @@ class AttendanceDay {
 
   /// Simple helper: is this day tagged as late?
   ///
-  /// (Uses the stored status; the decision should come from [resolveStatusFromClockIn].)
+  /// (Uses the STORED status — the late/early decision is made by the server
+  /// against the school's own bell_periods. The app never judges late locally:
+  /// device clocks are user-fakeable, and the phone doesn't know each school's
+  /// real start time. See _handleClockIn in student_attendance_page.dart.)
   bool get isLate => status == AttendanceStatus.late;
-
-  /// Shared helper to decide `early` vs `late` from a clock-in time.
-  ///
-  /// Rules (Jamaica school context):
-  /// - Class start:        08:00
-  /// - Grace period:       30 minutes
-  /// - Early window:       [08:00, 08:30] (inclusive)
-  /// - Late window:        > 08:30 up to end of school day
-  ///
-  /// Usage (in your service):
-  /// ```dart
-  /// final status = AttendanceDay.resolveStatusFromClockIn(
-  ///   clockIn: now,
-  ///   classStart: DateTime(... 8, 0),
-  ///   grace: const Duration(minutes: 30),
-  /// );
-  /// ```
-  static AttendanceStatus resolveStatusFromClockIn({
-    required DateTime clockIn,
-    required DateTime classStart,
-    required Duration grace,
-  }) {
-    final cutoff = classStart.add(grace);
-
-    // If you ever enable clock-in before classStart, this treats ait as early too.
-    if (clockIn.isBefore(cutoff) || clockIn.isAtSameMomentAs(cutoff)) {
-      return AttendanceStatus.early;
-    }
-    return AttendanceStatus.late;
-  }
 }
 
 // Private sentinel for copyWith.
