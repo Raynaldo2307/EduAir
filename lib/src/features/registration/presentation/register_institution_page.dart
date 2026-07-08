@@ -24,7 +24,7 @@ class RegisterInstitutionPage extends ConsumerStatefulWidget {
 
 class _RegisterInstitutionPageState
     extends ConsumerState<RegisterInstitutionPage> {
-  static const _totalSteps = 4;
+  static const _totalSteps = 5;
 
   int _step = 0;
   bool _done = false;
@@ -40,10 +40,22 @@ class _RegisterInstitutionPageState
   String _institutionType = 'secondary';
   String _operatingModel = 'whole_day';
 
-  // ── Step 3: campus ──
+  // ── Step 3: school hours (Q7 — MANDATORY) ──
+  // This is the school's clock. Whole-Day / Flexible set ONE start/dismiss pair;
+  // Multi-Shift sets a morning pair + an afternoon pair. On activation these
+  // seed shifts + bell_periods, which the attendance engine reads to judge
+  // late/early. Without them a school has no clock — so this step gates "Finish".
+  TimeOfDay? _startWholeDay;
+  TimeOfDay? _dismissWholeDay;
+  TimeOfDay? _startMorning;
+  TimeOfDay? _dismissMorning;
+  TimeOfDay? _startAfternoon;
+  TimeOfDay? _dismissAfternoon;
+
+  // ── Step 4: campus ──
   double _geofenceRadius = 200;
 
-  // ── Step 4: administrator account ──
+  // ── Step 5: administrator account ──
   final _adminFirstName = TextEditingController();
   final _adminLastName = TextEditingController();
   final _adminEmail = TextEditingController();
@@ -92,15 +104,51 @@ class _RegisterInstitutionPageState
     switch (_step) {
       case 0:
         return _schoolName.text.trim().isNotEmpty && _parish != null;
-      case 3: // administrator account
+      case 2: // school hours (Q7) — mandatory
+        return _hoursValid();
+      case 4: // administrator account
         return _adminFirstName.text.trim().isNotEmpty &&
             _adminLastName.text.trim().isNotEmpty &&
             _adminEmail.text.contains('@') &&
             _password.text.length >= 8 &&
             _password.text == _confirmPassword.text;
       default:
-        return true; // steps 2 & 3 have sensible defaults
+        return true; // model + campus steps have sensible defaults
     }
+  }
+
+  // Every required time set, and each dismiss after its start.
+  bool _hoursValid() {
+    if (_operatingModel == 'multi_shift') {
+      return _startMorning != null && _dismissMorning != null &&
+          _startAfternoon != null && _dismissAfternoon != null &&
+          _isBefore(_startMorning!, _dismissMorning!) &&
+          _isBefore(_startAfternoon!, _dismissAfternoon!);
+    }
+    // whole_day + flexible → one pair
+    return _startWholeDay != null && _dismissWholeDay != null &&
+        _isBefore(_startWholeDay!, _dismissWholeDay!);
+  }
+
+  // a strictly before b (same day).
+  bool _isBefore(TimeOfDay a, TimeOfDay b) =>
+      a.hour * 60 + a.minute < b.hour * 60 + b.minute;
+
+  // TimeOfDay → 'HH:MM' (24h) — the shape the backend/bell_periods store.
+  String _hhmm(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  // The clock we send to the backend to seed shifts + bell_periods.
+  List<Map<String, String>> _shiftsPayload() {
+    if (_operatingModel == 'multi_shift') {
+      return [
+        {'shift_type': 'morning', 'start_time': _hhmm(_startMorning!), 'end_time': _hhmm(_dismissMorning!)},
+        {'shift_type': 'afternoon', 'start_time': _hhmm(_startAfternoon!), 'end_time': _hhmm(_dismissAfternoon!)},
+      ];
+    }
+    return [
+      {'shift_type': 'whole_day', 'start_time': _hhmm(_startWholeDay!), 'end_time': _hhmm(_dismissWholeDay!)},
+    ];
   }
 
   // The schema stores a boolean + a default shift, not a 3-way model.
@@ -117,9 +165,11 @@ class _RegisterInstitutionPageState
 
   Future<void> _next() async {
     if (!_stepValid()) {
-      final msg = _step == 0
-          ? 'Please enter your school name and parish.'
-          : 'Complete all fields — password must be 8+ characters and match.';
+      final msg = switch (_step) {
+        0 => 'Please enter your school name and parish.',
+        2 => 'Please set your start and dismiss times — dismiss must be after start.',
+        _ => 'Complete all fields — password must be 8+ characters and match.',
+      };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
@@ -141,6 +191,7 @@ class _RegisterInstitutionPageState
             isShiftSchool: isShift,
             defaultShiftType: defaultShift,
             radiusMeters: _geofenceRadius.round(),
+            shifts: _shiftsPayload(),
             adminFirstName: _adminFirstName.text.trim(),
             adminLastName: _adminLastName.text.trim(),
             adminEmail: _adminEmail.text.trim(),
@@ -262,8 +313,9 @@ class _RegisterInstitutionPageState
     switch (_step) {
       case 0:  return _step1Identity(cs);
       case 1:  return _step2Model(cs);
-      case 2:  return _step3Campus(cs);
-      default: return _step4Admin(cs);
+      case 2:  return _step3Hours(cs);
+      case 3:  return _step4Campus(cs);
+      default: return _step5Admin(cs);
     }
   }
 
@@ -327,8 +379,65 @@ class _RegisterInstitutionPageState
     );
   }
 
-  // ── Step 3 ──
-  Widget _step3Campus(ColorScheme cs) {
+  // ── Step 3: school hours (Q7) ──
+  // The subtitle names WHY this matters so a principal understands the ask.
+  Widget _step3Hours(ColorScheme cs) {
+    final isMultiShift = _operatingModel == 'multi_shift';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepTitle(
+          title: 'When does your school run?',
+          subtitle: isMultiShift
+              ? 'Set each shift\'s start and dismiss time. This is how EduAir knows who\'s on time.'
+              : 'Set your start and dismiss time. This is how EduAir knows who\'s on time.',
+        ),
+        const SizedBox(height: 20),
+        if (isMultiShift) ...[
+          _ShiftHoursGroup(
+            heading: 'Morning shift',
+            start: _startMorning,
+            dismiss: _dismissMorning,
+            onStart: (t) => setState(() => _startMorning = t),
+            onDismiss: (t) => setState(() => _dismissMorning = t),
+          ),
+          const SizedBox(height: 18),
+          _ShiftHoursGroup(
+            heading: 'Afternoon shift',
+            start: _startAfternoon,
+            dismiss: _dismissAfternoon,
+            onStart: (t) => setState(() => _startAfternoon = t),
+            onDismiss: (t) => setState(() => _dismissAfternoon = t),
+          ),
+        ] else
+          _ShiftHoursGroup(
+            heading: 'School day',
+            start: _startWholeDay,
+            dismiss: _dismissWholeDay,
+            onStart: (t) => setState(() => _startWholeDay = t),
+            onDismiss: (t) => setState(() => _dismissWholeDay = t),
+          ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 15, color: cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'A student or staff member who clocks in after the start time '
+                '(plus a short grace) is marked late — measured against these times.',
+                style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant, height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Step 4 ──
+  Widget _step4Campus(ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -379,8 +488,8 @@ class _RegisterInstitutionPageState
     );
   }
 
-  // ── Step 4: administrator account ──
-  Widget _step4Admin(ColorScheme cs) {
+  // ── Step 5: administrator account ──
+  Widget _step5Admin(ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -702,6 +811,101 @@ class _RadioCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── School-hours inputs (Q7) ─────────────────────────────────────────────────
+
+/// A start + dismiss pair under a heading (e.g. "Morning shift", "School day").
+class _ShiftHoursGroup extends StatelessWidget {
+  const _ShiftHoursGroup({
+    required this.heading,
+    required this.start,
+    required this.dismiss,
+    required this.onStart,
+    required this.onDismiss,
+  });
+
+  final String heading;
+  final TimeOfDay? start;
+  final TimeOfDay? dismiss;
+  final ValueChanged<TimeOfDay> onStart;
+  final ValueChanged<TimeOfDay> onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(heading,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _TimePickField(
+              label: 'Start', value: start,
+              icon: Icons.wb_sunny_outlined, onPick: onStart)),
+            const SizedBox(width: 12),
+            Expanded(child: _TimePickField(
+              label: 'Dismiss', value: dismiss,
+              icon: Icons.nightlight_outlined, onPick: onDismiss)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A tappable field that opens the platform time picker. Shows the chosen time
+/// (locale-formatted) or a "Set time" hint until one is picked.
+class _TimePickField extends StatelessWidget {
+  const _TimePickField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onPick,
+  });
+
+  final String label;
+  final TimeOfDay? value;
+  final IconData icon;
+  final ValueChanged<TimeOfDay> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isSet = value != null;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: value ?? const TimeOfDay(hour: 8, minute: 0),
+          helpText: 'Select $label time',
+        );
+        if (picked != null) onPick(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        child: Text(
+          isSet ? value!.format(context) : 'Set time',
+          style: TextStyle(
+            fontSize: 15,
+            color: isSet ? cs.onSurface : cs.onSurfaceVariant,
+            fontWeight: isSet ? FontWeight.w600 : FontWeight.w400,
+          ),
         ),
       ),
     );

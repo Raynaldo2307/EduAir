@@ -21,6 +21,10 @@ class RegistrationApiRepository {
     required bool isShiftSchool,
     required String defaultShiftType, // 'morning' | 'afternoon' | 'whole_day'
     required int radiusMeters,
+    // The school's clock (Q7). Each entry: {shift_type, start_time, end_time}
+    // in 'HH:MM'. On activation the backend seeds shifts + bell_periods from
+    // these — that's what the attendance engine reads to judge late/early.
+    required List<Map<String, String>> shifts,
     required String adminFirstName,
     required String adminLastName,
     required String adminEmail,
@@ -33,6 +37,7 @@ class RegistrationApiRepository {
       'is_shift_school': isShiftSchool,
       'default_shift_type': defaultShiftType,
       'radius_meters': radiusMeters,
+      'shifts': shifts,
       'admin_first_name': adminFirstName,
       'admin_last_name': adminLastName,
       'admin_email': adminEmail,
