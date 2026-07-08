@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:edu_air/src/core/app_error_handler.dart';
 import 'package:edu_air/src/core/app_providers.dart';
 import 'package:edu_air/src/core/app_theme.dart';
+import 'package:edu_air/src/features/attendance/domain/attendance_exceptions.dart';
 import 'package:edu_air/src/features/attendance/domain/attendance_models.dart';
+import 'package:edu_air/src/features/attendance/widgets/attendance_status_strip.dart';
+import 'package:edu_air/src/features/attendance/widgets/clock_button_row.dart';
+import 'package:edu_air/src/features/Teacher/attendance/application/staff_self_attendance_controller.dart';
 import 'package:edu_air/src/features/teacher/attendance/domain/teacher_attendance_models.dart';
 import 'package:edu_air/src/features/teacher/attendance/teacher_attendance_providers.dart';
 import 'package:edu_air/src/features/attendance/application/attendance_error_mapper.dart';
@@ -765,9 +770,168 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
           _buildCalendarCard(context),
           const SizedBox(height: 16),
           _buildSummaryRow(),
+          const SizedBox(height: 16),
+          _buildMyClockBlock(context),
         ],
       ),
     );
+  }
+
+  // ── My clock block — the teacher clocks THEMSELVES in/out ─────────────────
+  // SAME design as the student attendance view: ClockButtonsRow on top,
+  // AttendanceStatusStrip underneath — reusing the student widgets untouched.
+  // Same rules too: the server is the only judge of late. Submit with no
+  // reason → if the server answers LATE_REASON_REQUIRED, show the MoEYI
+  // dialog and resubmit. The phone's clock has no vote.
+  Widget _buildMyClockBlock(BuildContext context) {
+    final selfState = ref.watch(staffSelfAttendanceControllerProvider);
+
+    if (selfState.today.isLoading) {
+      return const AttendanceStatusStrip(today: null);
+    }
+
+    // The staff record carries the same field names as the student one
+    // (status, clock_in, clock_out, is_early_leave, ...) so the student
+    // model + strip render it directly.
+    final record = selfState.record;
+    final todayDay = record != null ? AttendanceDay.fromApiMap(record) : null;
+
+    final now = DateTime.now();
+    final isSchoolDay =
+        now.weekday >= DateTime.monday && now.weekday <= DateTime.friday;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClockButtonsRow(
+          isClockedIn: selfState.hasClockedIn,
+          isClockedOut: selfState.hasClockedOut,
+          isSubmitting: selfState.isSubmitting,
+          onClockIn: _handleSelfClockIn,
+          onClockOut: _handleSelfClockOut,
+        ),
+        const SizedBox(height: 12),
+        AttendanceStatusStrip(
+          today: todayDay,
+          isSchoolDay: isSchoolDay,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleSelfClockIn() async {
+    final controller = ref.read(staffSelfAttendanceControllerProvider.notifier);
+
+    // GPS captured silently — never blocks the clock-in (same as students).
+    AttendanceLocation location;
+    try {
+      location =
+          await ref.read(attendanceGeoServiceProvider).currentAttendanceLocation();
+    } catch (_) {
+      location = const AttendanceLocation(lat: 0, lng: 0);
+    }
+
+    try {
+      try {
+        // First attempt — no reason. The server judges early vs late.
+        await controller.clockIn(lat: location.lat, lng: location.lng);
+      } on LateReasonRequiredException {
+        // Server says late (nothing written yet) → collect the reason, resubmit.
+        final reason = await _showStaffLateReasonDialog();
+        if (reason == null || reason.trim().isEmpty) {
+          _snack('Clock in cancelled. Late reason is required.');
+          return;
+        }
+        await controller.clockIn(
+          lat: location.lat,
+          lng: location.lng,
+          lateReasonCode: reason,
+        );
+      }
+      ref.invalidate(staffMyAttendanceHistoryProvider); // refresh summary counts
+      _snack('Clock in recorded.');
+    } catch (e, st) {
+      _snack(AppErrorHandler.message(e, context: 'StaffClockIn', stackTrace: st));
+    }
+  }
+
+  Future<void> _handleSelfClockOut() async {
+    final controller = ref.read(staffSelfAttendanceControllerProvider.notifier);
+
+    AttendanceLocation location;
+    try {
+      location =
+          await ref.read(attendanceGeoServiceProvider).currentAttendanceLocation();
+    } catch (_) {
+      location = const AttendanceLocation(lat: 0, lng: 0);
+    }
+
+    try {
+      await controller.clockOut(lat: location.lat, lng: location.lng);
+      ref.invalidate(staffMyAttendanceHistoryProvider); // refresh summary counts
+      _snack('Clock out recorded.');
+    } catch (e, st) {
+      _snack(AppErrorHandler.message(e, context: 'StaffClockOut', stackTrace: st));
+    }
+  }
+
+  /// MoEYI reason dialog for a LATE staff clock-in — same Ministry categories
+  /// as students (Ray's ruling: the principal needs the WHY for staff too).
+  Future<String?> _showStaffLateReasonDialog() async {
+    String? selected;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text('Why are you late?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select a reason from the list below:'),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selected,
+                    isExpanded: true,
+                    hint: const Text('Select reason'),
+                    items: _lateReasonOptions
+                        .map((o) => DropdownMenuItem(
+                              value: o['code'],
+                              child: Text(o['label']!),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => selected = v),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(null),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: selected == null
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(selected),
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildCalendarCard(BuildContext context) {
@@ -924,36 +1088,68 @@ class _TeacherAttendancePageState extends ConsumerState<TeacherAttendancePage> {
     );
   }
 
+  // Live counts of MY OWN attendance for the focused calendar month.
+  // Fed by GET /api/staff-attendance/me (staffMyAttendanceHistoryProvider);
+  // the clock handlers invalidate it after a clock-in/out so it stays live.
   Widget _buildSummaryRow() {
-    return const Row(
+    final historyAsync = ref.watch(staffMyAttendanceHistoryProvider);
+
+    // Count records that fall inside the month the calendar is showing.
+    // While loading (or on error) show em-dashes rather than fake zeros.
+    var present = '—', absent = '—', late = '—';
+    final rows = historyAsync.valueOrNull;
+    if (rows != null) {
+      int presentN = 0, absentN = 0, lateN = 0;
+      for (final r in rows) {
+        final date = DateTime.tryParse((r['attendance_date'] ?? '').toString());
+        if (date == null ||
+            date.year != _focusedMonth.year ||
+            date.month != _focusedMonth.month) {
+          continue;
+        }
+        switch (r['status'] as String?) {
+          case 'early' || 'present':
+            presentN++;
+          case 'late':
+            lateN++;
+          case 'absent':
+            absentN++;
+        }
+      }
+      present = '$presentN';
+      absent = '$absentN';
+      late = '$lateN';
+    }
+
+    return Row(
       children: [
         Expanded(
           child: _SummaryCard(
             label: 'Present',
-            value: '—',
+            value: present,
             icon: Icons.person_outline,
-            backgroundColor: Color(0xFFE8F3FF),
-            iconColor: Color(0xFF3B82F6),
+            backgroundColor: const Color(0xFFE8F3FF),
+            iconColor: const Color(0xFF3B82F6),
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
             label: 'Absent',
-            value: '—',
+            value: absent,
             icon: Icons.person_off_outlined,
-            backgroundColor: Color(0xFFFFE8EC),
-            iconColor: Color(0xFFE25563),
+            backgroundColor: const Color(0xFFFFE8EC),
+            iconColor: const Color(0xFFE25563),
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: _SummaryCard(
             label: 'Late',
-            value: '—',
+            value: late,
             icon: Icons.schedule_outlined,
-            backgroundColor: Color(0xFFEDE9FF),
-            iconColor: Color(0xFF7C5CF2),
+            backgroundColor: const Color(0xFFEDE9FF),
+            iconColor: const Color(0xFF7C5CF2),
           ),
         ),
       ],
